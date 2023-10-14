@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <validationRules>
+        <fullName>BAT_ExpressValueRestriction</fullName>
+        <active>true</active>
+        <description>US#79448-Restricting Hyper/Hyper Gratis to IT/ES.
+US#309066 - Added Hyper+ Model restriction to include only IT Market 
+US#530267:ENH:CZ:Added 
+US#1092438
+US#1114667</description>
+        <errorConditionFormula>AND(!$User.Bypass_Validation_Rule__c,OR(AND(OR(AND(ISNEW(),ISPICKVAL(BAT_Model__c,&quot;1.0&quot;)),ISPICKVAL(BAT_Model__c,&quot;LEP Luxury&quot;),ISPICKVAL(BAT_Model__c,&quot;ePod&quot;),ISPICKVAL(BAT_Model__c,&quot;eTank Pro&quot;)
+    ),ISPICKVAL(Country__c,&quot;IT&quot;)),AND(ISPICKVAL(BAT_Model__c,&apos;Hyper&apos;),OR(AND(ISNEW(),$Profile.Name=&apos;BAT Glo Store&apos;),$Profile.Name=&apos;BAT POS Agent - IT&apos;),NOT(ISPICKVAL(Country__c,&apos;UA&apos;)),NOT(ISPICKVAL(Country__c,&apos;ES&apos;)),NOT(ISPICKVAL(Country__c,&apos;GR&apos;)),NOT(ISPICKVAL(Country__c,&apos;RO&apos;)),NOT(ISPICKVAL(Country__c,&apos;KZ&apos;)),NOT(ISPICKVAL(Country__c,&apos;AZ&apos;)),NOT(ISPICKVAL(Country__c,&apos;HR&apos;)),NOT(ISPICKVAL(Country__c,&apos;RS&apos;)),NOT(ISPICKVAL(Country__c,&apos;PL&apos;)),NOT(ISPICKVAL(Country__c,&apos;CZ&apos;))),AND(ISPICKVAL(BAT_Model__c,&apos;Hyper GRATIS&apos;),
+    NOT(ISPICKVAL(Country__c,&apos;RS&apos;)),NOT(ISPICKVAL(Country__c,&apos;IT&apos;))),AND(ISPICKVAL(BAT_Model__c,&apos;eTank Pro&apos;),ISPICKVAL(Country__c,&apos;ES&apos;)),AND(OR(ISPICKVAL(BAT_Model__c,&apos;ePen3&apos;),ISPICKVAL(BAT_Model__c,&apos;eTank Pro&apos;)),
+    ISPICKVAL(Country__c,&apos;GR&apos;)),AND(ISPICKVAL(BAT_Model__c,&apos;Hyper+&apos;),NOT(ISPICKVAL(Country__c,&apos;AZ&apos;)),NOT(ISPICKVAL(Country__c,&apos;RS&apos;)),NOT(ISPICKVAL(Country__c,&apos;CZ&apos;)),NOT(ISPICKVAL(Country__c,&apos;CY&apos;)),NOT(ISPICKVAL(Country__c,&apos;IT&apos;)),NOT(ISPICKVAL(Country__c,&apos;GR&apos;)),NOT(ISPICKVAL(Country__c,&apos;UA&apos;)),NOT(ISPICKVAL(Country__c,&apos;ES&apos;)),NOT(ISPICKVAL(Country__c,&apos;PL&apos;)),NOT(ISPICKVAL(Country__c,&apos;KZ&apos;)),NOT(ISPICKVAL(Country__c,&apos;RO&apos;)),NOT(ISPICKVAL(Country__c,&apos;HR&apos;)),NOT(ISPICKVAL(Country__c,&apos;PT&apos;)),NOT(ISPICKVAL(Country__c,&apos;ZA&apos;)),NOT(ISPICKVAL(Country__c,&apos;DE&apos;))),AND(AND(NOT(AND(OR(
+    ISPICKVAL(BAT_Model__c,&quot;Nano&quot;),ISPICKVAL(BAT_Model__c,&quot;Pro&quot;),ISPICKVAL(BAT_Model__c,&quot;Hyper+&quot;),ISPICKVAL(BAT_Model__c,&quot;Express&quot;),ISPICKVAL(BAT_Model__c,&quot;Hyper+ UNIQ&quot;),ISPICKVAL(BAT_Model__c, &quot;Hyper X2&quot;)),ISPICKVAL(BAT_Brand__c,&quot;Glo&quot;))),NOT(AND(OR(ISPICKVAL(BAT_Model__c,&quot;ePod&quot;),ISPICKVAL(BAT_Model__c,&quot;ePen3&quot;)),
+    ISPICKVAL(BAT_Brand__c,&quot;Vype&quot;))),NOT(AND(OR(ISPICKVAL(BAT_Model__c,&quot;ePod&quot;),ISPICKVAL(BAT_Model__c,&quot;ePen&quot;),ISPICKVAL(BAT_Model__c,&quot;ePod 2&quot;)),ISPICKVAL(BAT_Brand__c,&quot;Vuse&quot;))),NOT(AND(ISPICKVAL(BAT_Model__c,&quot;&quot;),ISPICKVAL(BAT_Brand__c,&quot;&quot;)))),
+    ISPICKVAL(Country__c,&quot;PL&quot;)),AND(AND(NOT(AND(OR(ISPICKVAL(BAT_Model__c,&quot;ePod&quot;),ISPICKVAL(BAT_Model__c ,&quot;ePen&quot;),ISPICKVAL(BAT_Model__c,&quot;ePod 2&quot;),ISPICKVAL(BAT_Model__c,&quot;&quot;)),ISPICKVAL(BAT_Brand__c,&quot;Vuse&quot;))),NOT(AND(OR(ISPICKVAL(BAT_Model__c,&quot;Hyper&quot;),ISPICKVAL(BAT_Model__c,&quot;Hyper+&quot;),ISPICKVAL(BAT_Model__c,&quot;Hyper+ UNIQ&quot;),ISPICKVAL(BAT_Model__c,&quot;Glo X2&quot;),ISPICKVAL(BAT_Model__c,&quot;hyper X2&quot;),ISPICKVAL(BAT_Model__c,&quot;&quot;)),ISPICKVAL(BAT_Brand__c,&quot;Glo&quot;))),
+    NOT(AND(ISPICKVAL(BAT_Model__c,&quot;&quot;),ISPICKVAL(BAT_Brand__c,&quot;&quot;)))),ISPICKVAL(Country__c,&quot;CZ&quot;)),AND(ISPICKVAL(BAT_Model__c,&apos;Hyper Island&apos;),ISPICKVAL(Country__c,&apos;GR&apos;)),AND(ISPICKVAL(BAT_Model__c,&apos;Hyper Native&apos;),NOT(ISPICKVAL(Country__c,&apos;RO&apos;)),NOT(ISPICKVAL(Country__c,&apos;DE&apos;))),AND(ISPICKVAL(BAT_Model__c,&apos;Limited Editions&apos;),NOT(ISPICKVAL(Country__c,&apos;RO&apos;)),NOT(ISPICKVAL(Country__c,&apos;RS&apos;)),NOT(ISPICKVAL(Country__c,&apos;PT&apos;))),AND(ISPICKVAL(Country__c,&apos;SK&apos;),ISPICKVAL(BAT_Brand__c,&quot;Glo&quot;),NOT(ISPICKVAL(BAT_Model__c,&apos;Hyper+ UNIQ&apos;)),NOT(ISPICKVAL(BAT_Model__c,&apos;Glo X2&apos;)))
+))</errorConditionFormula>
+        <errorDisplayField>BAT_Model__c</errorDisplayField>
+        <errorMessage>You are restricted to use this value.</errorMessage>
+    </validationRules>
+</CustomObject>
