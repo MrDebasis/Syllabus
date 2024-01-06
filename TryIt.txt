@@ -1,0 +1,37 @@
+#!/bin/bash
+
+date="$1"
+table_name="table_list.txt"
+execution_status="execution_status.txt"
+
+touch "$execution_status"
+rm temp_file.txt
+touch temp_file.txt
+
+while read -r line; do
+    file_path="/bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/de_vt_${line}*.txt.gz"
+    destination="/bigdata_cnpy/acquisition/12019/serial/inbox/ashm_data_prep/de_vt_${line}_${date}.txt"
+
+    # Check if the file exists
+    if ls $file_path 1> /dev/null 2>&1; then
+        cp "$(ls -t $file_path | head -1)" "$destination"
+        gunzip "$destination"
+
+        count=$(awk -F'A' -v date="$date" '$3 == date {print}' "$destination" | wc -l)
+
+        if [[ "$line" == "de_vc"* ]]; then
+            # Action for de_vc
+            echo "de_vc action for $line"
+        elif [[ "$line" == "de_vt"* ]]; then
+            # Action for de_vt
+            echo "de_vt action for $line"
+        else
+            # Handle other cases
+            echo "Unknown prefix for $line"
+        fi
+
+        echo "Dataprep: $line -> $?" >> "$execution_status"
+    else
+        echo "File not found for $line" >> "$execution_status"
+    fi
+done < "$table_name"
