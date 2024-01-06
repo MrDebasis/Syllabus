@@ -3,7 +3,7 @@
 # picks first argument
 date="$1"
 
-# picks first argument
+# picks second argument
 table_name="$2"
 
 execution_status="execution_status.txt"
@@ -14,7 +14,6 @@ touch temp_file.txt
 while read -r line; do
     file_path="/bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/*$line*.txt.gz"
    
-
     # Check if the file exists
     if ls $file_path 1> /dev/null 2>&1; then
         echo "Processing $line"
@@ -30,9 +29,9 @@ while read -r line; do
 
         if [[ "$serviceComset_filename" == "de_vc"* ]]; then
             # Action for de_vc
-			 destination="/bigdata_cnpy/acquisition/12019/serial/inbox/ashm_data_prep/de_vc_${line}_${date}.txt.gz"
+				
+				destination="/bigdata_cnpy/acquisition/12019/serial/inbox/ashm_data_prep/de_vc_${line}_${date}.txt.gz"
 				cp "$(ls -t $file_path | head -1)" "$destination"
-
 				count=$(awk -F'A' -v date="$date" '$3 == date {print}' "$destination" | wc -l)
 			
             echo "de_vc action for $serviceComset_filename"
