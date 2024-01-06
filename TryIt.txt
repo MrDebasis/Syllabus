@@ -1,11 +1,54 @@
+#!/bin/bash
 
+# picks first argument
+date="$1"
+
+# picks first argument
+table_name="$2"
+
+execution_status="execution_status.txt"
+touch "$execution_status"
+rm temp_file.txt
+touch temp_file.txt
+
+while read -r line; do
+    file_path="/bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/*$line*.txt.gz"
+    destination="/bigdata_cnpy/acquisition/12019/serial/inbox/ashm_data_prep/de_vt_${line}_${date}.txt"
+
+    # Check if the file exists
+    if ls $file_path 1> /dev/null 2>&1; then
+        echo "Processing $line"
+        
         # Check for files containing "serviceComset" in the filename
-        serviceComset_file=$(ls -1 /bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/*serviceComset*.txt.gz 2>/dev/null | head -1)
+        serviceComset_file=$(ls -1 /bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/*$line*.txt.gz 2>/dev/null | head -1)
         
         if [ -n "$serviceComset_file" ]; then
             echo "Found file with 'serviceComset' in the filename: $serviceComset_file"
-            # Store the filename in a variable if needed
+            
+			# Store the filename in a variable if needed
             serviceComset_filename=$(basename "$serviceComset_file")
+			
+		cp "$(ls -t $file_path | head -1)" "$destination"
+
+        count=$(awk -F'A' -v date="$date" '$3 == date {print}' "$destination" | wc -l)
+
+        if [[ "$serviceComset_filename" == "de_vc"* ]]; then
+            # Action for de_vc
+            echo "de_vc action for $serviceComset_filename"
+        elif [[ "$serviceComset_filename" == "de_vt"* ]]; then
+            # Action for de_vt
+            echo "de_vt action for $serviceComset_filename"
+        else
+            # Handle other cases
+            echo "Unknown prefix for $serviceComset_filename. serviceComset_filename value: $serviceComset_filename"
+        fi
+			
         else
             echo "No file found with 'serviceComset' in the filename"
         fi
+
+        echo "Dataprep: $line -> $?" >> "$execution_status"
+    else
+        echo "File not found for $line" >> "$execution_status"
+    fi
+done < "$table_name"
