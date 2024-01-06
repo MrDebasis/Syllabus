@@ -1,1 +1,11 @@
 
+        # Check for files containing "serviceComset" in the filename
+        serviceComset_file=$(ls -1 /bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/*serviceComset*.txt.gz 2>/dev/null | head -1)
+        
+        if [ -n "$serviceComset_file" ]; then
+            echo "Found file with 'serviceComset' in the filename: $serviceComset_file"
+            # Store the filename in a variable if needed
+            serviceComset_filename=$(basename "$serviceComset_file")
+        else
+            echo "No file found with 'serviceComset' in the filename"
+        fi
