@@ -1,1 +1,12 @@
-
+while read -r line; do
+    # Check if line contains "vrp_"
+    if [[ "$line" == vrp_* ]]; then
+        # If true, assign a modified version without the prefix
+        modified_line="${line#vrp_}"
+		file_path="/bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/de_vt_${modified_line}*.txt.gz"
+		destination="/bigdata_cnpy/acquisition/12019/serial/inbox/ashm_data_prep/de_vt_${modified_line}_${date}.txt"
+    else
+        # If false, use the original line
+       file_path="/bigdata_cnpy/acquisition/12010/serial/inbox/SOURCE_FILES/de_vt_${line}*.txt.gz"
+	    destination="/bigdata_cnpy/acquisition/12019/serial/inbox/ashm_data_prep/de_vt_${modified_line}_${date}.txt"
+    fi
