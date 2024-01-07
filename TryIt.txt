@@ -1,1 +1,1 @@
-modified_line="$([[ "$line" == *vap_* ]] && echo "${line//vrp_/}" || echo "$line")"
+
