@@ -1,7 +1,0 @@
-
-if [ -e "$preprocess_path" ]; then
-    ksh "$preprocess_path"
-echo "Running script $preprocess_path."
-else
-    echo "Error: Preprocess script not found at $preprocess_path."
-fi
