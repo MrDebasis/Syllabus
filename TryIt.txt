@@ -1,7 +1,254 @@
+#!/bin/bash
 
-if [ -e "$preprocess_path" ]; then
-    ksh "$preprocess_path"
-echo "Running script $preprocess_path."
-else
-    echo "Error: Preprocess script not found at $preprocess_path."
-fi
+# Picks first argument
+date="$1"
+
+# Picks second argument
+table_name="$2"
+
+execution_status="execution_status.txt"
+rm "$execution_status"
+touch "$execution_status"
+
+rm temp_file.txt
+touch temp_file.txt
+
+rm logs.txt
+touch logs.txt
+
+source_type=("crm" "bancos")
+file_type=("de_vc" "de_vt")
+
+remote_server="gbrdsr000010793"
+remote_user="sysawasscnpybcdeb"
+
+Execution_date="$date"
+Formatted_Execution_date=$(date -d "$Execution_date +1 day" +%Y%m%d)
+previous_date=$(date -d "$Execution_date -1 day" +%Y%m%d)
+previous_date_1=$(date -d "$previous_date -1 day" +%Y%m%d)
+next_date=$(date -d "$Execution_date +1 day" +%Y%m%d)
+
+while read -r line; do
+  echo "*****prepare the data file*****"
+
+  modified_line="$([[ "$line" == *vrp_* ]] && echo "${line//vrp_/}" || echo "$line")"
+  file_path="/apps/data_abinitio_DECP/bcde/12010/serial/inbox/SOURCE_FILES/*$modified_line*.txt.gz"
+  preprocess_run_path="/apps/data_abinitio_DECP/bcde/12010/serial/inbox"
+
+  # Check if the file exists
+  if ls "$file_path" 1> /dev/null 2>&1; then
+    echo "Processing line"
+
+  # Check for table_txt containing files in the sourcefiles path
+  source_file=$(ls -t "$file_path" 2>/dev/null | head -1)
+
+  if [ -e "$source_file" ]; then
+    echo "Found file from sourcefiles path in the filename: $source_file"
+
+  # Store the filename in a variable
+  source_filename=$(basename "$source_file")
+
+
+    # Add switch case based on source_type
+    case "$modified_line" in
+      "crm")
+        echo "Processing CRM data..."
+        #STEP- 1 (Data prepere)
+
+        # Add CRM specific processing here
+        #de_vc files
+        if [[ "$source_filename" == ${file_type[0]}* ]]; then
+          process_data_file "$source_file" "$modified_line" "$date" "$source_code" "${file_type[0]}" "false"
+
+        #de_vc files
+        elif [[ "$source_filename" == ${file_type[1]}* ]]; then
+          process_data_file "$source_file" "$modified_line" "$date" "$source_code" "${file_type[1]}" "false"
+        
+        #de_vt_opt_ files
+        elif [[ "$source_filename" == "de_vt_${modified_line}_opt_"* ]]; then
+          process_data_file "$source_file" "$modified_line" "$date" "$source_code" "${file_type[1]}" "true"
+        fi  # Added 'fi' to end the if conditions
+
+        #STEP- 2 (Date control set)
+        set_date_control "$line" "$date" "$previous_date" "$Formatted_Execution_date" "$next_date"
+
+        #STEP- 3 (pre-process_job_execution)
+        preprocess_job_execution "$line" "$date" "$modified_line" "$destination" "$source_code" "${source_type[0]}"
+
+        #STEP- 4 (mft)
+        mft_run "$line" "$date" "$modified_line" "$preprocess_run_path"
+
+        #STEP- 5 (DIH Server)
+        login_to_dih_server "$remote_user" "$remote_server" "encrypted_password.txt" "$date" "$table_name"
+        ;;
+
+      "bancos")
+        echo "Processing Bancos data..."
+        # Add Bancos specific processing here
+        ;;
+
+      "bancosTest")
+        echo "Processing Bancos data..."
+        # Add Bancos specific processing here
+        ;;
+
+      *)
+        echo "Unknown source_type: $modified_line"
+        # Add default case handling here
+        ;;
+    esac
+
+
+#Step -1 : Data Prepare
+process_data_file() {
+  local source_file="$1"
+  local modified_line="$2"
+  local date="$3"
+  local source_code= "$4"
+  local file_type="$5" 
+  local is_opt="$6"
+
+#if for de_vt_opt files
+if [ "$is_opt" = true ]; then
+  
+  destination="/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type[1]}${modified_line}_opt_${date}.text.gz"
+  cp "$source_file" "$destination"
+  gunzip "$destination"
+
+  count_1=$(awk 'END { print NR }' "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type[1]}${modified_line}_opt_${date}.text")
+  awk -F '^A' -vOFS='^A' 'NR==1 {$3='$date'; $5='$date'} {print}' "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type[1]}${modified_line}_opt_${date}.text" > temp_file.txt && mv temp_file.txt "${file_type[1]}_${modified_line}_opt_${date}.txt"
+  awk -F '^A' -vOFS='^A' 'NR=='$count_1' {$3='$date'} {print}' "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type[1]}${modified_line}_opt_${date}.text" > temp_file.txt && mv temp_file.txt "${file_type[1]}_${modified_line}_opt_${date}.txt"
+  
+  gzip "de_vt_${modified_line}_opt_${date}.txt"
+  echo "Dataprep for opt files: $modified_line ->$?" >> "$execution_status"
+  echo "Data file prepared for de_vt_opt prefix files $source_filename"
+
+    return
+  fi
+
+  destination="/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type}${modified_line}_${date}.text.gz"
+  cp "$source_file" "$destination"
+  gunzip "$destination"
+
+  count_1=$(awk 'END { print NR }' "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type}${modified_line}_${date}.text")
+  awk -F '^A' -vOFS='^A' 'NR==1 {$3='$date'; $5='$date'} {print}' "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type}${modified_line}_${date}.text" > temp_file.txt && mv temp_file.txt "${file_type}_${modified_line}_${date}.txt"
+  awk -F '^A' -vOFS='^A' 'NR=='$count_1' {$3='$date'} {print}' "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/Automation/Data_Files/${file_type}${modified_line}_${date}.text" > temp_file.txt && mv temp_file.txt "${file_type}_${modified_line}_${date}.txt"
+
+  gzip "${file_type}_${modified_line}_${date}.txt"
+  echo "Dataprep: $modified_line ->$?" >> "$execution_status"
+  echo "Data file prepared for ${file_type} prefix files $source_filename"
+}
+
+#Step-2 Date Control Set
+set_date_control() {
+  local line="$1"
+  local date="$2"
+  local previous_date="$3"
+  local Formatted_Execution_date="$4"
+  local next_date="$5"
+  local Date_Control_Path="/apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/lookup/aws_crm_date_cntrl.ctrl"
+
+  echo "*********** set the date control control $line *************"
+
+if ls "$Date_Control_Path" 1> /dev/null; then
+    echo "set the date to $date"
+    date_filename=$(basename "$Date_Control_Path")
+    awk -F '|' -vOFS='|' 'NR==1 { $1='$previous_date'; $2='$Formatted_Execution_date';$3='$next_date'} {print}' "$Date_Control_Path" > aws_crm_date_cntrl.ctrl && mv aws_crm_date_cntrl.ctrl /apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/lookup/
+    echo "Date control set $modified_line -> $?" >> "$execution_status"
+    echo "date control for the data file $date_filename is set"
+  fi
+}
+
+#Step-3 (Pre process execution)
+preprocess_job_execution() {
+  local line="$1"
+  local date="$2"
+  local modified_line="$3"
+  local destination="$4"
+  local source_code= "$5"
+  local source_type="$6"
+
+  echo "             "
+  echo " ******* Pre-process job execution for the table $line *******"
+
+ if ls "$destination" 1> /dev/null 2>&1; then 
+    echo "File is present in the destination location, and run the preprocess job for the table $line"
+    mv "$destination" "/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox/"
+    echo "File moved to inbox location"
+    rm "/apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/lookup/${line}_aws_processing_${date}.done"
+
+    preprocess_run_path="/apps/data_abinitio_DECP/bcde/${source_code}/serial/inbox"
+
+    if [[ -e "$preprocess_run_path/de_vc_${modified_line}_${date}.txt.gz" ]]; then
+      echo "$modified_line source file is present in the inbox location for the date $date"
+      echo "ksh /apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/aws_${source_type}_validation.ksh $source_type de_vc_$modified_line $line" >> logs.txt
+      ksh "/apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/aws_${source_type}_validation.ksh" "$source_type" "de_vc_$modified_line" "$line" >> logs.txt
+    elif [[ -e "$preprocess_run_path/de_vt_${modified_line}_opt_${date}.txt.gz" ]]; then
+      echo "$modified_line source file is present in the inbox location for the date $date" 
+      echo "ksh /apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/aws_${source_type}_validation.ksh $source_type de_vt_${modified_line}_opt $line" >> logs.txt
+      ksh "/apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/aws_${source_type}_validation.ksh" "$source_type" "de_vt_${modified_line}_opt" "$line" >> logs.txt
+    elif [[ -e "$preprocess_run_path/de_vt_${modified_line}_${date}.txt.gz" ]]; then
+      echo "$modified_line source file is present in the inbox location for the date $date" 
+      echo "ksh /apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/aws_${source_type}_validation.ksh $source_type de_vt_${modified_line}_opt $line" >> logs.txt
+      ksh "/apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/aws_${source_type}_validation.ksh" "$source_type" "de_vc_$modified_line" "$line" >> logs.txt
+    else
+      echo "Preprocess cannot execute for $line table"
+    fi
+
+    echo "Pre-process job status for $line -> $?" >> "$execution_status"
+
+    if [ $? -eq 0 ]; then
+      echo "Pre-process job processed successfully for the table $line"
+    else
+      echo "Pre-process job failed for the table $line"
+    fi
+  fi
+}
+
+#Step-4 (MFT)
+mft_run() {
+  local line="$1"
+  local date="$2"
+  local modified_line="$3"
+  local preprocess_run_path="$4"
+
+  echo "             "
+  echo "************* MFT run $line ********"
+
+  if [[ -e "$preprocess_run_path"/*"$modified_line"*"$date".txt.gz ]] && [[ -e "$preprocess_run_path"/*"$modified_line"*_audit*"$date".json ]]; then
+    echo "Run the MFT job for $line table"
+    echo "ksh /apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/mft_aws_bau.ksh 12010 $line" >> logs.txt
+    ksh "/apps/data_abinitio_DECP/bcde/serial/BARCLAYS/cnpy/bcde/e_layer/bcde_e_layer/bin/mft_aws_bau.ksh" 12010 "$line" >> logs.txt
+  else 
+    echo "MFT job run failed for $line table"
+  fi
+
+  echo "MFT job status for $line -> $?" >> "$execution_status"
+
+  if [ $? -eq 0 ]; then
+    echo "MFT Job processed successfully for the table $line"
+  else
+    echo "MFT Job process failed for the table $line"
+  fi
+}
+
+#Step-5 (DIH Server)
+login_to_dih_server() {
+  local remote_user="$1"
+  local remote_server="$2"
+  local encrypted_password_file="$3"
+  local date="$4"
+  local table_name="$5"
+
+  echo "Login to DIH Server"
+
+  encrypted_password=$(cat "$encrypted_password_file")
+
+  expect -c "
+    spawn ssh -tt $remote_user@$remote_server
+    expect \"password:\";
+    send \"$(echo "$encrypted_password" | openssl enc -d -aes-256-cbc -a -salt -pass pass:germany)\"
+    expect \"$\"; 
+    send \"sh /data_landing/data/cnpy/sysawsscnpybcdeb/crm/Automation/dih.sh $date $table_name\r\";
+  "
+}
