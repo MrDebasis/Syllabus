@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Function to check if Java is installed
@@ -12,6 +11,7 @@ check_java() {
 
 # Function to prompt the user for input
 prompt_user_input() {
+    echo "Prompting user for input..."
     read -p "Enter your username: " username
     read -s -p "Enter your password: " password
     echo
@@ -20,10 +20,13 @@ prompt_user_input() {
 
 # Function to run the Java JAR file with provided arguments
 run_jar_file() {
+    echo "Running JAR file..."
     java -jar your_jar_file.jar "$username" "$password" "$platform_event"
 }
 
 # Main script logic
+echo "Starting script..."
+
 if check_java; then
     echo "Java is installed."
     prompt_user_input
@@ -31,3 +34,5 @@ if check_java; then
 else
     echo "Error: Java is not installed."
 fi
+
+echo "Script execution complete."
