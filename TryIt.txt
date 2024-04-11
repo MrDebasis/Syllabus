@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Execute the JAR file
+java -jar your_jar_file.jar
+
+# Make HTTP request and print the response
+response=$(curl -s http://localhost:8080/hello)
+echo "Response from http://localhost:8080/hello:"
+echo "$response"
+
+#!/bin/bash
+
 # Define a function to handle the input and print username
 handle_input() {
     username="$1"
