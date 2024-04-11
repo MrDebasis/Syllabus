@@ -1,3 +1,64 @@
+import org.cometd.bayeux.client.ClientSessionChannel;
+import org.cometd.client.BayeuxClient;
+import org.cometd.client.transport.ClientTransport;
+import org.cometd.websocket.client.WebSocketTransport;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+@Configuration
+public class CometDConfig {
+
+    @Value("${salesforce.endpoint}")
+    private String salesforceEndpoint;
+
+    @Value("${salesforce.oauth.token}")
+    private String salesforceOAuthToken;
+
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    public BayeuxClient bayeuxClient() {
+        HttpClient httpClient = new HttpClient();
+        httpClient.setConnectTimeout(20000);
+        httpClient.setIdleTimeout(30000);
+        httpClient.setExecutor(new QueuedThreadPool(256));
+
+        try {
+            httpClient.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        Map<String, Object> options = new HashMap<>();
+        options.put(ClientTransport.MAX_NETWORK_DELAY_OPTION, 30000);
+
+        ScheduledExecutorService schedulerExecutorService = Executors.newScheduledThreadPool(1);
+        ClientTransport wsTransport = new WebSocketTransport(options, null, schedulerExecutorService);
+
+        BayeuxClient client = new BayeuxClient(salesforceEndpoint + "/cometd/42.0", wsTransport);
+        
+        // Add OAuth 2.0 authentication header
+        client.handshake((message) -> {
+            Map<String, Object> ext = message.getExt(true);
+            Map<String, Object> auth = new HashMap<>();
+            auth.put("oauth_token", salesforceOAuthToken);
+            ext.put("ext", auth);
+        });
+
+        return client;
+    }
+}
+
+
+
+
 
 import org.cometd.bayeux.client.ClientSessionChannel;
 import org.cometd.client.BayeuxClient;
