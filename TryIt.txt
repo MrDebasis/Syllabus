@@ -1,3 +1,40 @@
+import com.salesforce.cometd.BayeuxParameters;
+import com.salesforce.cometd.CometDClient;
+import com.salesforce.cometd.LongPollingTransport;
+
+import javax.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SalesforceEventListener {
+
+    @Value("${salesforce.endpoint}")
+    private String salesforceEndpoint;
+
+    @Value("${salesforce.username}")
+    private String salesforceUsername;
+
+    @Value("${salesforce.password}")
+    private String salesforcePassword;
+
+    @PostConstruct
+    public void init() {
+        BayeuxParameters params = new BayeuxParameters(salesforceEndpoint + "/cometd/42.0",
+                                                        salesforceUsername,
+                                                        salesforcePassword);
+        CometDClient client = new CometDClient(params, new LongPollingTransport(null));
+        client.getBayeux().handshake();
+        // Subscribe to Salesforce events here
+        // client.getBayeux().getChannel("/event/Your_Event_Name").subscribe((channel, message) -> { });
+    }
+}
+
+
+
+
+
+
 import org.cometd.bayeux.client.ClientSessionChannel;
 import org.cometd.client.BayeuxClient;
 import org.cometd.client.transport.ClientTransport;
