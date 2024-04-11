@@ -1,4 +1,15 @@
 <dependency>
+    <groupId>com.salesforce</groupId>
+    <artifactId>cometd-salesforce</artifactId>
+    <version>42.0.0</version> <!-- Replace with the actual version -->
+    <scope>system</scope>
+    <systemPath>${project.basedir}/lib/cometd-salesforce-42.0.0.jar</systemPath> <!-- Adjust the path as necessary -->
+</dependency>
+
+
+
+
+<dependency>
     <groupId>org.cometd.java</groupId>
     <artifactId>cometd-java-client</artifactId>
     <version>4.0.4</version>
