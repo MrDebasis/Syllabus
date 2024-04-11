@@ -1,3 +1,20 @@
+
+@echo off
+setlocal
+
+REM Define the URL
+set "url=http://example.com/api/endpoint"
+
+REM Make the GET request
+curl -o response.txt %url%
+
+REM Output the response
+type response.txt
+
+endlocal
+
+
+
 #!/bin/bash
 
 # Execute the JAR file
