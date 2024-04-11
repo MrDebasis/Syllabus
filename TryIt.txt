@@ -1,1 +1,24 @@
 
+const express = require('express');
+const { exec } = require('child_process');
+const app = express();
+
+app.get('/execute_script', (req, res) => {
+    const { arg1, arg2, arg3 } = req.query;
+    const scriptPath = '/path/to/check_and_display.sh'; // Replace with the actual path to your shell script
+    
+    // Execute the shell script with the provided arguments
+    exec(`${scriptPath} ${arg1} ${arg2} ${arg3}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing script: ${error.message}`);
+            res.status(500).send('Error executing script');
+            return;
+        }
+        console.log(`Script output: ${stdout}`);
+        res.send(stdout);
+    });
+});
+
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
+});
