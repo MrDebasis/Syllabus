@@ -1,1 +1,50 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Username Input</title>
+</head>
+<body>
+    <form>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username">
+        <button type="submit">Submit</button>
+    </form>
+    <script>
+        document.querySelector("form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var username = document.getElementById("username").value;
+            console.log("username=" + encodeURIComponent(username));
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+#!/bin/bash
+
+# Define a function to handle the input and print username
+handle_input() {
+    username="$1"
+    echo "Username: $username"
+}
+
+# Serve the HTML page
+serve_html() {
+    while true; do
+        # Read the input from the HTML page
+        read -r input
+        
+        # Extract the username from the input
+        username=$(echo "$input" | grep -oP 'username=\K[^&]*')
+
+        # Call the function to handle the input
+        handle_input "$username"
+    done
+}
+
+# Start serving the HTML page
+serve_html
+
