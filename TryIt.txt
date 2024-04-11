@@ -1,1 +1,33 @@
 
+#!/bin/bash
+
+# Function to check if Java is installed
+check_java() {
+    if type -p java > /dev/null; then
+        return 0  # Java is installed
+    else
+        return 1  # Java is not installed
+    fi
+}
+
+# Function to prompt the user for input
+prompt_user_input() {
+    read -p "Enter your username: " username
+    read -s -p "Enter your password: " password
+    echo
+    read -p "Enter the platform event: " platform_event
+}
+
+# Function to run the Java JAR file with provided arguments
+run_jar_file() {
+    java -jar your_jar_file.jar "$username" "$password" "$platform_event"
+}
+
+# Main script logic
+if check_java; then
+    echo "Java is installed."
+    prompt_user_input
+    run_jar_file
+else
+    echo "Error: Java is not installed."
+fi
