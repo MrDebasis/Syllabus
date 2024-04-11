@@ -1,44 +1,3 @@
-@echo off
-setlocal
-
-REM Define the URL
-set "url=http://example.com/api/endpoint"
-
-REM Make the GET request
-powershell -Command "& {Invoke-WebRequest -Uri '%url%' -OutFile response.txt}"
-
-REM Output the response
-type response.txt
-
-pause
-
-
-
-@echo off
-setlocal
-
-REM Define the URL
-set "url=http://example.com/api/endpoint"
-
-REM Make the GET request
-curl -o response.txt %url%
-
-REM Output the response
-type response.txt
-
-endlocal
-
-
-
-#!/bin/bash
-
-# Execute the JAR file
-java -jar your_jar_file.jar
-
-# Make HTTP request and print the response
-response=$(curl -s http://localhost:8080/hello)
-echo "Response from http://localhost:8080/hello:"
-echo "$response"
 
 #!/bin/bash
 
@@ -51,7 +10,7 @@ handle_input() {
 # Serve the HTML page
 serve_html() {
     # Open the HTML page in the default web browser
-    xdg-open index.html >/dev/null 2>&1
+    start index.html 
 
     # Start listening for input from the HTML page
     while true; do
