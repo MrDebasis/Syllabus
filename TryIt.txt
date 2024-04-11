@@ -1,3 +1,18 @@
+@echo off
+setlocal
+
+REM Define the URL
+set "url=http://example.com/api/endpoint"
+
+REM Make the GET request
+powershell -Command "& {Invoke-WebRequest -Uri '%url%' -OutFile response.txt}"
+
+REM Output the response
+type response.txt
+
+pause
+
+
 
 @echo off
 setlocal
