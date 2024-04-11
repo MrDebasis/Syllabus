@@ -1,87 +1,62 @@
-
-import org.cometd.client.BayeuxClient;
-import org.cometd.client.ext.AckExtension;
-import org.cometd.client.ext.TimesyncClientExtension;
-import org.cometd.client.transport.LongPollingTransport;
-import org.cometd.websocket.client.WebSocketTransport;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 @Configuration
 public class CometDConfig {
 
     @Bean
-    public BayeuxClient bayeuxClient() {
-        String cometdUrl = "your_cometd_url_here";
-        BayeuxClient client = new BayeuxClient(cometdUrl, LongPollingTransport.create(null));
-        client.addTransport(new WebSocketTransport(null));
-        client.addExtension(new AckExtension());
-        client.addExtension(new TimesyncClientExtension());
-        return client;
-    }
-}
+    public BayeuxClient bayeuxClient() throws Exception {
+        // Create (and eventually configure) Jetty's HttpClient.
+        HttpClient httpClient = new HttpClient();
+
+        // Here configure Jetty's HttpClient.
+        // httpClient.setMaxConnectionsPerDestination(2);
+        httpClient.start();
+
+        // Prepare the transport.
+        Map<String, Object> options = new HashMap<>();
+        ClientTransport transport = new JettyHttpClientTransport(options, httpClient);
+
+        // Create the BayeuxClient.
+        ClientSession bayeuxClient = new BayeuxClient(" https://gpbp--catdev.sandbox.my.salesforce.com/cometd/43.0", transport);
+
+        // Here prepare the BayeuxClient, for example:
+        // Add the message acknowledgement extension.
+        bayeuxClient.addExtension(new AckExtension());
+        // Register a listener for channel /service/business.
+        ClientSessionChannel channel = bayeuxClient.getChannel("/service/business");
+       // channel=bayeuxClient.getChannel(Channel.META_HANDSHAKE);
+        channel.addListener((ClientSessionChannel.MessageListener)(c, message) -> {
+            System.err.printf("Received message on %s: %s%n", c, message);
+        });
+
+        // Handshake with the server.
+        bayeuxClient.handshake();
 
 
-import org.cometd.bayeux.client.ClientSessionChannel;
-import org.cometd.bayeux.client.ClientSessionChannel.MessageListener;
-import org.cometd.bayeux.Message;
-
-import org.cometd.client.BayeuxClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-@Service
-public class CometDService {
-
-    @Autowired
-    private BayeuxClient bayeuxClient;
-
-    public void connectAndSubscribe(String username, String password) {
-        bayeuxClient.handshake((handshakeReply) -> {
+        BayeuxClient bayeuxClient1 = new BayeuxClient("http://localhost:8080/cometd", transport);
+        bayeuxClient1.handshake(handshakeReply -> {
             if (handshakeReply.isSuccessful()) {
-                System.out.println("Connected to CometD server");
-                // Subscribe to channels, etc.
-            } else {
-                System.err.println("Failed to connect to CometD server: " + handshakeReply);
+                // Here the handshake with the server is successful.
             }
         });
 
-        // Add your authentication logic here
-        bayeuxClient.getChannel("/service/login").publish("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}", (reply, ack) -> {
-            if (reply.isSuccessful()) {
-                System.out.println("Login successful");
-            } else {
-                System.err.println("Login failed: " + reply);
-            }
-        });
+        return null;
     }
 
-    // Add methods to subscribe to channels, publish messages, etc.
-}
 
 
+for subscrive where to add ?
+BayeuxClient bayeuxClient = new BayeuxClient("http://localhost:8080/cometd", transport);
+bayeuxClient.handshake(handshakeReply -> {
+    // You can only subscribe after a successful handshake.
+    if (handshakeReply.isSuccessful()) {
+        // The channel you want to subscribe to.
+        ClientSessionChannel channel = bayeuxClient.getChannel("/stocks");
 
+        // The message listener invoked every time a message is received from the server.
+        ClientSessionChannel.MessageListener messageListener = (c, message) -> {
+            // Here you received a message on the channel.
+        };
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.beans.factory.annotation.Autowired;
-
-@SpringBootApplication
-public class Application implements CommandLineRunner {
-
-    @Autowired
-    private CometDService cometDService;
-
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        // Send the subscription to the server.
+        channel.subscribe(messageListener);
     }
-
-    @Override
-    public void run(String... args) throws Exception {
-        String username = "your_username";
-        String password = "your_password";
-        cometDService.connectAndSubscribe(username, password);
-    }
-}
-
-
+});
