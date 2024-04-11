@@ -1,3 +1,28 @@
+import org.eclipse.jetty.util.QuotedStringTokenizer;
+
+public class Main {
+    public static void main(String[] args) {
+        // Create a QuotedStringTokenizer.Builder
+        QuotedStringTokenizer.Builder builder = QuotedStringTokenizer.builder();
+
+        // Set options or configurations if needed
+        builder.setQuoteCharacter('"'); // Set the quote character to double quote
+
+        // Create a QuotedStringTokenizer instance using the builder
+        QuotedStringTokenizer tokenizer = builder.build();
+
+        // Tokenize a string
+        String input = "Hello, \"World, Jetty\"";
+        String[] tokens = tokenizer.tokenize(input);
+
+        // Print tokens
+        for (String token : tokens) {
+            System.out.println("Token: " + token);
+        }
+    }
+}
+
+
 
 <dependency>
     <groupId>org.eclipse.jetty.websocket</groupId>
