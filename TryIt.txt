@@ -1,28 +1,3 @@
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Username Input</title>
-</head>
-<body>
-    <form>
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username">
-        <button type="submit">Submit</button>
-    </form>
-    <script>
-        document.querySelector("form").addEventListener("submit", function(event) {
-            event.preventDefault();
-            var username = document.getElementById("username").value;
-            console.log("username=" + encodeURIComponent(username));
-        });
-    </script>
-</body>
-</html>
-
-
-
-
 #!/bin/bash
 
 # Define a function to handle the input and print username
@@ -33,6 +8,10 @@ handle_input() {
 
 # Serve the HTML page
 serve_html() {
+    # Open the HTML page in the default web browser
+    xdg-open index.html >/dev/null 2>&1
+
+    # Start listening for input from the HTML page
     while true; do
         # Read the input from the HTML page
         read -r input
@@ -47,4 +26,3 @@ serve_html() {
 
 # Start serving the HTML page
 serve_html
-
