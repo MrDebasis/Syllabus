@@ -1,3 +1,33 @@
+import org.cometd.client.BayeuxClient;
+import org.cometd.client.transport.ClientTransport;
+import org.cometd.websocket.client.WebSocketTransport;
+
+@Configuration
+public class CometDConfig {
+
+    @Value("${salesforce.endpoint}")
+    private String salesforceEndpoint;
+
+    @Value("${salesforce.username}")
+    private String salesforceUsername;
+
+    @Value("${salesforce.password}")
+    private String salesforcePassword;
+
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    public BayeuxClient bayeuxClient() {
+        String loginEndpoint = salesforceEndpoint + "/cometd/42.0";
+        WebSocketTransport wsTransport = new WebSocketTransport(null, null, new HashMap<>());
+        BayeuxClient client = new BayeuxClient(loginEndpoint, wsTransport);
+        client.handshake();
+        return client;
+    }
+}
+
+
+
+
+
 <dependency>
     <groupId>com.salesforce</groupId>
     <artifactId>cometd-salesforce</artifactId>
