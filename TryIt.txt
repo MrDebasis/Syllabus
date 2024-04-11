@@ -1,1 +1,87 @@
 
+import org.cometd.client.BayeuxClient;
+import org.cometd.client.ext.AckExtension;
+import org.cometd.client.ext.TimesyncClientExtension;
+import org.cometd.client.transport.LongPollingTransport;
+import org.cometd.websocket.client.WebSocketTransport;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class CometDConfig {
+
+    @Bean
+    public BayeuxClient bayeuxClient() {
+        String cometdUrl = "your_cometd_url_here";
+        BayeuxClient client = new BayeuxClient(cometdUrl, LongPollingTransport.create(null));
+        client.addTransport(new WebSocketTransport(null));
+        client.addExtension(new AckExtension());
+        client.addExtension(new TimesyncClientExtension());
+        return client;
+    }
+}
+
+
+import org.cometd.bayeux.client.ClientSessionChannel;
+import org.cometd.bayeux.client.ClientSessionChannel.MessageListener;
+import org.cometd.bayeux.Message;
+
+import org.cometd.client.BayeuxClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CometDService {
+
+    @Autowired
+    private BayeuxClient bayeuxClient;
+
+    public void connectAndSubscribe(String username, String password) {
+        bayeuxClient.handshake((handshakeReply) -> {
+            if (handshakeReply.isSuccessful()) {
+                System.out.println("Connected to CometD server");
+                // Subscribe to channels, etc.
+            } else {
+                System.err.println("Failed to connect to CometD server: " + handshakeReply);
+            }
+        });
+
+        // Add your authentication logic here
+        bayeuxClient.getChannel("/service/login").publish("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}", (reply, ack) -> {
+            if (reply.isSuccessful()) {
+                System.out.println("Login successful");
+            } else {
+                System.err.println("Login failed: " + reply);
+            }
+        });
+    }
+
+    // Add methods to subscribe to channels, publish messages, etc.
+}
+
+
+
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@SpringBootApplication
+public class Application implements CommandLineRunner {
+
+    @Autowired
+    private CometDService cometDService;
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        String username = "your_username";
+        String password = "your_password";
+        cometDService.connectAndSubscribe(username, password);
+    }
+}
+
+
