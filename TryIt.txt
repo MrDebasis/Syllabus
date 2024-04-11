@@ -1,3 +1,66 @@
+import org.cometd.bayeux.client.ClientSessionChannel;
+import org.cometd.client.BayeuxClient;
+import org.cometd.client.transport.ClientTransport;
+import org.cometd.websocket.client.WebSocketTransport;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+public class SalesforceEventListener {
+
+    @Value("${salesforce.endpoint}")
+    private String salesforceEndpoint;
+
+    @Value("${salesforce.username}")
+    private String salesforceUsername;
+
+    @Value("${salesforce.password}")
+    private String salesforcePassword;
+
+    @PostConstruct
+    public void init() {
+        HttpClient httpClient = new HttpClient();
+        httpClient.setConnectTimeout(20000);
+        httpClient.setIdleTimeout(30000);
+        httpClient.setExecutor(new QueuedThreadPool(256));
+
+        try {
+            httpClient.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        Map<String, Object> options = new HashMap<>();
+        options.put("url", salesforceEndpoint + "/cometd/42.0");
+
+        BayeuxClient client = new BayeuxClient(salesforceEndpoint + "/cometd/42.0", new WebSocketTransport(null, httpClient));
+        
+        client.handshake((message) -> {
+            Map<String, Object> ext = message.getExt(true);
+            Map<String, Object> auth = new HashMap<>();
+            auth.put("username", salesforceUsername);
+            auth.put("password", salesforcePassword);
+            ext.put("ext", auth);
+        });
+
+        client.getChannel("/event/Your_Event_Name").subscribe((channel, message) -> {
+            // Handle received event
+            System.out.println("Received message: " + message);
+        });
+    }
+}
+
+
+
+
+
+
 import com.salesforce.cometd.BayeuxParameters;
 import com.salesforce.cometd.CometDClient;
 import com.salesforce.cometd.LongPollingTransport;
