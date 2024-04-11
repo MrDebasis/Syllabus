@@ -1,3 +1,84 @@
+<dependency>
+    <groupId>org.cometd.java</groupId>
+    <artifactId>cometd-java-client</artifactId>
+    <version>4.0.4</version>
+</dependency>
+<dependency>
+    <groupId>org.cometd.java</groupId>
+    <artifactId>cometd-websocket-jetty</artifactId>
+    <version>4.0.4</version>
+</dependency>
+<dependency>
+    <groupId>com.salesforce</groupId>
+    <artifactId>cometd-salesforce</artifactId>
+    <version>42.0.0</version>
+</dependency>
+
+
+
+
+@Configuration
+public class CometDConfig {
+
+    @Value("${salesforce.endpoint}")
+    private String salesforceEndpoint;
+
+    @Value("${salesforce.username}")
+    private String salesforceUsername;
+
+    @Value("${salesforce.password}")
+    private String salesforcePassword;
+
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    public BayeuxClient bayeuxClient() {
+        Map<String, Object> options = new HashMap<>();
+        options.put(ClientTransport.MAX_NETWORK_DELAY_OPTION, 30000);
+
+        HttpClient httpClient = new HttpClient();
+        httpClient.setConnectTimeout(20000);
+        httpClient.setIdleTimeout(30000);
+        httpClient.setExecutor(new QueuedThreadPool(256));
+        try {
+            httpClient.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        Map<String, Object> options = new HashMap<>();
+        options.put(ClientTransport.MAX_NETWORK_DELAY_OPTION, 30000);
+        
+        BayeuxClient client = new BayeuxClient(salesforceEndpoint + "/cometd/42.0", new JettyHttpClientTransport(options, httpClient));
+        
+        client.handshake();
+        return client;
+    }
+}
+
+
+
+@Component
+public class SalesforceEventListener {
+
+    @Autowired
+    private BayeuxClient bayeuxClient;
+
+    @PostConstruct
+    public void init() {
+        bayeuxClient.getChannel("/event/Your_Event_Name").subscribe((channel, message) -> {
+            // Handle received event
+            System.out.println("Received message: " + message);
+        });
+    }
+}
+
+
+
+salesforce.endpoint=https://login.salesforce.com
+salesforce.username=your_username
+salesforce.password=your_password
+
+
+
 
 #!/bin/bash
 
