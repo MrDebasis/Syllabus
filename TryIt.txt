@@ -25,5 +25,11 @@ serve_html() {
     done
 }
 
+call_api(){
+api_response =$(curl --request GET "http://localhost:8080/hello")
+echo "API Response: $api_response"
+}
+
 # Start serving the HTML page
 serve_html
+call_api
