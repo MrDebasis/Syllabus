@@ -1,10 +1,113 @@
-       @AuraEnabled(cacheable=true)
-    public static List<ExpenseLineItem__c> getExpenseLineItems() {
-        return [
-            SELECT Id, ExpenseDate__c, ExpenseCategory__c, ExpenseDetailVendor__c, ExpenseLocation__c,ReceiptAmount__c, 
-                   ReimbursableAmount__c,NonReimbursableAmount__c,Notes__c 
-            FROM ExpenseLineItem__c 
-            ORDER BY CreatedDate DESC 
-            LIMIT 10
-        ];
+public with sharing class ExpenseController {
+    
+    @AuraEnabled(cacheable=true)
+    public static List<ExpenseLineItem__c> getExpenseLineItems(Integer offset, Integer limit, List<String> sortFields, List<String> sortDirections) {
+        String baseQuery = 'SELECT Id, ExpenseDate__c, ExpenseCategory__c, ExpenseDetailVendor__c, ExpenseLocation__c, Receipt, ReceiptAmount__c, ReimbursableAmount__c, NonReimbursableAmount__c, Notes__c FROM ExpenseLineItem__c';
+        String orderByClause = ' ORDER BY ';
+        
+        // Default sorting by ExpenseDate__c DESC
+        if (sortFields.isEmpty()) {
+            orderByClause += 'ExpenseDate__c DESC';
+        } else {
+            for (Integer i = 0; i < sortFields.size(); i++) {
+                if (i > 0) orderByClause += ', ';
+                orderByClause += sortFields[i] + ' ' + sortDirections[i];
+            }
+        }
+        
+        String finalQuery = baseQuery + orderByClause + ' LIMIT :limit OFFSET :offset';
+        return Database.query(finalQuery);
     }
+
+    @AuraEnabled(cacheable=true)
+    public static Integer getTotalCount() {
+        return [SELECT count() FROM ExpenseLineItem__c];
+    }
+}
+
+
+import { LightningElement, track, wire } from 'lwc';
+import getExpenseLineItems from '@salesforce/apex/ExpenseController.getExpenseLineItems';
+import getTotalCount from '@salesforce/apex/ExpenseController.getTotalCount';
+
+export default class ExpenseDataTable extends LightningElement {
+    @track data = [];
+    @track columns = [
+        { label: 'Id', fieldName: 'Id', sortable: true },
+        { label: 'Expense date', fieldName: 'ExpenseDate__c', sortable: true },
+        { label: 'Expense category', fieldName: 'ExpenseCategory__c', sortable: true },
+        { label: 'Vendor', fieldName: 'ExpenseDetailVendor__c', sortable: true },
+        { label: 'City of purchase', fieldName: 'ExpenseLocation__c', sortable: true },
+        { label: 'Receipt', fieldName: 'Receipt', sortable: true },
+        { label: 'Receipt amount', fieldName: 'ReceiptAmount__c', sortable: true },
+        { label: 'Reimbursable', fieldName: 'ReimbursableAmount__c', sortable: true },
+        { label: 'Non-reimbursable', fieldName: 'NonReimbursableAmount__c', sortable: true },
+        { label: 'Notes', fieldName: 'Notes__c', sortable: true },
+    ];
+    @track sortBy = 'ExpenseDate__c';
+    @track sortDirection = 'desc';
+    @track offset = 0;
+    @track limit = 20;
+    @track totalRecords = 0;
+    @track sortFields = [];
+    @track sortDirections = [];
+
+    connectedCallback() {
+        this.loadData();
+        this.getTotalCount();
+    }
+
+    loadData() {
+        getExpenseLineItems({ offset: this.offset, limit: this.limit, sortFields: this.sortFields, sortDirections: this.sortDirections })
+            .then(result => {
+                this.data = [...this.data, ...result];
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
+    getTotalCount() {
+        getTotalCount()
+            .then(result => {
+                this.totalRecords = result;
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
+    handleLoadMore(event) {
+        if (this.data.length < this.totalRecords) {
+            this.offset += this.limit;
+            this.loadData();
+        }
+    }
+
+    handleSort(event) {
+        const { fieldName: sortedBy, sortDirection } = event.detail;
+        this.sortBy = sortedBy;
+        this.sortDirection = sortDirection;
+
+        // Add to sort fields and directions
+        this.sortFields.push(sortedBy);
+        this.sortDirections.push(sortDirection);
+
+        this.data = [];
+        this.offset = 0;
+        this.loadData();
+    }
+}
+
+
+
+<template>
+    <lightning-datatable
+        key-field="Id"
+        data={data}
+        columns={columns}
+        onsort={handleSort}
+        loadmoreoffset="20"
+        onloadmore={handleLoadMore}>
+    </lightning-datatable>
+</template>
