@@ -1,73 +1,75 @@
+public with sharing class ExpenseController {
+    @AuraEnabled(cacheable=true)
+    public static List<ExpenseLineItem__c> getExpenseLineItems(Integer limitSize, Integer offset) {
+        List<ExpenseLineItem__c> listOfExpenseLineItem = [SELECT Id, ExpenseDate__c, ExpenseCategory__c, ExpenseDetailVendor__c, ExpenseLocation__c,
+                                     ReceiptAmount__c, ReimbursableAmount__c, NonReimbursableAmount__c, Notes__c 
+                                     FROM ExpenseLineItem__c
+                                     ORDER BY ExpenseDate__c DESC
+                                     LIMIT :limitSize
+                                     OFFSET :offset];
+        return listOfExpenseLineItem;
+    }
+}
+
+
+<template>
     <lightning-datatable
-    key-field="Id"
-    data={data}
-            columns={columns}
-            enable-lazy-loading
-            onlazyload={loadMoreData}
-            hide-checkbox-column="true">
+        key-field="Id"
+        data={data}
+        columns={columns}
+        enable-lazy-loading
+        onlazyload={loadMoreData}
+        hide-checkbox-column="true">
     </lightning-datatable>
+</template>
 
 
-@track data = [];
-@track columns = [
-    { label: 'Id', fieldName: 'Id', sortable: true },
-    { label: 'Expense date', fieldName: 'ExpenseDate__c', sortable: true },
-    { label: 'Expense category', fieldName: 'ExpenseCategory__c', sortable: true },
-    { label: 'Vendor', fieldName: 'ExpenseDetailVendor__c', sortable: true },
-    { label: 'City of purchase', fieldName: 'ExpenseLocation__c', sortable: true },
-    { label: 'Receipt', fieldName: 'Receipt', sortable: true },
-    { label: 'Receipt amount', fieldName: 'ReceiptAmount__c', sortable: true },
-    { label: 'Reimbursable', fieldName: 'ReimbursableAmount__c', sortable: true },
-    { label: 'Non-reimbursable', fieldName: 'NonReimbursableAmount__c', sortable: true },
-    { label: 'Notes', fieldName: 'Notes__c', sortable: true },
-];
-accounts=[];
-error;
-columns = this.columns;
-rowLimit =10;
-rowOffSet=0;
+import { LightningElement, track } from 'lwc';
+import getExpenseLineItems from '@salesforce/apex/ExpenseController.getExpenseLineItems';
 
-    connectedCallback(){
+export default class ExpenseDataTable extends LightningElement {
+    @track data = [];
+    @track columns = [
+        { label: 'Id', fieldName: 'Id', sortable: true },
+        { label: 'Expense date', fieldName: 'ExpenseDate__c', sortable: true },
+        { label: 'Expense category', fieldName: 'ExpenseCategory__c', sortable: true },
+        { label: 'Vendor', fieldName: 'ExpenseDetailVendor__c', sortable: true },
+        { label: 'City of purchase', fieldName: 'ExpenseLocation__c', sortable: true },
+        { label: 'Receipt', fieldName: 'Receipt', sortable: true },
+        { label: 'Receipt amount', fieldName: 'ReceiptAmount__c', sortable: true },
+        { label: 'Reimbursable', fieldName: 'ReimbursableAmount__c', sortable: true },
+        { label: 'Non-reimbursable', fieldName: 'NonReimbursableAmount__c', sortable: true },
+        { label: 'Notes', fieldName: 'Notes__c', sortable: true },
+    ];
+    error;
+    rowLimit = 20;
+    rowOffSet = 0;
 
-    this.loadData();
+    connectedCallback() {
+        this.loadData();
     }
 
-loadData(){
-    console.log('comming data load');
-    return  getExpenseLineItems({ limitSize: this.rowLimit , offset : this.rowOffSet })
-    .then(result => {
-        let updatedRecords = [...this.data, ...result];
-        this.data = updatedRecords;
-        this.error = undefined;
-    })
-    .catch(error => {
-        this.error = error;
-        this.data = undefined;
-    });
-}
+    loadData() {
+        return getExpenseLineItems({ limitSize: this.rowLimit, offset: this.rowOffSet })
+            .then(result => {
+                this.data = [...this.data, ...result];
+                this.error = undefined;
+                this.rowOffSet += result.length;
+            })
+            .catch(error => {
+                this.error = error;
+            });
+    }
 
-loadMoreData(event) {
-    console.log('load more data ...');
-    const currentRecord = this.data;
-    const { target } = event;
-    target.isLoading = true;
-
-    this.rowOffSet++;
-    this.loadData()
-        .then(()=> {
-            target.isLoading = false;
-        });   
-}
-
-    @AuraEnabled(cacheable=true)
-  public static List<ExpenseLineItem__c> getExpenseLineItems(Integer limitSize, Integer offset) {
-    Integer offsetValue = offset == 0 ? 10 : offset * 10;
-    List<ExpenseLineItem__c> listOfExpenseLineItem = [SELECT Id, ExpenseDate__c, ExpenseCategory__c, ExpenseDetailVendor__c, ExpenseLocation__c,
-                                 ReceiptAmount__c, ReimbursableAmount__c, NonReimbursableAmount__c, Notes__c FROM ExpenseLineItem__c
-                                 ORDER BY ExpenseDate__c DESC
-                                 LIMIT :limitSize
-                                 OFFSET :offsetValue
-                                 ];
-   
-    return listOfExpenseLineItem;
+    loadMoreData(event) {
+        if (event.target.isLoading) {
+            return;
+        }
+        
+        event.target.isLoading = true;
+        
+        this.loadData().then(() => {
+            event.target.isLoading = false;
+        });
+    }
 }
