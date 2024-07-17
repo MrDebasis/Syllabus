@@ -1,7 +1,10 @@
- <lightning-card title="Expense Tutorial">
-        <!-- Carousel Starts -->
-        <lightning-carousel>
-            <lightning-carousel-image src="/resource/Image1" header="Step 1" description="Click 'Add new expense' to add a new expense."></lightning-carousel-image>
-            <lightning-carousel-image src="/resource/Image2" header="Step 2" description="Click 'Submit expenses' to submit expenses you’ve added to the portal for reimbursement."></lightning-carousel-image>
-            <!-- Add more carousel images as needed -->
-        </lightning-carousel>
+       @AuraEnabled(cacheable=true)
+    public static List<ExpenseLineItem__c> getExpenseLineItems() {
+        return [
+            SELECT Id, ExpenseDate__c, ExpenseCategory__c, ExpenseDetailVendor__c, ExpenseLocation__c,ReceiptAmount__c, 
+                   ReimbursableAmount__c,NonReimbursableAmount__c,Notes__c 
+            FROM ExpenseLineItem__c 
+            ORDER BY CreatedDate DESC 
+            LIMIT 10
+        ];
+    }
