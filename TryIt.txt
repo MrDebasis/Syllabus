@@ -1,1 +1,87 @@
-select ExpenseDate__c, ExpenseCategory__c, ExpenseDetailVendor__c,ExpenseLocation__c,Receipt, ReceiptAmount__c, ReimbursableAmount__c,NonReimbursableAmount__c, Notes__c from ExpenseLineItem__c 
+         <!-- Step 1 Tutorials -->
+                    <template if:true={isToturialBtnClicked}>
+                        <c-generic-custom-tooltip_-l-w-c-component info-msg="Click “Add new expense” to add a new expense."
+                                                class="info-icon slds-m-right_xx-small"
+                                                nubbin-position="top-left tutorial-reimbursement-page"
+                                                is-tutorial ="true"
+                                                btn-label ="Next"
+                                                onhandlenextbtn={updateToturialFlag}
+                                                current-screen-index={stepIndex}>
+                                            </c-generic-custom-tooltip_-l-w-c-component>
+                    </template>
+
+                     <!-- Step 2 Tutorials -->
+                    <template if:true={reimbursementPageToturialStep_2}>
+                        <c-generic-custom-tooltip_-l-w-c-component info-msg="Click “Submit expenses” to submit expenses you’ve added to the portal for reimbursement."
+                                                class="info-icon slds-m-right_xx-small"
+                                                nubbin-position="top-right tutorial-reimbursement-page2"
+                                                is-tutorial ="true"
+                                                btn-label ="Next"
+                                                onhandlenextbtn={updateToturialFlag}
+                                                current-screen-index={stepIndex}>
+                                            </c-generic-custom-tooltip_-l-w-c-component>
+                    </template>
+
+
+
+  <!--Tutorials Starts-->
+  <template if:true={closeToolTipPopUp}>
+    <template if:true={isTutorial}>
+        <div class="tooltip-container1">
+          <div class={tooltipPosition} role="tooltip">
+            <div class="imageContainer">   
+              <img src={closeIcon} onclick={handleClose} class="close-icon" alt="info icon" /> 
+            </div>
+            <br>
+            <div class="slds-popover__body font-size-fourteen textdesign">{infoMsg}</div>    
+            <div class="btn-Adj">
+              <button class="slds-button slds-button_brand my-button_brand" onclick={handleBtn} autofocus>
+              {btnLabel}<template if:false={hideArrow}><img src={arrowMarkRight}  class="arrowMarkRight" alt="info icon" /> </template>
+          </button>
+        </div>
+          </div>
+        </div>
+    </template>    
+  </template>
+     <!--Tutorials end-->:      /**Tutorial Starts */
+    closeIcon =`${myResource}/icons/Toturialsclose.svg`;
+    arrowMarkRight =`${myResource}/icons/arrowMarkRight.svg`;
+    closeToolTipPopUp =true;
+
+    @api isTutorial =false;
+    @api btnLabel;
+    @api hideArrow = false;
+    @api pageName= 'ReimbursementPage';
+    @api currentScreenIndex;
+    @track flowScreens = {
+        'ReimbursementPage' : 
+            {
+               'STEP 2' : {bool : 'reimbursementPageToturialStep_2'}, 
+               'STEP 3' : {bool : 'reimbursementPageToturialStep_3' }
+            }
+    }
+
+    handleBtn(){
+        if(this.pageName === 'ReimbursementPage' && this.btnLabel ==='Next'){
+            this.closeToolTipPopUp =true;
+             const sendToParent =this.flowScreens[this.pageName][this.currentScreenIndex].bool ;
+            this.dispatchEvent(new CustomEvent('handlenextbtn', {
+                detail: {
+                    message: sendToParent
+                }
+            }));
+        }
+        if(this.btnLabel==='Finish'){
+            this.handleClose();
+      }
+    }
+
+    handleClose(){
+        this.closeToolTipPopUp =false;
+        this.dispatchEvent(new CustomEvent('handlenextbtn', {
+            detail: {
+                message: 'Finish'
+            }
+        }));
+    }
+    /**Tutorial ends */
