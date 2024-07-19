@@ -1,47 +1,39 @@
+import LightningDatatable from 'lightning/datatable';
+import customPicture from "./customPicture.html";
 
-loadData() {
-    return getExpenseLineItems({ limitSize: this.rowLimit, offset: this.rowOffSet,reimbursementRecId : this.reimbursementRecordId })
-        .then(result => {
-            this.data = [...this.data, ...result];
-
-            this.data = this.data.map((record) => {
-                let rowClass = (this.status === 'Action needed' &&  record.Transient__r.Receipt_Uploaded_R1__c ==='Yes' 
-                ? true :false )? 'backgroundColorRed' : 'backgroundColorRed';
-                return { ...record, Picture: this.receiptIcon, 
-                    ShowPicture: record.Transient__r.Receipt_Uploaded_R1__c ==='Yes' ? true :false ,
-                    missingReceiptUrl : this.showMissingReceipt,
-                    errIcon :  this.errorIcon,showErrorIcon : true, rowClass: rowClass };
-            });
-            console.log('data length'+this.data.length);
-            console.log(result);
-        })
-        .catch(error => {
-            console.log('error 12'+error)
-        });
-}
-get rowclassCSS() {
-    return this.data.map(record => record.rowClass);
+export default class Psp_CustomLightening_Datatable_LWCComponent extends LightningDatatable {
+    static customTypes = {
+        customPicture: {
+          template: customPicture,
+          standardCellLayout: false,
+          typeAttributes: ['pictureUrl', 'showPicture','missingReceiptUrl','errorIconUrl','showErrorIcon'],
+        }
+      }
+          
 }
 
+<template>
+    <template if:true={typeAttributes.showPicture}>
+      <img
+        src={typeAttributes.pictureUrl}
+        class="slds-avatar_large adjustPosition"
+        alt="Receipt"
+      />
+    </template>
+    <template if:false={typeAttributes.showPicture}>
 
-
-    <c-psp_-custom-lightening_-datatable_-l-w-c-component
-    class="LighteningdataTable"
-    table-classes="bg-color-table"
-        key-field="Id"
-        data={data}
-        columns={columns}
-        enable-infinite-loading
-        onloadmore={loadMoreData}
-        load-more-offset="10"
-        max-row-selection="1"
-        onrowaction={handleRowAction}
-        onsort={handleSort}
-        sorted-direction={sortDirection}
-        sorted-by={sortField}
-        hide-checkbox-column="true"
-        row-class={rowclassCSS}
-        resize-column-disabled>
-    </c-psp_-custom-lightening_-datatable_-l-w-c-component>
-</div>
-    </div>
+      <template if:true={typeAttributes.showErrorIcon}>
+        <img
+          src={typeAttributes.errorIconUrl}
+          class="slds-avatar_large errorIcon"
+          alt="error Icon"
+        />
+      </template>
+      
+        <img
+          src={typeAttributes.missingReceiptUrl}
+          class="slds-avatar_large adjustPositionForMissingReceipt"
+          alt="Receipt"
+        />
+      </template>
+  </template>
