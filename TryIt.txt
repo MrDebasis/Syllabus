@@ -1,3 +1,38 @@
-  cellAttributes: { 
-            title: { fieldName: 'NonReimbursableAmount__c' } // Add tooltip here
-        }
+loadData() {
+    return getExpenseLineItems({ limitSize: this.rowLimit, offset: this.rowOffSet,reimbursementRecId : this.reimbursementRecordId })
+        .then(result => {
+            this.data = [...this.data, ...result];
+
+            this.data = this.data.map((record) => {
+                return { ...record, Picture: this.receiptIcon, 
+                    ShowPicture: record.Transient__r.Receipt_Uploaded_R1__c ==='Yes' ? true :false ,
+                    missingReceiptUrl : this.showMissingReceipt,
+                    errIcon :  this.errorIcon,showErrorIcon : true};
+            });
+            console.log('data length'+this.data.length);
+            console.log(result);
+        })
+        .catch(error => {
+            console.log('error 12'+error)
+        });
+}
+
+
+    <c-psp_-custom-lightening_-datatable_-l-w-c-component
+    class="LighteningdataTable"
+    table-classes="bg-color-table"
+        key-field="Id"
+        data={data}
+        columns={columns}
+        enable-infinite-loading
+        onloadmore={loadMoreData}
+        load-more-offset="10"
+        max-row-selection="1"
+        onrowaction={handleRowAction}
+        onsort={handleSort}
+        sorted-direction={sortDirection}
+        sorted-by={sortField}
+        hide-checkbox-column="true"
+         row-class={rowclassCSS}
+        resize-column-disabled>
+    </c-psp_-custom-lightening_-datatable_-l-w-c-component>
