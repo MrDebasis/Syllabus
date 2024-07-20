@@ -1,1 +1,26 @@
 
+    handleRowClick(event) {
+        const selectedRows = this.template.querySelector('lightning-datatable').getSelectedRows();
+        if (selectedRows.length > 0) {
+            const selectedRow = selectedRows[0];
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: selectedRow.Id,
+                    objectApiName: 'YourObjectApiName', // objectApiName is optional
+                    actionName: 'view'
+                }
+            });
+        }
+    }
+
+<template>
+    <lightning-datatable
+        key-field="id"
+        data={data}
+        columns={columns}
+        onrowaction={handleRowAction}
+        onsinglerowselection={handleRowClick}
+    >
+    </lightning-datatable>
+</template>
