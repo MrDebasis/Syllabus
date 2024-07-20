@@ -1,250 +1,45 @@
-@track columns = [
-    { 
-        label: "",
-        type: "customPicture",
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 52, 
-        typeAttributes: {
-            errorIconUrl: { fieldName: "errIcon" },
-            showErrorIcon: { fieldName: "showErrorIcon" },
-          },
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            },
-            alignment: "right" 
-        },
-      },
-    { label: 'Expense date', 
-        fieldName: 'ExpenseDate__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 125,
-        type: "date",
-        typeAttributes:{
-            year: "numeric",
-            month: "short",
-            day: "2-digit"
-        }, 
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-        },
-        sortable: true
-    },
-    { 
-        label: 'Expense category', 
-        fieldName: 'ExpenseCategory__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 142, 
-        wrapText: true ,  
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-    }
-    },
-    { label: 'Vendor', 
-        fieldName: 'ExpenseDetailVendor__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 90 ,  
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-        }
-    },
-    { label: 'City of purchase', 
-        fieldName: 'ExpenseLocation__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 132, 
-        wrapText: true,  
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-        } 
-    },
-     {
-        label: "Receipt",
-        type: "customPicture",
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 125, 
-        typeAttributes: {
-            pictureUrl: { fieldName: "Picture" },
-            showPicture: { fieldName: "ShowPicture" },
-            showMissingReceiptUrl: { fieldName: "showMissingReceiptUrl" },
-            missingReceiptUrl: { fieldName: "missingReceiptUrl" },
-          },
-        cellAttributes: {  
-            class: {
-             fieldName: "rowClass"
-        },
-        alignment: "right" },
-      },
-    { label: 'Receipt amount', 
-        fieldName: 'ReceiptAmount__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 140, 
-        cellAttributes: {  
-            class: {
-                fieldName: "rowClass"
-            },
-        alignment: 'right' }, 
-    },
-    { label: 'Reimbursable', 
-        fieldName: 'ReimbursableAmount__c', 
-        sortable: true,
-        hideDefaultActions: true, 
-        fixedWidth: 122 , 
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-    }},
-    { label: 'Non-reimbursable', 
-        fieldName: 'NonReimbursableAmount__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 147 ,  
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-    }},
-    { label: 'Notes', 
-        fieldName: 'Notes__c', 
-        sortable: true, 
-        hideDefaultActions: true, 
-        fixedWidth: 120 , 
-        wrapText: true,  
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-    } },
-    { 
-        type: 'button-icon',
-        typeAttributes: {
-            iconName: 'utility:chevronright',
-            name: 'navigate',
-            title: 'Navigate',
-            variant: 'bare',
-            alternativeText: 'Navigate'
-        }, 
-        hideDefaultActions: true,
-        fixedWidth: 90,
-        cellAttributes: { 
-            class: {
-                fieldName: "rowClass"
-            }
-        }
-      
-    }];
-error;
-rowLimit = 10;
-rowOffSet = 0;
-totalCount;
-
-
-loadData() {
-    return getExpenseLineItems({ limitSize: this.rowLimit, offset: this.rowOffSet,reimbursementRecId : this.reimbursementRecordId })
-        .then(result => {
-            this.data = [...this.data, ...result];
-
-            this.data = this.data.map((record) => {
-
-                return { ...record, 
-                    //If receipt Present
-                    Picture: this.receiptIcon, 
-                    ShowPicture: record.Transient__r.Receipt_Uploaded_R1__c ==='Yes' ? true :false ,
-
-                    //if receipt not present
-                    showMissingReceiptUrl : (record.Transient__r.Receipt_Uploaded_R1__c ==='No' || record.Transient__r.Receipt_Uploaded_R1__c ==='' || record.Transient__r.Receipt_Uploaded_R1__c ===undefined) ? true :false ,
-                    missingReceiptUrl : this.showMissingReceipt,
-
-                    //if receipt not present and status = Action Needed
-                    errIcon :  this.errorIcon,
-                    showErrorIcon: this.status === 'Action needed' && (!record.Transient__r.Receipt_Uploaded_R1__c || record.Transient__r.Receipt_Uploaded_R1__c === 'No'),
-                    
-                    //change row color when its acction needed and receipt not present
-                    rowClass: this.status === 'Action needed' && (!record.Transient__r.Receipt_Uploaded_R1__c || record.Transient__r.Receipt_Uploaded_R1__c === 'No') ? 'backgroundColorRed' : '' 
-                 };
-            });
-            console.log('data length'+this.data.length);
-            console.log(result);
-        })
-        .catch(error => {
-            console.log('error 12'+error)
-        });
+.slds-table thead th {
+    position: relative;
 }
 
-    <c-psp_-custom-lightening_-datatable_-l-w-c-component
-    class="LighteningdataTable"
-    table-classes="bg-color-table"
-        key-field="Id"
-        data={data}
-        columns={columns}
-        enable-infinite-loading
-        onloadmore={loadMoreData}
-        load-more-offset="10"
-        max-row-selection="1"
-        onrowaction={handleRowAction}
-        onsort={handleSort}
-        sorted-direction={sortDirection}
-        sorted-by={sortField}
-        hide-checkbox-column="true"
-        resize-column-disabled>
-    </c-psp_-custom-lightening_-datatable_-l-w-c-component>
-
-<template>
-    <template if:true={typeAttributes.showPicture}>
-      <img
-        src={typeAttributes.pictureUrl}
-        class="slds-avatar_large adjustPosition"
-        alt="Receipt"
-      />
-    </template>
-
-    <template if:true={typeAttributes.showMissingReceiptUrl}>
-        <img
-          src={typeAttributes.missingReceiptUrl}
-          class="slds-avatar_large adjustPositionForMissingReceipt"
-          alt="Receipt"
-        />
-      </template>
-
-      <template if:true={typeAttributes.showErrorIcon}>
-        <img
-          src={typeAttributes.errorIconUrl}
-          class="slds-avatar_large errorIcon"
-          alt="error Icon"
-        />
-      </template>
-  </template>
-
-import LightningDatatable from 'lightning/datatable';
-import customPicture from "./customPicture.html";
-
-export default class Psp_CustomLightening_Datatable_LWCComponent extends LightningDatatable {
-    static customTypes = {
-        customPicture: {
-          template: customPicture,
-          standardCellLayout: false,
-          typeAttributes: ['pictureUrl', 'showPicture','showMissingReceiptUrl','missingReceiptUrl','errorIconUrl','showErrorIcon'],
-        }
-      }
-          
+.slds-table thead th:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: #333;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 1;
 }
 
-<c-generic-custom-tooltip_-l-w-c-component info-msg="Approved expense amounts that are reimbursable through the program."
-                                        class="info-icon slds-m-right_xx-small"
-                                        nubbin-position="left tooltip-position-reported-expense">
-                                    </c-generic-custom-tooltip_-l-w-c-component>
+
+import { LightningElement, track } from 'lwc';
+
+export default class ParentComponent extends LightningElement {
+    @track columns = [
+        { 
+            label: 'Notes', 
+            fieldName: 'Notes__c', 
+            sortable: true, 
+            hideDefaultActions: true, 
+            fixedWidth: 120, 
+            wrapText: true,
+            cellAttributes: { 
+                class: {
+                    fieldName: "rowClass"
+                }
+            },
+            headerAttributes: {
+                'data-tooltip': 'This column displays notes.' // Tooltip message for header
+            }
+        },
+        // ... other columns
+    ];
+
+    @track data = [
+        // Your data here
+    ];
+}
