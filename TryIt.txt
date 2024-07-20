@@ -1,26 +1,29 @@
-
-    handleRowClick(event) {
-        const selectedRows = this.template.querySelector('lightning-datatable').getSelectedRows();
-        if (selectedRows.length > 0) {
-            const selectedRow = selectedRows[0];
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: selectedRow.Id,
-                    objectApiName: 'YourObjectApiName', // objectApiName is optional
-                    actionName: 'view'
-                }
-            });
+   { label: 'Notes', 
+        fieldName: 'Notes__c', 
+        sortable: true, 
+        hideDefaultActions: true, 
+        fixedWidth: 120 , 
+        wrapText: true,  
+        cellAttributes: { 
+            class: {
+                fieldName: "rowClass"
+            }
+    } },
+    { 
+        type: 'button-icon',
+        typeAttributes: {
+            iconName: 'utility:chevronright',
+            name: 'navigate',
+            title: 'Navigate',
+            variant: 'bare',
+            alternativeText: 'Navigate'
+        }, 
+        hideDefaultActions: true,
+        fixedWidth: 90,
+        cellAttributes: { 
+            class: {
+                fieldName: "rowClass"
+            }
         }
+      
     }
-
-<template>
-    <lightning-datatable
-        key-field="id"
-        data={data}
-        columns={columns}
-        onrowaction={handleRowAction}
-        onsinglerowselection={handleRowClick}
-    >
-    </lightning-datatable>
-</template>
