@@ -1,1 +1,120 @@
 
+import { LightningElement,wire,track,api} from 'lwc';
+import FORM_FACTOR from '@salesforce/client/formFactor';
+import myResource from '@salesforce/resourceUrl/Patient_Portal';
+import OBJECT_NAME_FIELD from '@salesforce/schema/Transient__c';
+import { getObjectInfo,getPicklistValues } from 'lightning/uiObjectInfoApi';
+import OBJECT_FIELD from '@salesforce/schema/Transient__c.Expense_Category_R1__c';
+
+const showReceiptScreenCategories = {
+    2: { bool: 'enableReceiptScreen' , value: 'valuesFromReceiptScreen'},
+    3: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen' }
+};
+const showWithOutReceiptScreenCategories = {
+    2: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen' }
+};
+export default class Psp_AddExpense_LWCComponent extends LightningElement {
+    @track flowScreens = 
+    {
+        'Airline Fees' : showReceiptScreenCategories,
+        'Car Rental' : showReceiptScreenCategories,
+        'Hotel Fees' : showReceiptScreenCategories,
+        'Internet/Online' : showReceiptScreenCategories,
+        'Laundry' : showReceiptScreenCategories,
+        'Long Term Public Transportation (Rail/Bus)' : showReceiptScreenCategories,
+        'Meals and Supplies' : showReceiptScreenCategories,
+        'Miscellaneous' : showReceiptScreenCategories,
+        'Non Reimbursable Expense' : showReceiptScreenCategories,
+        'Parking' : showReceiptScreenCategories,
+        'Personal Car Expenses' : showWithOutReceiptScreenCategories,
+        'Public Transport':showReceiptScreenCategories,
+        'Taxi or Ride Share': showReceiptScreenCategories,
+        'Tips/Gratuities': showWithOutReceiptScreenCategories,
+        'Tolls': showReceiptScreenCategories
+    }
+
+    @track selectedExpenseCategory ='Airline Fees';
+    blueCrossIcon = `${myResource}/icons/BlueCrossIcon.svg`;
+
+    isNewExpenseModalOpen =false;
+    enableBydefultFirstScreen =false;
+    connectedCallback(){
+        this.enableBydefultFirstScreen =true;
+    }
+
+    handleChange(event) {
+        const fieldName = event.target.dataset.label;
+        const value = event.target.value;
+        console.log('value'+value);
+        switch(fieldName) {
+            case 'Expense Category':
+                this.selectedExpenseCategory = value;
+        break;
+        }
+    }
+
+
+
+    openAddExpense(){
+        this.isNewExpenseModalOpen =true;
+    }
+
+    handleClose(){
+        this.isNewExpenseModalOpen =false;
+    }
+
+    @track enableReceiptScreen =false;
+    @track enableExpenseDetailsScreen = false;
+    @track currentScreenIndex =1;
+    handleNext(){
+        this.currentScreenIndex ++;
+        console.log('Handling Next in parent');
+        // Disable all screens by default
+        for(let item in this.flowScreens[this.selectedExpenseCategory])
+            {
+                this[this.flowScreens[this.selectedExpenseCategory][item].bool] = false;
+            }
+          
+console.log('this.selectedExpenseCategory'+this.selectedExpenseCategory);
+console.log('this.currentScreenIndex'+this.currentScreenIndex);
+console.log('this.enableReceiptScreen'+this.enableReceiptScreen);
+    // Enable screens for the selected expense category
+    if (this.flowScreens[this.selectedExpenseCategory]) {
+        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].bool] = true;
+        }
+    }
+
+    /**Get the defult recordType Id for Transient object*/
+    options;
+    accountRecordTypeId;
+    @wire(getObjectInfo, { objectApiName: OBJECT_NAME_FIELD })
+    results({ error, data }) {
+        if (data) {
+         this.accountRecordTypeId = data.defaultRecordTypeId;
+        } else if (error) {
+        console.error('Error on getObjectInfo:', error);
+        }
+    }
+
+    /*Once we have defult recordType Id then get the pick list values from Expense_Category_R1__c*/
+    @wire(getPicklistValues, { recordTypeId: "$accountRecordTypeId", fieldApiName: OBJECT_FIELD })
+    picklistResults({ error, data }) {
+        if (data) {
+        this.options = data.values.map(picklistValue => {
+            return {
+                label: picklistValue.label,
+                value: picklistValue.value
+            };
+        });
+        } else if (error) {
+            console.error('Error on getPicklistValues:', error);
+        }
+    }
+}
+
+
+
+
+   <template if:true={enableReceiptScreen}>
+                    <c-psp_-add-expense-second-screen_-l-w-c-component></c-psp_-add-expense-second-screen_-l-w-c-component>
+                </template>
