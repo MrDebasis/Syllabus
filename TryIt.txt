@@ -1,1 +1,50 @@
-\
+
+            <!--second Screen / Third Screen for Laundry/Toll Starts-->
+            <template if:true={enableReceiptScreen}>
+                <c-psp_-add-expense-second-screen_-l-w-c-component 
+                onenablenextbutton={handleNextButtonChange}
+                next-button-clicked={nextClicked}
+                onsuccess={screenSuccess}>
+            </c-psp_-add-expense-second-screen_-l-w-c-component>
+            </template>
+             <!--second Screen Third Screen for Laundry/Toll Ends-->
+   @track nextClicked = false;
+    handleNext(){
+        this.nextClicked =true;
+        console.log('Handling Next in parent');
+        this.closeScreens();
+        this.currentScreenIndex ++;
+        this.updateScreen();
+       
+    }
+<div class="slds-modal__footer">
+            <div class="adjustFooterBtn">
+                <c-psp_-custom-screen-footer_-l-w-c-component 
+                next-disabled={nextbuttonDisabled} 
+                onnext={handleNext} 
+                back-button-name= "Previous" 
+                show-back ="true" 
+                show-next="true" 
+                next-button-name="Next">
+            </c-psp_-custom-screen-footer_-l-w-c-component>
+            </div>
+
+
+    /**sending values to parent */
+    @track nextClicked = false;
+    @api get nextButtonClicked(){
+            return this.nextClicked;
+        }
+    set nextButtonClicked(value){
+            this.nextClicked = value;
+            if(!this.connectedCallbackHasRun){
+                return;
+            }else{
+            this.onClickNextSendValuesToparent('success');
+        }
+    }
+
+    onClickNextSendValuesToparent(eventName){
+        console.log('On next fired...success event');
+        this.dispatchEvent(new CustomEvent(eventName , {detail:true}));
+    }
