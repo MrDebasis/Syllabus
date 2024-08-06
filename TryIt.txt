@@ -1,3 +1,5 @@
    company='ABCDE' AND Status='New' AND Email=''
 'SELECT Id, QualifiedApiName, Country__c, Country_Code__c, Locale__c FROM CountrySettings_NE__mdt WHERE Locale__c != null' + 
             (country == null ? ' AND QualifiedApiName = \'USA\'' : ' AND Locale__c = \''
+
+inputWhereClause.replace(/'/g, "\\'");
