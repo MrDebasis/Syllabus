@@ -1,1 +1,1 @@
-this.leadDetails.get(fieldName).equals('undefined') ? '' :this.leadDetails.get(fieldName) ; is it correct ?
+    String queryRes ='SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status  FROM lead WHERE' + ' '+ queryConditions;
