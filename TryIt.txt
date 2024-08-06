@@ -6,26 +6,36 @@
             columns={columns}
             onrowselection={handleRowSelection}
         ></lightning-datatable>
+
         <template if:true={selectedLeads.length}>
-            <lightning-card title="Selected Leads Comparison" icon-name="standard:related_list">
-                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Company</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template for:each={selectedLeads} for:item="lead">
-                            <tr key={lead.Id}>
-                                <td>{lead.Name}</td>
-                                <td>{lead.Email}</td>
-                                <td>{lead.Company}</td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+            <lightning-card title="Select Values for Comparison" icon-name="standard:related_list">
+                <template for:each={selectedLeads} for:item="lead">
+                    <div key={lead.Id} class="slds-p-around_small">
+                        <h3>Lead ID: {lead.Id}</h3>
+                        <lightning-radio-group
+                            name="name"
+                            label="Name"
+                            options={nameOptions}
+                            value={selectedLeadId.name}
+                            onchange={handleRadioChange}
+                        ></lightning-radio-group>
+                        <lightning-radio-group
+                            name="email"
+                            label="Email"
+                            options={emailOptions}
+                            value={selectedLeadId.email}
+                            onchange={handleRadioChange}
+                        ></lightning-radio-group>
+                        <lightning-radio-group
+                            name="company"
+                            label="Company"
+                            options={companyOptions}
+                            value={selectedLeadId.company}
+                            onchange={handleRadioChange}
+                        ></lightning-radio-group>
+                    </div>
+                </template>
+                <lightning-button label="Save Selections" onclick={handleSave}></lightning-button>
             </lightning-card>
         </template>
     </lightning-card>
@@ -39,6 +49,15 @@ export default class LeadComparison extends LightningElement {
     @api recordIds = []; // IDs passed to the component
     @track data = [];
     @track selectedLeads = [];
+    @track nameOptions = [];
+    @track emailOptions = [];
+    @track companyOptions = [];
+    @track selectedLeadId = {
+        name: '',
+        email: '',
+        company: ''
+    };
+
     columns = [
         { label: 'Name', fieldName: 'Name' },
         { label: 'Email', fieldName: 'Email' },
@@ -54,14 +73,57 @@ export default class LeadComparison extends LightningElement {
                 Email: lead.Email,
                 Company: lead.Company
             }));
+            this.setOptions();
         } else if (error) {
             console.error('Error fetching leads', error);
         }
     }
 
+    setOptions() {
+        if (this.selectedLeads.length > 0) {
+            this.nameOptions = this.selectedLeads.map(lead => ({
+                label: lead.Name,
+                value: lead.Id
+            }));
+            this.emailOptions = this.selectedLeads.map(lead => ({
+                label: lead.Email,
+                value: lead.Id
+            }));
+            this.companyOptions = this.selectedLeads.map(lead => ({
+                label: lead.Company,
+                value: lead.Id
+            }));
+        }
+    }
+
     handleRowSelection(event) {
-        const selectedRows = event.detail.selectedRows;
-        this.selectedLeads = selectedRows;
-        console.log('Selected Leads for Comparison:', this.selectedLeads);
+        this.selectedLeads = event.detail.selectedRows;
+        this.setOptions();
+    }
+
+    handleRadioChange(event) {
+        const field = event.target.name;
+        const selectedId = event.detail.value;
+
+        // Find the lead with the selected ID
+        const selectedLead = this.selectedLeads.find(lead => lead.Id === selectedId);
+
+        if (selectedLead) {
+            this.selectedLeadId = {
+                ...this.selectedLeadId,
+                [field]: selectedLead[field]
+            };
+        }
+    }
+
+    handleSave() {
+        // Implement save logic to update lead with selected values
+        console.log('Selected Values:', this.selectedLeadId);
+        // Call Apex to save selected values
     }
 }
+
+.slds-p-around_small {
+    padding: 0.5rem;
+}
+
