@@ -9,22 +9,17 @@ handleRowSelection(event) {
             this.currentlySelectedData = [];
             break;
         case 'rowSelect':
-            for (let i = 0; i < event.detail.selectedRows.length; i++) {
-                const selectedRow = event.detail.selectedRows[i];
+            event.detail.selectedRows.forEach(selectedRow => {
                 if (!this.selectedData.find(row => row.id === selectedRow.id)) {
                     this.selectedData.push(selectedRow);
                 }
-                if (!this.currentlySelectedData.find(row => row.id === selectedRow.id)) {
-                    this.currentlySelectedData.push(selectedRow);
-                }
-            }
+            });
+            this.currentlySelectedData = [...event.detail.selectedRows];
             break;
         case 'rowDeselect':
-            for (let i = 0; i < event.detail.deselectedRows.length; i++) {
-                const deselectedRow = event.detail.deselectedRows[i];
-                this.selectedData = this.selectedData.filter(row => row.id !== deselectedRow.id);
-                this.currentlySelectedData = this.currentlySelectedData.filter(row => row.id !== deselectedRow.id);
-            }
+            const selectedIds = event.detail.selectedRows.map(row => row.id);
+            this.selectedData = this.selectedData.filter(row => selectedIds.includes(row.id));
+            this.currentlySelectedData = [...event.detail.selectedRows];
             break;
         default:
             break;
