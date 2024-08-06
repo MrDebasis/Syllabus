@@ -1,99 +1,111 @@
+<template>
+    <strong>Lead Details</strong>
+    <div class="leadDetails">
+        <div class="adjustFields">
+            <strong> Name : </strong>
+            <lightning-input type="checkbox" value="Name" onchange={handleCheckboxChange} checked={nameChecked}></lightning-input>{leadDetails.get('Name')}
+        </div>
+        <div class="adjustFields">
+            <strong>First Name : </strong>
+            <lightning-input type="checkbox" value="FirstName" onchange={handleCheckboxChange} checked={firstNameChecked}></lightning-input>{leadDetails.get('FirstName')}
+        </div>
+        <div class="adjustFields">
+            <strong> Last Name :</strong>
+            <lightning-input type="checkbox" value="LastName" onchange={handleCheckboxChange} checked={lastNameChecked}></lightning-input>{leadDetails.get('LastName')}
+        </div>
+        <div class="adjustFields">
+            <strong> Email :</strong>
+            <lightning-input type="checkbox" value="Email" onchange={handleCheckboxChange} checked={emailChecked}></lightning-input>{leadDetails.get('Email')}
+        </div>
+        <div class="adjustFields">
+            <strong> Phone :</strong>
+            <lightning-input type="checkbox" value="Phone" onchange={handleCheckboxChange} checked={phoneChecked}></lightning-input>{leadDetails.get('Phone')}
+        </div>
+        <div class="adjustFields">
+            <strong> Company :</strong>
+            <lightning-input type="checkbox" value="company" onchange={handleCheckboxChange} checked={companyChecked}></lightning-input>{leadDetails.get('company')}
+        </div>
+        <div class="adjustFields">
+            <strong>Status :</strong>
+            <lightning-input type="checkbox" value="Status" onchange={handleCheckboxChange} checked={statusChecked}></lightning-input>{leadDetails.get('Status')}
+        </div>
+    </div>
+    <button onclick={SearchLeadRecords}>Search</button>
+</template>
 
-    setValues(){
-        if(this.leadDetails!==null){
-            this.id = this.leadDetails.get('Id');
-            this.name =this.leadDetails.get('Name');
-            this.firstName = this.leadDetails.get('FirstName');
-            this.lastName = this.leadDetails.get('LastName');
-            this.email = this.leadDetails.get('Email');
 
-            this.phone = this.leadDetails.get('Phone');
-            this.company = this.leadDetails.get('company');
-            this.status = this.leadDetails.get('Status');
+
+import { LightningElement, track } from 'lwc';
+
+export default class LeadDetails extends LightningElement {
+    @track nameChecked = false;
+    @track firstNameChecked = false;
+    @track lastNameChecked = false;
+    @track emailChecked = false;
+    @track phoneChecked = false;
+    @track companyChecked = false;
+    @track statusChecked = false;
+
+    @track queryConditions = '';
+
+    leadDetails = new Map([
+        ['Id', '123'],
+        ['Name', 'John Doe'],
+        ['FirstName', 'John'],
+        ['LastName', 'Doe'],
+        ['Email', 'john.doe@example.com'],
+        ['Phone', '123-456-7890'],
+        ['company', 'Example Corp'],
+        ['Status', 'Active']
+    ]);
+
+    handleCheckboxChange(event) {
+        const fieldName = event.target.value;
+        const isChecked = event.target.checked;
+        const fieldValue = this.leadDetails.get(fieldName);
+
+        if (isChecked) {
+            if (this.queryConditions) {
+                this.queryConditions += ' AND ';
+            }
+            this.queryConditions += `${fieldName}='${fieldValue}'`;
+        } else {
+            const conditionToRemove = `${fieldName}='${fieldValue}'`;
+            this.queryConditions = this.queryConditions.split(' AND ')
+                .filter(condition => condition !== conditionToRemove)
+                .join(' AND ');
         }
+
+        this.updateCheckedState(fieldName, isChecked);
     }
 
-@track nameChecked = false;
-@track firstNameChecked = false;
-@track lastNameChecked = false;
-@track emailChecked = false;
-@track phoneChecked = false;
-@track companyChecked = false;
-@track statusChecked = false;
-
-@track queryConditions;
-    handleCheckboxChange(event) {
-        const fieldName =  event.target.value;
-        const isChecked = event.target.checked;
-        console.log('fieldName',fieldName);
-        console.log('isChecked',isChecked);
-        switch(fieldName) {
+    updateCheckedState(fieldName, isChecked) {
+        switch (fieldName) {
             case 'Name':
                 this.nameChecked = isChecked;
-                if(isChecked){
-                    this.queryConditions =this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  + fieldName + '='+ this.leadDetails.get('Name');
-                }else{
-                    
-                }
-               
                 break;
             case 'FirstName':
                 this.firstNameChecked = isChecked;
-                this.queryConditions =  this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  +fieldName + '='+ this.leadDetails.get('FirstName');
                 break;
             case 'LastName':
                 this.lastNameChecked = isChecked;
-                this.queryConditions =  this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  +fieldName + '='+ this.leadDetails.get('LastName');
                 break;
             case 'Email':
                 this.emailChecked = isChecked;
-                this.queryConditions =  this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  +fieldName + '='+ this.leadDetails.get('Email');
                 break;
             case 'Phone':
                 this.phoneChecked = isChecked;
-                this.queryConditions =  this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  +fieldName + '='+ this.leadDetails.get('Phone');
                 break;
             case 'company':
                 this.companyChecked = isChecked;
-                this.queryConditions =  this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  +fieldName + '='+ this.leadDetails.get('company');
                 break;
             case 'Status':
                 this.statusChecked = isChecked;
-                this.queryConditions =  this.queryConditions !==undefined ? this.queryConditions+ ' AND ' : ''  +fieldName + '='+ this.leadDetails.get('Status');
                 break;
         }
-
     }
 
-    SearchLeadRecords(){
-        console.log('Its executing search',this.queryConditions);
+    SearchLeadRecords() {
+        console.log('Executing search with query:', this.queryConditions);
     }
-    <template>
-    <strong>Lead Details</strong>
-    <div class="leadDetails">
-
-        <div class="adjustFields">
-            <strong> Name : </strong> <lightning-input type="checkbox" value="Name" onchange={handleCheckboxChange} checked={name}></lightning-input>{name}
-        </div>
-        <div class="adjustFields">
-            <strong>First Name : </strong><lightning-input type="checkbox" value="FirstName" onchange={handleCheckboxChange} checked={firstName}></lightning-input>{firstName}
-        </div>
-        <div class="adjustFields">
-            <strong> Last Name :</strong><lightning-input type="checkbox" value="LastName" onchange={handleCheckboxChange} checked={lastName}></lightning-input>{lastName}
-        </div>
-        <div class="adjustFields">
-            <strong> Email :</strong><lightning-input type="checkbox" value="Email" onchange={handleCheckboxChange} checked={email}></lightning-input>{email}
-        </div>
-        <div class="adjustFields">
-            <strong> Phone :</strong><lightning-input type="checkbox" value="Phone" onchange={handleCheckboxChange} checked={phone}></lightning-input>{phone}
-        </div>
-        <div class="adjustFields">
-            <strong> Company :</strong><lightning-input type="checkbox" value="Company" onchange={handleCheckboxChange} checked={company}></lightning-input>{company}
-        </div>
-        <div class="adjustFields">
-            <strong>Status :</strong> <lightning-input type="checkbox" value="Status" onchange={handleCheckboxChange} checked={status}></lightning-input>{status}
-        </div>
-    </div>
-
-    <button onclick={SearchLeadRecords}>Search</button>
-</template>
+}
