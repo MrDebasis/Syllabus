@@ -1,1 +1,13 @@
-String.escapeSingleQuotes(baseQuery);
+getDuplicateLeadDetails() {
+getDuplicateLeadDetails({ queryConditions: this.finalQueryForLead })
+    .then(result => {
+        console.log('abcd',result);
+        if (result) {
+            console.log('abcd',result);
+           // this.listOfDuplicateLeads = result.DUPLICATE_LEADS;
+           // console.log(this.listOfDuplicateLeads);
+        }
+    })
+    .catch(error => {
+    });
+}
