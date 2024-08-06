@@ -1,13 +1,13 @@
 getDuplicateLeadDetails() {
-getDuplicateLeadDetails({ queryConditions: this.finalQueryForLead })
-    .then(result => {
-        console.log('abcd',result);
-        if (result) {
-            console.log('abcd',result);
-           // this.listOfDuplicateLeads = result.DUPLICATE_LEADS;
-           // console.log(this.listOfDuplicateLeads);
-        }
-    })
-    .catch(error => {
-    });
-}
+        getDuplicateLeadDetails({ queryConditions: this.finalQueryForLead })
+            .then(result => {
+                console.log('Result:', result);
+                if (result && result.DUPLICATE_LEADS) {
+                    this.listOfDuplicateLeads = result.DUPLICATE_LEADS;
+                    console.log('List of Duplicate Leads:', this.listOfDuplicateLeads);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
