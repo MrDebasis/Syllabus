@@ -1,13 +1,1 @@
-getDuplicateLeadDetails() {
-        getDuplicateLeadDetails({ queryConditions: this.finalQueryForLead })
-            .then(result => {
-                console.log('Result:', result);
-                if (result && result.DUPLICATE_LEADS) {
-                    this.listOfDuplicateLeads = result.DUPLICATE_LEADS;
-                    console.log('List of Duplicate Leads:', this.listOfDuplicateLeads);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    }
+ String escapedConditions = queryConditions.replace('\'', '\'\'');
