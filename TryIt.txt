@@ -1,16 +1,2 @@
-handleRadioChange(event) {
-        const leadId = event.target.dataset.id;
-        const fieldName = event.target.dataset.name;
-        const selectedValue = event.detail.value;
-
-        // Find the lead with the selected ID
-        const selectedLead = this.selectedLeads.find(lead => lead.Id === leadId);
-
-        if (selectedLead) {
-            this.currentlySelectedData = {
-                ...this.currentlySelectedData,
-                [fieldName]: selectedValue
-            };
-            console.log(`Lead ID: ${leadId}, Field: ${fieldName}, Selected Value: ${selectedValue}`);
-        }
-    }
+       <input type="radio" name="Name" value={lead.Name}  data-id={lead.Id}
+                        data-name ="Name"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Name} 
