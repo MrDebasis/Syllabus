@@ -1,1 +1,1 @@
- String escapedConditions = queryConditions.replace('\'', '\'\'');
+Name='Debasis Maha' AND FirstName='Debasis' AND LastName='Maha' AND Phone='079755311101' AND company='ghsag' AND Status='New'
