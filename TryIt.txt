@@ -1,18 +1,125 @@
- get dynamicCssClass() {
-        if (this.objectsArray.length === 0) return '';
+ <lightning-card  title="Select Values for Comparison" icon-name="standard:related_list">
+                <div  class="subcontainer">
+                <template for:each={currentlySelectedData} for:item="lead">
+                    <div key={lead.Id} class="slds-p-around_small">
+                        <h3>Lead ID: {lead.Id}</h3>
+                        <div class="adjustRadioBtns">
+                            <div class={dynamicCSSValue}>
+                            Name :  <input type="radio"  name="Name" value={lead.Name}  data-id={lead.Id}
+                        data-name ="Name"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Name} 
+                            </div>
+                            <div >
+                        Email :<input type="radio" name="Email" value={lead.Email}  data-id={lead.Id}
+                        data-name ="Email"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Email} 
+                    </div>
+                    <div>
+                        Company :<input type="radio" name="Company" value={lead.Company}  data-id={lead.Id}
+                        data-name ="Company"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Company} 
 
-        // Extract the field names from the first object
-        const fieldNames = Object.keys(this.objectsArray[0]);
+                    </div>
+                    <div>
+                        LastName :<input type="radio" name="LastName" value={lead.LastName}  data-id={lead.Id}
+                        data-name ="LastName"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.LastName} 
 
-        // Function to check if all values for a specific field are the same
-        const areFieldValuesSame = (fieldName) => {
-            const values = this.objectsArray.map(obj => obj[fieldName]);
-            return values.every(value => value === values[0]);
-        };
+                    </div>
+                    <div>
+                        FirstName :<input type="radio" name="FirstName" value={lead.FirstName}  data-id={lead.Id}
+                        data-name ="FirstName"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.FirstName} 
+                    </div>
+                    <div class={dynamicCSSValue}>
+                        Phone :<input type="radio" name="Phone" value={lead.Phone}  data-id={lead.Id}
+                        data-name ="Phone"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Phone} 
+                    </div>
+                    <div>
+                        Status :<input type="radio" name="Status" value={lead.Status}  data-id={lead.Id}
+                        data-name ="Status"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Status} 
+                    </div>
+                    </div>
+                    </div>
+                </template>
+                <lightning-button label="Save Selections" onclick={handleSave}></lightning-button>
+            </div>
+            </lightning-card>
+        </div>
 
-        // Check all fields
-        const allFieldsSame = fieldNames.every(fieldName => areFieldValuesSame(fieldName));
 
-        // Return the CSS class based on whether all fields have the same value or not
-        return allFieldsSame ? '' : 'different-values';
+handleRowSelection(event) {
+    switch (event.detail.config.action) {
+        case 'selectAllRows':
+            this.selectedData = [...event.detail.selectedRows];
+            this.currentlySelectedData = [...event.detail.selectedRows];
+            break;
+        case 'deselectAllRows':
+            this.selectedData = [];
+            this.currentlySelectedData = [];
+            break;
+        case 'rowSelect':
+            event.detail.selectedRows.forEach(selectedRow => {
+                if (!this.selectedData.find(row => row.id === selectedRow.id)) {
+                    this.selectedData.push(selectedRow);
+                }
+            });
+            this.currentlySelectedData = [...event.detail.selectedRows];
+            break;
+        case 'rowDeselect':
+            const selectedIds = event.detail.selectedRows.map(row => row.id);
+            this.selectedData = this.selectedData.filter(row => selectedIds.includes(row.id));
+            this.currentlySelectedData = [...event.detail.selectedRows];
+            break;
+        default:
+            break;
     }
+    console.log('selectedData', this.selectedData);
+    console.log('currentlySelectedData', this.currentlySelectedData);
+    this.dynamicCSSValue =this.dynamicCssClass();
+    this.setOptions();
+}
+@track selectedLeads = [];
+@track nameOptions = [];
+@track emailOptions = [];
+@track companyOptions = [];
+setOptions() {
+
+    if (this.currentlySelectedData.length > 0) {
+        this.nameOptions = this.currentlySelectedData.map(lead => ({
+            label: lead.Name,
+            value: lead.Id
+        }));
+        this.emailOptions = this.currentlySelectedData.map(lead => ({
+            label: lead.Email,
+            value: lead.Id
+        }));
+        this.companyOptions = this.currentlySelectedData.map(lead => ({
+            label: lead.Company,
+            value: lead.Id
+        }));
+    }
+}
+handleRadioChange(event) {
+    const leadId = event.target.dataset.id;
+    const fieldName = event.target.dataset.name;
+    const selectedValue = event.target.value;
+
+    // Find the lead with the selected ID
+    const selectedLead = this.currentlySelectedData.find(lead => lead.Id === leadId);
+
+        console.log(`Lead ID: ${leadId}, Field: ${fieldName}, Selected Value: ${selectedValue}`);
+
+}
+ dynamicCssClass() {
+    if (this.currentlySelectedData.length === 0) return '';
+
+    const fieldNames = Object.keys(this.currentlySelectedData[0]);
+
+    // Function to check if all values for a specific field are the same
+    const areFieldValuesSame = (fieldName) => {
+        const values = this.currentlySelectedData.map(obj => obj[fieldName]);
+        return values.every(value => value === values[0]);
+    };
+
+    // Check all fields
+    const allFieldsSame = fieldNames.every(fieldName => areFieldValuesSame(fieldName));
+
+    // Return the CSS class based on whether all fields have the same value or not
+    return allFieldsSame ? '' : 'differentvalues';
+}
