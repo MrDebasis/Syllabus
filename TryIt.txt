@@ -1,2 +1,18 @@
-       <input type="radio" name="Name" value={lead.Name}  data-id={lead.Id}
-                        data-name ="Name"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Name} 
+ get dynamicCssClass() {
+        if (this.objectsArray.length === 0) return '';
+
+        // Extract the field names from the first object
+        const fieldNames = Object.keys(this.objectsArray[0]);
+
+        // Function to check if all values for a specific field are the same
+        const areFieldValuesSame = (fieldName) => {
+            const values = this.objectsArray.map(obj => obj[fieldName]);
+            return values.every(value => value === values[0]);
+        };
+
+        // Check all fields
+        const allFieldsSame = fieldNames.every(fieldName => areFieldValuesSame(fieldName));
+
+        // Return the CSS class based on whether all fields have the same value or not
+        return allFieldsSame ? '' : 'different-values';
+    }
