@@ -5,6 +5,7 @@ handleRowSelection(event) {
             this.currentlySelectedData = [...event.detail.selectedRows];
             break;
         case 'deselectAllRows':
+            this.selectedData = [];
             this.currentlySelectedData = [];
             break;
         case 'rowSelect':
