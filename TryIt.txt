@@ -1,1 +1,14 @@
 
+    setValues(){
+        if(this.leadDetails!==null){
+            this.id = this.leadDetails.get('Id');
+            this.name =this.leadDetails.get('Name');
+            this.firstName = this.leadDetails.get('FirstName');
+            this.lastName = this.leadDetails.get('LastName');
+            this.email = this.leadDetails.get('Email');
+
+            this.phone = this.leadDetails.get('Phone');
+            this.company = this.leadDetails.get('company');
+            this.status = this.leadDetails.get('Status');
+        }
+    }
