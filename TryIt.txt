@@ -1,3 +1,1 @@
-SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status  FROM lead  WHERE Name=\'Debasis Maha\' AND FirstName=\'Debasis\' AND LastName=\'Maha\' AND Phone=\'567894\' AND company=\'AVC\' AND Status=\'New\'
-
-ystem.QueryException: line 1:88 no viable alternative at character '\'
+String.escapeSingleQuotes(baseQuery);
