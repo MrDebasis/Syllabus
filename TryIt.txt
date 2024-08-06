@@ -1,1 +1,1 @@
-    String queryRes ='SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status  FROM lead WHERE' + ' '+ queryConditions;
+   company='ABCDE' AND Status='New' AND Email=''
