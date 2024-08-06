@@ -1,29 +1,67 @@
-handleRowSelection(event) {
-    switch (event.detail.config.action) {
-        case 'selectAllRows':
-            this.selectedData = [...event.detail.selectedRows];
-            this.currentlySelectedData = [...event.detail.selectedRows];
-            break;
-        case 'deselectAllRows':
-            this.selectedData = [];
-            this.currentlySelectedData = [];
-            break;
-        case 'rowSelect':
-            event.detail.selectedRows.forEach(selectedRow => {
-                if (!this.selectedData.find(row => row.id === selectedRow.id)) {
-                    this.selectedData.push(selectedRow);
-                }
-            });
-            this.currentlySelectedData = [...event.detail.selectedRows];
-            break;
-        case 'rowDeselect':
-            const selectedIds = event.detail.selectedRows.map(row => row.id);
-            this.selectedData = this.selectedData.filter(row => selectedIds.includes(row.id));
-            this.currentlySelectedData = [...event.detail.selectedRows];
-            break;
-        default:
-            break;
+<template>
+    <lightning-card title="Lead Comparison" icon-name="standard:lead">
+        <lightning-datatable
+            key-field="Id"
+            data={data}
+            columns={columns}
+            onrowselection={handleRowSelection}
+        ></lightning-datatable>
+        <template if:true={selectedLeads.length}>
+            <lightning-card title="Selected Leads Comparison" icon-name="standard:related_list">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Company</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={selectedLeads} for:item="lead">
+                            <tr key={lead.Id}>
+                                <td>{lead.Name}</td>
+                                <td>{lead.Email}</td>
+                                <td>{lead.Company}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </lightning-card>
+        </template>
+    </lightning-card>
+</template>
+
+
+import { LightningElement, wire, api, track } from 'lwc';
+import getLeadsByIds from '@salesforce/apex/LeadComparisonController.getLeadsByIds';
+
+export default class LeadComparison extends LightningElement {
+    @api recordIds = []; // IDs passed to the component
+    @track data = [];
+    @track selectedLeads = [];
+    columns = [
+        { label: 'Name', fieldName: 'Name' },
+        { label: 'Email', fieldName: 'Email' },
+        { label: 'Company', fieldName: 'Company' }
+    ];
+
+    @wire(getLeadsByIds, { leadIds: '$recordIds' })
+    wiredLeads({ error, data }) {
+        if (data) {
+            this.data = data.map(lead => ({
+                Id: lead.Id,
+                Name: lead.Name,
+                Email: lead.Email,
+                Company: lead.Company
+            }));
+        } else if (error) {
+            console.error('Error fetching leads', error);
+        }
     }
-    console.log('selectedData', this.selectedData);
-    console.log('currentlySelectedData', this.currentlySelectedData);
+
+    handleRowSelection(event) {
+        const selectedRows = event.detail.selectedRows;
+        this.selectedLeads = selectedRows;
+        console.log('Selected Leads for Comparison:', this.selectedLeads);
+    }
 }
