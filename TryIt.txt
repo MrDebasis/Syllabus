@@ -1,10 +1,28 @@
-listOfSelectedIds= [];
-getSelectedId(event) {
-    const selectedRows = event.detail.selectedRows;
-    // Display that fieldName of the selected rows
-    for (let i = 0; i < selectedRows.length; i++) {
-        listOfSelectedIds.push(selectedRows[i].Id);
- 
+handleRowSelection(event) {
+    switch (event.detail.config.action) {
+        case 'selectAllRows':
+            for (let i = 0; i < event.detail.selectedRows.length; i++) {
+                this.selectedData.push(event.detail.selectedRows[i]);
+                this.currentlySelectedData.push(event.detail.selectedRows[i]);
+            }
+            break;
+        case 'deselectAllRows':
+            this.currentlySelectedData = [];
+            break;
+        case 'rowSelect':
+            for (let i = 0; i < event.detail.selectedRows.length; i++) {
+                this.selectedData.push(event.detail.selectedRows[i]);
+                break;
+            }
+            break;
+        case 'rowDeselect':
+            for (let i = 0; i < event.detail.selectedRows.length; i++) {
+                this.selectedData.filter((item) => item.id !== event.detail.selectedRows[i].ID);
+            }
+            break;
+        default:
+            break;
     }
-    console.log(this.listOfSelectedIds);
+    console.log('selectedData',this.selectedData);
+    console.log('currentlySelectedData',this.currentlySelectedData);
 }
