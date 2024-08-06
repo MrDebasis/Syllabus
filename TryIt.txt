@@ -1,42 +1,10 @@
-public class DynamicQueryExample {
-    public static void runQuery(String criteria) {
-        // Parse the criteria string and build a Map
-        Map<String, String> criteriaMap = new Map<String, String>();
-        
-        // Split the criteria string into individual conditions
-        for (String part : criteria.split(' AND ')) {
-            // Split each condition into key and value
-            List<String> keyValue = part.split('=');
-            
-            // Ensure the split resulted in exactly two parts (key and value)
-            if (keyValue.size() == 2) {
-                // Remove single quotes from the value and trim any whitespace
-                String key = keyValue[0].trim();
-                String value = keyValue[1].replace('\'', '').trim();
-                
-                // Add the key-value pair to the map
-                criteriaMap.put(key, value);
-            }
-        }
-
-        // Build the SOQL query dynamically
-        String soqlQuery = 'SELECT Id, Name FROM Account WHERE ';
-        List<String> conditions = new List<String>();
-        
-        // Construct the conditions for the query
-        for (String key : criteriaMap.keySet()) {
-            conditions.add(key + ' = \'' + criteriaMap.get(key) + '\'');
-        }
-        
-        // Join the conditions with ' AND ' to form the WHERE clause
-        soqlQuery += String.join(conditions, ' AND ');
-
-        // Execute the SOQL query
-        List<Account> accounts = Database.query(soqlQuery);
-
-        // Process the results (for example, outputting the results)
-        for (Account acc : accounts) {
-            System.debug('Account Id: ' + acc.Id + ', Name: ' + acc.Name);
-        }
+listOfSelectedIds= [];
+getSelectedId(event) {
+    const selectedRows = event.detail.selectedRows;
+    // Display that fieldName of the selected rows
+    for (let i = 0; i < selectedRows.length; i++) {
+        listOfSelectedIds.push(selectedRows[i].Id);
+ 
     }
+    console.log(this.listOfSelectedIds);
 }
