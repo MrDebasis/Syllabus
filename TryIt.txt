@@ -1,28 +1,33 @@
 handleRowSelection(event) {
     switch (event.detail.config.action) {
         case 'selectAllRows':
-            for (let i = 0; i < event.detail.selectedRows.length; i++) {
-                this.selectedData.push(event.detail.selectedRows[i]);
-                this.currentlySelectedData.push(event.detail.selectedRows[i]);
-            }
+            this.selectedData = [...event.detail.selectedRows];
+            this.currentlySelectedData = [...event.detail.selectedRows];
             break;
         case 'deselectAllRows':
             this.currentlySelectedData = [];
             break;
         case 'rowSelect':
             for (let i = 0; i < event.detail.selectedRows.length; i++) {
-                this.selectedData.push(event.detail.selectedRows[i]);
-                break;
+                const selectedRow = event.detail.selectedRows[i];
+                if (!this.selectedData.find(row => row.id === selectedRow.id)) {
+                    this.selectedData.push(selectedRow);
+                }
+                if (!this.currentlySelectedData.find(row => row.id === selectedRow.id)) {
+                    this.currentlySelectedData.push(selectedRow);
+                }
             }
             break;
         case 'rowDeselect':
-            for (let i = 0; i < event.detail.selectedRows.length; i++) {
-                this.selectedData.filter((item) => item.id !== event.detail.selectedRows[i].ID);
+            for (let i = 0; i < event.detail.deselectedRows.length; i++) {
+                const deselectedRow = event.detail.deselectedRows[i];
+                this.selectedData = this.selectedData.filter(row => row.id !== deselectedRow.id);
+                this.currentlySelectedData = this.currentlySelectedData.filter(row => row.id !== deselectedRow.id);
             }
             break;
         default:
             break;
     }
-    console.log('selectedData',this.selectedData);
-    console.log('currentlySelectedData',this.currentlySelectedData);
+    console.log('selectedData', this.selectedData);
+    console.log('currentlySelectedData', this.currentlySelectedData);
 }
