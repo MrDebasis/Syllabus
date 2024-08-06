@@ -1,5 +1,3 @@
-   company='ABCDE' AND Status='New' AND Email=''
-'SELECT Id, QualifiedApiName, Country__c, Country_Code__c, Locale__c FROM CountrySettings_NE__mdt WHERE Locale__c != null' + 
-            (country == null ? ' AND QualifiedApiName = \'USA\'' : ' AND Locale__c = \''
+SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status  FROM lead  WHERE Name=\'Debasis Maha\' AND FirstName=\'Debasis\' AND LastName=\'Maha\' AND Phone=\'567894\' AND company=\'AVC\' AND Status=\'New\'
 
-inputWhereClause.replace(/'/g, "\\'");
+ystem.QueryException: line 1:88 no viable alternative at character '\'
