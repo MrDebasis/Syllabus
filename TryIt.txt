@@ -1,1 +1,14 @@
 
+handleRadioChange(event) {
+    const leadId = event.target.dataset.id;
+    const fieldName = event.target.dataset.name;
+    const selectedValue = event.target.value;
+
+    // Find the lead with the selected ID
+    const selectedLead = this.currentlySelectedData.find(lead => lead.Id === leadId);
+    const masterLead = this.currentlySelectedData.find(lead => lead.Id === this.recordId);
+    console.log('masterLead'+ JSON.stringify(masterLead));
+
+        console.log(`Lead ID: ${leadId}, Field: ${fieldName}, Selected Value: ${selectedValue}`);
+
+}
