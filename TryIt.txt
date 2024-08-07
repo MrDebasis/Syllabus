@@ -1,14 +1,25 @@
-
 handleRadioChange(event) {
     const leadId = event.target.dataset.id;
     const fieldName = event.target.dataset.name;
     const selectedValue = event.target.value;
 
     // Find the lead with the selected ID
-    const selectedLead = this.currentlySelectedData.find(lead => lead.Id === leadId);
     const masterLead = this.currentlySelectedData.find(lead => lead.Id === this.recordId);
-    console.log('masterLead'+ JSON.stringify(masterLead));
+    console.log('masterLead' + JSON.stringify(masterLead));
 
-        console.log(`Lead ID: ${leadId}, Field: ${fieldName}, Selected Value: ${selectedValue}`);
+    // Log the event data
+    console.log(`Lead ID: ${leadId}, Field: ${fieldName}, Selected Value: ${selectedValue}`);
 
+    // Find the specific lead to update
+    let leadToUpdate = this.masterLead.find(lead => lead.Id === leadId);
+    if (leadToUpdate) {
+        // Update the value of the specific field
+        leadToUpdate[fieldName] = selectedValue;
+        console.log('Updated lead: ' + JSON.stringify(leadToUpdate));
+
+        // Update the masterLead array
+        this.masterLead = [...this.masterLead];
+    } else {
+        console.error('Lead not found');
+    }
 }
