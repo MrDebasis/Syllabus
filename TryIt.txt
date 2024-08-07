@@ -1,25 +1,605 @@
+.leadDetails{
+    display: grid;
+    display: grid;
+    margin-left: 29px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    row-gap: 4px;
+}
+.adjustFields{
+    display: inline-flex;
+    column-gap: 9px;
+    justify-content: flex-start;
+}
+.slds-card__body {
+    display: flex !important;
+}
+.adjustRadioBtns{
+
+}
+.subcontainer{
+    display: flex;
+    column-gap: 36px;
+}
+.differentvalues{
+    background-color: yellow;
+}
+
+.title{
+    margin-left: 26px;
+    margin-top: 30px;
+    font-weight: 700;
+    font-size: 21px;
+    line-height: 14px;
+    color: midnightblue;
+}
+.buttonClass{
+    width: 196px;
+    border-radius: 100px;
+    height: 42px;
+    color: #000000;
+    background-color: #EA0256;
+    margin-bottom: 20px;
+    font-weight: 400;
+}
+.dataatable{
+    margin-top: 30px;
+    height: 146px;
+    margin-left: 29px;
+    margin-right: 29px;
+    margin-bottom: 20px;
+}
+.buttonClass1{
+    margin-left: 29px;
+    position: relative;
+}
+.title2{
+    margin-left: 22px;
+    margin-top: 30px;
+    font-weight: 700;
+    font-size: 21px;
+    line-height: 14px;
+    color: midnightblue;
+}
+
+
+<template>
+    <div class="container">
+    <p class="title"><strong>Lead Details</strong></p>
+    <div class="leadDetails">
+        <div class="adjustFields">
+            <strong> Name : </strong>
+            <lightning-input type="checkbox" value="Name" onchange={handleCheckboxChange} checked={nameChecked}></lightning-input>{name}
+        </div>
+        <div class="adjustFields">
+            <strong>First Name : </strong>
+            <lightning-input type="checkbox" value="FirstName" onchange={handleCheckboxChange} checked={firstNameChecked}></lightning-input>{firstName}
+        </div>
+        <div class="adjustFields">
+            <strong> Last Name :</strong>
+            <lightning-input type="checkbox" value="LastName" onchange={handleCheckboxChange} checked={lastNameChecked}></lightning-input>{lastName}
+        </div>
+        <div class="adjustFields">
+            <strong> Email :</strong>
+            <lightning-input type="checkbox" value="Email" onchange={handleCheckboxChange} checked={emailChecked}></lightning-input>{email}
+        </div>
+        <div class="adjustFields">
+            <strong> Phone :</strong>
+            <lightning-input type="checkbox" value="Phone" onchange={handleCheckboxChange} checked={phoneChecked}></lightning-input>{phone}
+        </div>
+        <div class="adjustFields">
+            <strong> Company :</strong>
+            <lightning-input type="checkbox" value="company" onchange={handleCheckboxChange} checked={companyChecked}></lightning-input>{company}
+        </div>
+        <div class="adjustFields">
+            <strong>Status :</strong>
+            <lightning-input type="checkbox" value="Status" onchange={handleCheckboxChange} checked={statusChecked}></lightning-input>{status}
+        </div>
+    </div>
+</div>
+
+<div class="buttonClass1">
+    <div class="slds-grid slds-grid_align-spread">
+        <button class="buttonClass"  onclick={SearchLeadRecords}>Search</button>    
+    </div>
+</div>
+<template if:true={enableDataTableSection}>
+<div><p class="title">Duplicate Lead Records</p></div>
+<div class="dataatable">
+    <div style="height: 300px;">
+        <lightning-datatable
+                key-field="id"
+                data={data}
+                columns={columns}
+                onrowselection={handleRowSelection}>
+        </lightning-datatable>
+    </div>
+</div>
+
+<template if:true={openComparasiopnSection}>
+<div class="bodyCard">
+            <lightning-card class="" title="Select Values for Comparison" icon-name="standard:related_list">
+                <div  class="subcontainer">
+                <template for:each={currentlySelectedData} for:item="lead">
+                    <div key={lead.Id} class="slds-p-around_small">
+                        <h3>Lead ID: {lead.Id}</h3>
+                        <div class="adjustRadioBtns">
+                            <div class={lead.NameClass}>
+                                <strong>Name :  </strong><input type="radio"  name="Name" value={lead.Name}  data-id={lead.Id}
+                        data-name ="Name"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Name} 
+                            </div>
+                            <div class={lead.EmailClass}>
+                                <strong>Email :</strong><input type="radio" name="Email" value={lead.Email}  data-id={lead.Id}
+                        data-name ="Email"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Email} 
+                    </div>
+                    <div class={lead.CompanyClass}>
+                        <strong>Company :</strong><input type="radio" name="Company" value={lead.Company}  data-id={lead.Id}
+                        data-name ="Company"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Company} 
+
+                    </div>
+                    <div class={lead.LastNameClass}>
+                        <strong>LastName :</strong><input type="radio" name="LastName" value={lead.LastName}  data-id={lead.Id}
+                        data-name ="LastName"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.LastName} 
+
+                    </div>
+                    <div class={lead.FirstNameClass}>
+                        <strong>FirstName :</strong><input type="radio" name="FirstName" value={lead.FirstName}  data-id={lead.Id}
+                        data-name ="FirstName"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.FirstName} 
+                    </div>
+                    <div class={lead.PhoneClass}>
+                        <strong>Phone :</strong><input type="radio" name="Phone" value={lead.Phone}  data-id={lead.Id}
+                        data-name ="Phone"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Phone} 
+                    </div>
+                    <div class={lead.StatusClass}>
+                        <strong>Status :</strong><input type="radio" name="Status" value={lead.Status}  data-id={lead.Id}
+                        data-name ="Status"   onchange={handleRadioChange} style="margin-right: 5px;">{lead.Status} 
+                    </div>
+                    </div>
+                    </div>
+                </template>
+                <div class="buttonClass1">
+                    <div class="slds-grid slds-grid_align-spread">
+                        <button class="buttonClass"  onclick={handleSave}>Merge Leads</button>   
+                    </div>
+                </div>
+
+            </div>
+            </lightning-card>
+        </div>
+    </template>
+    </template>
+</template>
+
+
+import { LightningElement,api ,wire,track} from 'lwc';
+import getLeadDetails from '@salesforce/apex/FindDuplicateLeadController.getLeadDetails';
+import mergeLeads from '@salesforce/apex/FindDuplicateLeadController.mergeLeads';
+import getDuplicateLeadDetails from '@salesforce/apex/FindDuplicateLeadController.getDuplicateLeadDetails';
+import { CurrentPageReference } from 'lightning/navigation';
+import { CloseActionScreenEvent } from 'lightning/actions';
+
+const columns = [
+    { label: 'Id', fieldName: 'Id' },
+    { label: 'Name', fieldName: 'Name' },
+    { label: 'FirstName', fieldName: 'FirstName' },
+    { label: 'LastName', fieldName: 'LastName' },
+    { label: 'Email', fieldName: 'Email' },
+    { label: 'Phone', fieldName: 'Phone' },
+    { label: 'company', fieldName: 'company' },
+    { label: 'Status', fieldName: 'Status' },
+];
+export default class FindDuplicateLeadLWCComponent extends LightningElement {
+
+
+    recordId;
+    leadDetails = new Map();
+    @wire(CurrentPageReference)
+    getStateParameters(currentPageReference) {
+        if (currentPageReference) {
+            this.recordId = currentPageReference.state.recordId;
+            console.log('this.recordId',this.recordId);
+            this.fetchLeadDetails();
+        }
+    }
+    lead;
+    fetchLeadDetails() {
+        console.log('lead record id '+this.recordId);
+        getLeadDetails({ leadId: this.recordId })
+            .then(result => {
+                if (result && typeof result === 'object') {
+                    Object.keys(result).forEach(key => {
+                    this.leadDetails.set(key, result[key]);
+                });
+            }
+            this.setValues();
+            })
+            .catch(error => {
+            });
+    }
+
+    id;
+    name;
+    firstName;
+    lastName;
+    email;
+    phone;
+    company;
+    status;
+    setValues(){
+        if(this.leadDetails!==null){
+            this.id = this.leadDetails.get('Id');
+            this.name =this.leadDetails.get('Name');
+            this.firstName = this.leadDetails.get('FirstName');
+            this.lastName = this.leadDetails.get('LastName');
+            this.email = this.leadDetails.get('Email');
+
+            this.phone = this.leadDetails.get('Phone');
+            this.company = this.leadDetails.get('company');
+            this.status = this.leadDetails.get('Status');
+                        // Initialize checkbox states and query conditions based on existing values
+                        this.initializeQueryConditions();
+        }
+        
+
+    }
+
+@track nameChecked = false;
+@track firstNameChecked = false;
+@track lastNameChecked = false;
+@track emailChecked = false;
+@track phoneChecked = false;
+@track companyChecked = false;
+@track statusChecked = false;
+
+@track queryConditions = '';
+initializeQueryConditions() {
+    const conditions = [];
+    
+    if (this.name) {
+        this.nameChecked = true;
+        conditions.push(`Name='${this.name}'`);
+    }
+    
+    if (this.firstName) {
+        this.firstNameChecked = true;
+        conditions.push(`FirstName='${this.firstName}'`);
+    }
+    
+    if (this.lastName) {
+        this.lastNameChecked = true;
+        conditions.push(`LastName='${this.lastName}'`);
+    }
+    
+    if (this.email) {
+        this.emailChecked = true;
+        conditions.push(`Email='${this.email}'`);
+    }
+    
+    if (this.phone) {
+        this.phoneChecked = true;
+        conditions.push(`Phone='${this.phone}'`);
+    }
+    
+    if (this.company) {
+        this.companyChecked = true;
+        conditions.push(`company='${this.company}'`);
+    }
+    
+    if (this.status) {
+        this.statusChecked = true;
+        conditions.push(`Status='${this.status}'`);
+    }
+    
+    this.queryConditions = conditions.join(' OR ');
+}
+
+handleCheckboxChange(event) {
+    const fieldName = event.target.value;
+    const isChecked = event.target.checked;
+    const fieldValue = this.leadDetails.get(fieldName);
+
+    if (isChecked) {
+        if (this.queryConditions) {
+            this.queryConditions += ' OR ';
+        }
+        this.queryConditions += `${fieldName}='${fieldValue}'`;
+    } else {
+        const conditionToRemove = `${fieldName}='${fieldValue}'`;
+        this.queryConditions = this.queryConditions.split(' OR ')
+            .filter(condition => condition !== conditionToRemove)
+            .join(' OR ');
+    }
+
+    this.updateCheckedState(fieldName, isChecked);
+}
+
+updateCheckedState(fieldName, isChecked) {
+    switch (fieldName) {
+        case 'Name':
+            this.nameChecked = isChecked;
+            break;
+        case 'FirstName':
+            this.firstNameChecked = isChecked;
+            break;
+        case 'LastName':
+            this.lastNameChecked = isChecked;
+            break;
+        case 'Email':
+            this.emailChecked = isChecked;
+            break;
+        case 'Phone':
+            this.phoneChecked = isChecked;
+            break;
+        case 'company':
+            this.companyChecked = isChecked;
+            break;
+        case 'Status':
+            this.statusChecked = isChecked;
+            break;
+    }
+}
+finalQueryForLead;
+SearchLeadRecords() {
+    let finalQuery = this.queryConditions.includes('undefined')? this.queryConditions.replace('undefined',''):this.queryConditions ;
+    console.log('Result:', finalQuery);
+    //this.finalQueryForLead = finalQuery.replace(/'/g, "\\'");
+    this.finalQueryForLead = finalQuery;
+    console.log(this.finalQueryForLead);
+    this.getDuplicateLeadDetails();
+}
+
+data = [];
+data1=[];
+@track enableDataTableSection =false;
+getDuplicateLeadDetails() {
+    getDuplicateLeadDetails({ queryConditions: this.finalQueryForLead })
+        .then(result => {
+          
+            if (result && result.DUPLICATE_LEADS) {
+                this.data = result.DUPLICATE_LEADS;
+                console.log('List of Duplicate Leads:', this.data);
+                this.enableDataTableSection =true;
+                this.setOptions();
+                
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+
+
+columns = columns;
+selectedData = [];
+currentlySelectedData = [];
+dynamicCSSValue ='';
+@track openComparasiopnSection =false;
+handleRowSelection(event) {
+    switch (event.detail.config.action) {
+        case 'selectAllRows':
+            this.selectedData = [...event.detail.selectedRows];
+            this.currentlySelectedData = [...event.detail.selectedRows];
+            break;
+        case 'deselectAllRows':
+            this.selectedData = [];
+            this.currentlySelectedData = [];
+            break;
+        case 'rowSelect':
+            event.detail.selectedRows.forEach(selectedRow => {
+                if (!this.selectedData.find(row => row.id === selectedRow.id)) {
+                    this.selectedData.push(selectedRow);
+                }
+            });
+            this.currentlySelectedData = [...event.detail.selectedRows];
+            break;
+        case 'rowDeselect':
+            const selectedIds = event.detail.selectedRows.map(row => row.id);
+            this.selectedData = this.selectedData.filter(row => selectedIds.includes(row.id));
+            this.currentlySelectedData = [...event.detail.selectedRows];
+            break;
+        default:
+            break;
+    }
+    console.log('selectedData', this.selectedData);
+    console.log('currentlySelectedData', this.currentlySelectedData);
+    this.currentlySelectedData = this.calculateFieldClasses([...this.currentlySelectedData]);
+    this.openComparasiopnSection =true;
+    this.setOptions();
+}
+@track selectedLeads = [];
+@track nameOptions = [];
+@track emailOptions = [];
+@track companyOptions = [];
+setOptions() {
+
+    if (this.currentlySelectedData.length > 0) {
+        this.nameOptions = this.currentlySelectedData.map(lead => ({
+            label: lead.Name,
+            value: lead.Id
+        }));
+        this.emailOptions = this.currentlySelectedData.map(lead => ({
+            label: lead.Email,
+            value: lead.Id
+        }));
+        this.companyOptions = this.currentlySelectedData.map(lead => ({
+            label: lead.Company,
+            value: lead.Id
+        }));
+    }
+}
+masterLead;
+recordToBeDeleted;
 handleRadioChange(event) {
     const leadId = event.target.dataset.id;
     const fieldName = event.target.dataset.name;
     const selectedValue = event.target.value;
 
     // Find the lead with the selected ID
-    const masterLead = this.currentlySelectedData.find(lead => lead.Id === this.recordId);
-    console.log('masterLead' + JSON.stringify(masterLead));
+    //const selectedLead = this.currentlySelectedData.find(lead => lead.Id === leadId);
+     this.masterLead = this.currentlySelectedData.find(lead => lead.Id === this.recordId);
+    console.log('masterLead'+ JSON.stringify(this.masterLead));
 
-    // Log the event data
     console.log(`Lead ID: ${leadId}, Field: ${fieldName}, Selected Value: ${selectedValue}`);
-
-    // Find the specific lead to update
-    let leadToUpdate = this.masterLead.find(lead => lead.Id === leadId);
-    if (leadToUpdate) {
+    if (this.masterLead) {
         // Update the value of the specific field
-        leadToUpdate[fieldName] = selectedValue;
-        console.log('Updated lead: ' + JSON.stringify(leadToUpdate));
+        this.masterLead[fieldName] = selectedValue;
+        delete this.masterLead.Name;
+        console.log('Updated lead: ' + JSON.stringify(this.masterLead));
 
         // Update the masterLead array
-        this.masterLead = [...this.masterLead];
+        //this.masterLead = [...this.masterLead];
+        this.recordToBeDeleted = this.currentlySelectedData.filter(lead => lead.Id !== this.recordId);
+        console.log('Record To be deleted lead: ' + JSON.stringify(this.recordToBeDeleted));
+       // this.mergeLeads(this.masterLead, currentlySelectedData);
     } else {
         console.error('Lead not found');
     }
+
+}
+handleSave(){
+    if(this.masterLead !==null && this.recordToBeDeleted!==null ){
+
+        this.mergeLeads(this.masterLead, this.recordToBeDeleted);
+    }else{
+        console.error('Not calling merge function');
+    }
+    
+}
+
+mergeLeads(masterLead, leadsToBeDeleted) {
+    mergeLeads({ masterRecord: masterLead ,leadsToDelete : leadsToBeDeleted})
+        .then(result => {
+            if (result) {
+        console.log('Merged Successfully');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+@track fieldsToHighlight = ['Name', 'Email', 'Company', 'Phone', 'Status','LastName','FirstName']; // Specify fields to highlight
+calculateFieldClasses(data) {
+    if (data.length === 0) return data;
+
+    const fieldNames = Object.keys(data[0]);
+
+    return data.map(item => {
+        const updatedItem = { ...item };
+        fieldNames.forEach(fieldName => {
+            if (this.fieldsToHighlight.includes(fieldName)) {
+                const values = data.map(obj => obj[fieldName]);
+                const allValuesSame = values.every(value => value === values[0]);
+
+                // Add a class to the field if values are not the same
+                updatedItem[`${fieldName}Class`] = allValuesSame ? '' : 'differentvalues';
+            }
+        });
+        return updatedItem;
+    });
+}
+}
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>61.0</apiVersion>
+	<isExposed>true</isExposed>
+	<targets>
+		<target>lightning__AppPage</target>
+		<target>lightning__HomePage</target>
+		<target>lightning__RecordPage</target>
+		<target>lightning__RecordAction</target>
+		<target>lightning__Tab</target>
+	</targets>
+</LightningComponentBundle>
+
+public without sharing class FindDuplicateLeadController {
+    
+    @AuraEnabled
+    public static Boolean mergeLeads(Lead masterRecord, List<Lead> leadsToDelete) {
+        Boolean isMerged =false;
+        list<Database.MergeResult> mergeResults = Database.merge(masterRecord, leadsToDelete, true);
+        
+        for (Database.MergeResult mergeResult : mergeResults) {
+            if (mergeResult.isSuccess()) {
+                isMerged =true;
+            } else {
+                isMerged =false;
+            }
+        }
+        return isMerged;
+    }
+    
+        @AuraEnabled
+    public static Map<String, List<lead>> getDuplicateLeadDetails(String queryConditions){
+ Map<String, String> criteriaMap = new Map<String, String>();
+         Map<String, List<lead>> mapOfLeads =new Map<String, List<lead>>();
+        for (String part : queryConditions.split(' OR ')) {
+            List<String> keyValue = part.split('=');
+
+            if (keyValue.size() == 2) {
+                String key = keyValue[0].trim();
+                String value = keyValue[1].replace('\'', '').trim();
+                criteriaMap.put(key, value);
+            }
+        }
+
+        String soqlQuery = 'SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status  FROM lead WHERE ';
+        List<String> conditions = new List<String>();
+
+        for (String key : criteriaMap.keySet()) {
+            conditions.add(key + ' = \'' + criteriaMap.get(key) + '\'');
+        }
+
+        soqlQuery += String.join(conditions, ' OR ');
+
+        List<lead> listOfLeadRec = Database.query(soqlQuery);
+
+           if(listOfLeadRec!=null){
+            mapOfLeads.put('DUPLICATE_LEADS',listOfLeadRec); 
+        }
+          return mapOfLeads  ; 
+    }
+    
+    @AuraEnabled
+    public static Map<String, List<lead>> getDuplicateLeadDetails1(String queryConditions){
+       // queryConditions = queryConditions.replace('\'','\\\'');
+         //queryConditions = queryConditions.replace('\'', '\'\'');
+        Map<String, List<lead>> mapOfLeads =new Map<String, List<lead>>();
+        String soqlQuery ='SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status  FROM lead ';
+        String finalQuery = soqlQuery +' WHERE ' + queryConditions;
+         SYSTEM.DEBUG(finalQuery);
+        List<lead> listOfLeadRec = Database.query(finalQuery);
+        if(listOfLeadRec!=null){
+            mapOfLeads.put('DUPLICATE_LEADS',listOfLeadRec); 
+        }
+        return mapOfLeads  ; 
+    }
+    
+    @AuraEnabled
+    public static  Map<String, String> getLeadDetails(String leadId){
+         Map<String, String> leadDetails;
+        Lead leadRec =null;
+        if(!String.isEmpty(leadId)){
+           leadRec = [SELECT Id,Name, FirstName, LastName,Email, Phone, company,Status 
+                                       FROM lead
+                             			WHERE ID=: leadId];
+        }
+   if (leadRec != null) {
+                    leadDetails= new Map<String, String>();
+                    leadDetails.put('Id', String.valueOf(leadRec.id));
+                    leadDetails.put('Name', String.valueOf(leadRec.Name));
+                    leadDetails.put('FirstName', String.valueOf(leadRec.FirstName));
+                    leadDetails.put('LastName', String.valueOf(leadRec.LastName));
+                	leadDetails.put('Email', String.valueOf(leadRec.Email));
+               
+               		leadDetails.put('Phone', String.valueOf(leadRec.Phone));
+                    leadDetails.put('company', String.valueOf(leadRec.company));
+                	leadDetails.put('Status', String.valueOf(leadRec.Status));
+           }
+        return leadDetails;
+    }
+
 }
