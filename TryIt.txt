@@ -1,3 +1,7 @@
+CONVERT THIS APEX CLASS TO LIST OF RECORD ID: @AuraEnabled(cacheable=true) public static List  getVersionFiles(String recordId){ try { return [ SELECT Id, Title, ContentDocumentId, FileType, ContentSize, FileExtension, VersionNumber, CreatedDate, VersionData, FirstPublishLocationId FROM ContentVersion // WHERE FirstPublishLocationId =:recordId WHERE ContentDocumentId =:recordId
+
+
+
 .leadDetails{
     display: grid;
     display: grid;
