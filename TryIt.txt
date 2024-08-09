@@ -1,4 +1,7 @@
-        const uploadedFiles = event.detail.files;
+const uploadedFiles = event.detail.files; // Array of uploaded files
+this.strContentDocId = uploadedFiles.map(file => file.documentId);
+
+const uploadedFiles = event.detail.files;
         let uploadedFile = uploadedFiles[0];
         this.strContentDocId = uploadedFile.documentId;
 @track fileids =[] ;
