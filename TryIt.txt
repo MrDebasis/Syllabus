@@ -1,4 +1,6 @@
-
+        const uploadedFiles = event.detail.files;
+        let uploadedFile = uploadedFiles[0];
+        this.strContentDocId = uploadedFile.documentId;
 @track fileids =[] ;
     handleFileChange(event){
         this.fileids.push(event.detail.fileid);
