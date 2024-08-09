@@ -1,18 +1,9 @@
-@AuraEnabled(cacheable=true)
-public static List<Id> getVersionFiles(List<Id> recordIds) {
-    try {
-        // Query only the Id field to return a list of record IDs
-        return [
-            SELECT Id
-            FROM ContentVersion
-            WHERE ContentDocumentId IN :recordIds
-        ];
-    } catch (Exception e) {
-        // Handle the exception as needed
-        throw new AuraHandledException(e.getMessage());
-    }
-}
 
+@track fileids =[] ;
+    handleFileChange(event){
+        this.fileids.push(event.detail.fileid);
+        console.log('fileid',JSON.stringify(this.fileids));
+    }
 
 .leadDetails{
     display: grid;
