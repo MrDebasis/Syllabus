@@ -1,5 +1,17 @@
-CONVERT THIS APEX CLASS TO LIST OF RECORD ID: @AuraEnabled(cacheable=true) public static List  getVersionFiles(String recordId){ try { return [ SELECT Id, Title, ContentDocumentId, FileType, ContentSize, FileExtension, VersionNumber, CreatedDate, VersionData, FirstPublishLocationId FROM ContentVersion // WHERE FirstPublishLocationId =:recordId WHERE ContentDocumentId =:recordId
-
+@AuraEnabled(cacheable=true)
+public static List<Id> getVersionFiles(List<Id> recordIds) {
+    try {
+        // Query only the Id field to return a list of record IDs
+        return [
+            SELECT Id
+            FROM ContentVersion
+            WHERE ContentDocumentId IN :recordIds
+        ];
+    } catch (Exception e) {
+        // Handle the exception as needed
+        throw new AuraHandledException(e.getMessage());
+    }
+}
 
 
 .leadDetails{
