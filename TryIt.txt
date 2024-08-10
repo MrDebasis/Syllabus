@@ -1,22 +1,21 @@
-const expenseTypeScreens = new Map([
-    ['Airline Fees', 3],
-    ['Car Rental', 3],
-    ['Hotel Fees', 3],
-    ['Internet/Online', 3],
-    ['Long Term Public Transportation (Rail/Bus)', 3],
-    ['Meals and Supplies', 3],
-    ['Miscellaneous', 3],
-    ['Non Reimbursable Expense', 3],
-    ['Parking', 3],
-    ['Personal Car Expenses', 3],
-    ['Public Transport', 3],
-    ['Taxi or Ride Share', 3],
-    ['Tips/Gratuities', 2],
-    ['Personal Car Mileage', 2],
-    ['Laundry', 4],
-    ['Tolls', 4]
-]);
+ handleFileChange(event){
+        this.fileids.push(...event.detail.fileid);
+        console.log('fileid',JSON.stringify(this.fileids));
+    }
 
+ @track fileids =[] ;
+    deleteEventFromWarningPopUp(){
+        console.log('fileId before deleted', this.fileIds);
+        if(this.deleteFileId !==null && this.deleteFileId !== undefined &&  this.fileIds.length !==0){
+            this.fileIds=   this.fileIds.filter(id => id !== this.deleteFileId);
+        }
+        console.log('fileId deleted', this.fileIds);
+        this.hideHeader =false;
+        this.hideFooter =false;
+        this.showDeletionPopUp =false;
+        this.closeScreens();
+        this.updateScreen();
+    }
 const uploadedFiles = event.detail.files;
         let uploadedFile = uploadedFiles[0];
         this.strContentDocId = uploadedFile.documentId;
