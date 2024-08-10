@@ -1,21 +1,4 @@
-  {
-        'Airline Fees' : showReceiptScreenCategories,
-        'Car Rental' : showReceiptScreenCategories,
-        'Hotel Fees' : showReceiptScreenCategories,
-        'Internet/Online' : showReceiptScreenCategories,
-        'Long Term Public Transportation (Rail/Bus)' : showReceiptScreenCategories,
-        'Meals and Supplies' : showReceiptScreenCategories,
-        'Miscellaneous' : showReceiptScreenCategories,
-        'Non Reimbursable Expense' : showReceiptScreenCategories,
-        'Parking' : showReceiptScreenCategories,
-        'Personal Car Expenses' : showReceiptScreenCategories,
-        'Public Transport':showReceiptScreenCategories,
-        'Taxi or Ride Share': showReceiptScreenCategories,
-        'Tips/Gratuities': showWithOutReceiptScreenCategories,
-        'Personal Car Mileage' : showWithOutReceiptScreenCategories,
-        'Laundry' : showSubCategoryWithReceiptScreenCategories,
-        'Tolls': showSubCategoryWithReceiptScreenCategories
-    }
+
 
 const uploadedFiles = event.detail.files;
         let uploadedFile = uploadedFiles[0];
