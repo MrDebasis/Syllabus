@@ -1,4 +1,21 @@
-
+const expenseTypeScreens = new Map([
+    ['Airline Fees', 3],
+    ['Car Rental', 3],
+    ['Hotel Fees', 3],
+    ['Internet/Online', 3],
+    ['Long Term Public Transportation (Rail/Bus)', 3],
+    ['Meals and Supplies', 3],
+    ['Miscellaneous', 3],
+    ['Non Reimbursable Expense', 3],
+    ['Parking', 3],
+    ['Personal Car Expenses', 3],
+    ['Public Transport', 3],
+    ['Taxi or Ride Share', 3],
+    ['Tips/Gratuities', 2],
+    ['Personal Car Mileage', 2],
+    ['Laundry', 4],
+    ['Tolls', 4]
+]);
 
 const uploadedFiles = event.detail.files;
         let uploadedFile = uploadedFiles[0];
