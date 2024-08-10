@@ -1,21 +1,35 @@
- handleFileChange(event){
-        this.fileids.push(...event.detail.fileid);
-        console.log('fileid',JSON.stringify(this.fileids));
+@track fileIds = [];
+
+// Handle file changes
+handleFileChange(event) {
+    const fileId = event.detail.fileid; // Assuming event.detail.fileid is a single fileId
+    if (fileId) {
+        this.fileIds.push(fileId); // Push the single fileId
+        console.log('fileIds:', JSON.stringify(this.fileIds));
+    } else {
+        console.error('No fileId received in event:', event.detail);
+    }
+}
+
+// Delete a file from the list
+deleteEventFromWarningPopUp() {
+    console.log('fileIds before deletion:', this.fileIds);
+
+    if (this.deleteFileId !== null && this.deleteFileId !== undefined && this.fileIds.length !== 0) {
+        this.fileIds = this.fileIds.filter(id => id !== this.deleteFileId);
     }
 
- @track fileids =[] ;
-    deleteEventFromWarningPopUp(){
-        console.log('fileId before deleted', this.fileIds);
-        if(this.deleteFileId !==null && this.deleteFileId !== undefined &&  this.fileIds.length !==0){
-            this.fileIds=   this.fileIds.filter(id => id !== this.deleteFileId);
-        }
-        console.log('fileId deleted', this.fileIds);
-        this.hideHeader =false;
-        this.hideFooter =false;
-        this.showDeletionPopUp =false;
-        this.closeScreens();
-        this.updateScreen();
-    }
+    console.log('fileIds after deletion:', this.fileIds);
+    
+    // Additional UI logic
+    this.hideHeader = false;
+    this.hideFooter = false;
+    this.showDeletionPopUp = false;
+    this.closeScreens();
+    this.updateScreen();
+}
+
+
 const uploadedFiles = event.detail.files;
         let uploadedFile = uploadedFiles[0];
         this.strContentDocId = uploadedFile.documentId;
