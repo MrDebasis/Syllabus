@@ -1,4 +1,3 @@
-https://d36000000hcx7eag--qapartial.sandbox.my.salesforce.com/secur/frontdoor.jsp?sid=00Dca0000001PxF!AQEAQHVyacgoFhnozC5sIRLwSxQVgY7p8nHgQ8KnrEhj.Gu4wQEzpRl8fIp0Wk.Sb6QYxilTJnn_pRWJbi5IxG3TH23pAav_
 @track fileIds = [];
 
 // Handle file changes
