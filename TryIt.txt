@@ -1,4 +1,4 @@
-https://d36000000hcx7eag--qapartial.sandbox.lightning.force.com/lightning/action/quick/Lead.Search_Duplicates_leads?objectApiName&context=RECORD_DETAIL&recordId=00QVK000004iKta2AE&backgroundContext=%2Flightning%2Fr%2FLead%2F00QVK000004iKta2AE%2Fview%3F0.source%3DalohaHeader&0.source=alohaHeader
+
 @track fileIds = [];
 
 // Handle file changes
