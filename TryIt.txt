@@ -1,13 +1,26 @@
-let ids = [];
+set contentDocumentIds(value) {
+    console.log('third screen recordids', value);
+    let ids = [];
 
+    // Check if the value is a non-empty string
     if (value && value.length > 0) {
         try {
+            // Parse the main JSON string array
             let arr = JSON.parse(value);
+
+            // Iterate through each item in the parsed array
             arr.forEach(item => {
                 if (item) {
-                    let idArr = JSON.parse(item);
-                    if (Array.isArray(idArr) && idArr.length > 0 && idArr[0].trim() !== "") {
-                        ids.push(idArr[0]);
+                    try {
+                        // Parse each item (which is also a JSON string) into an array
+                        let idArr = JSON.parse(item);
+
+                        // Check if the parsed array is not empty and contains valid ID(s)
+                        if (Array.isArray(idArr) && idArr.length > 0 && idArr[0].trim() !== "") {
+                            ids.push(idArr[0]);
+                        }
+                    } catch (innerError) {
+                        console.error('Error parsing inner JSON string:', item, innerError);
                     }
                 }
             });
@@ -16,9 +29,14 @@ let ids = [];
         }
     }
 
+    // If valid IDs were found, assign them to _contentDocumentIds
     if (ids.length > 0) {
         this._contentDocumentIds = ids;
+    } else {
+        console.log('No valid IDs found.');
     }
+}
+
 
 // Handle file changes
 handleFileChange(event) {
