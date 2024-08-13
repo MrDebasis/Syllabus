@@ -1,4 +1,20 @@
-@track fileIds = [];
+['[]', '["069KS000000MR03YAG"]']
+
+  set contentDocumentIds(value) {
+        console.log('third screen recordids',value);
+        let ids = [];
+        if (value) {
+            let arr = JSON.parse(value);
+            for (let i = 0; i < arr.length; i++) {
+                let idArr = JSON.parse(arr[i]);
+                if (idArr.length > 0) {
+                    ids.push(idArr[0]);
+                }
+            }
+        }
+       // this._contentDocumentIds =JSON.parse(value) ;
+       
+    }
 
 // Handle file changes
 handleFileChange(event) {
