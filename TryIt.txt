@@ -1,19 +1,23 @@
-['[]', '["069KS000000MR03YAG"]']
+let ids = [];
 
-  set contentDocumentIds(value) {
-        console.log('third screen recordids',value);
-        let ids = [];
-        if (value) {
+    if (value && value.length > 0) {
+        try {
             let arr = JSON.parse(value);
-            for (let i = 0; i < arr.length; i++) {
-                let idArr = JSON.parse(arr[i]);
-                if (idArr.length > 0) {
-                    ids.push(idArr[0]);
+            arr.forEach(item => {
+                if (item) {
+                    let idArr = JSON.parse(item);
+                    if (Array.isArray(idArr) && idArr.length > 0 && idArr[0].trim() !== "") {
+                        ids.push(idArr[0]);
+                    }
                 }
-            }
+            });
+        } catch (error) {
+            console.error('Error parsing contentDocumentIds:', error);
         }
-       // this._contentDocumentIds =JSON.parse(value) ;
-       
+    }
+
+    if (ids.length > 0) {
+        this._contentDocumentIds = ids;
     }
 
 // Handle file changes
