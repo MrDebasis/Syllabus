@@ -1,12 +1,12 @@
 <template>
-    <lightning-card title="Lazy Loading Example">
+    <lightning-card title="Static Data Example">
         <div class="slds-box">
             <template for:each={recordsToDisplay} for:item="record">
-                <lightning-layout key={record.Id} class="slds-box slds-m-bottom_small">
+                <lightning-layout key={record.id} class="slds-box slds-m-bottom_small">
                     <lightning-layout-item size="12">
                         <lightning-card>
-                            <p class="slds-p-horizontal_small slds-text-heading_small">{record.Name}</p>
-                            <p class="slds-p-horizontal_small">{record.Description}</p>
+                            <p class="slds-p-horizontal_small slds-text-heading_small">{record.name}</p>
+                            <p class="slds-p-horizontal_small">{record.description}</p>
                         </lightning-card>
                     </lightning-layout-item>
                 </lightning-layout>
@@ -19,17 +19,29 @@
     </lightning-card>
 </template>
 
-
-import { LightningElement, track, wire } from 'lwc';
-import fetchRecords from '@salesforce/apex/LazyLoadingController.fetchRecords';
+import { LightningElement, track } from 'lwc';
 
 export default class LazyLoadingCardComponent extends LightningElement {
     @track recordsToDisplay = [];
-    @track allRecordsLoaded = false;
     @track isLoading = false;
+    @track allRecordsLoaded = false;
+
+    allRecords = [
+        { id: 1, name: 'Record 1', description: 'Description 1' },
+        { id: 2, name: 'Record 2', description: 'Description 2' },
+        { id: 3, name: 'Record 3', description: 'Description 3' },
+        { id: 4, name: 'Record 4', description: 'Description 4' },
+        { id: 5, name: 'Record 5', description: 'Description 5' },
+        { id: 6, name: 'Record 6', description: 'Description 6' },
+        { id: 7, name: 'Record 7', description: 'Description 7' },
+        { id: 8, name: 'Record 8', description: 'Description 8' },
+        { id: 9, name: 'Record 9', description: 'Description 9' },
+        { id: 10, name: 'Record 10', description: 'Description 10' },
+        // Add more static records here
+    ];
 
     loadedRecordCount = 0;
-    batchSize = 10;
+    batchSize = 3;
 
     connectedCallback() {
         this.loadMoreRecords();
@@ -39,21 +51,21 @@ export default class LazyLoadingCardComponent extends LightningElement {
     loadMoreRecords() {
         this.isLoading = true;
 
-        fetchRecords({ offset: this.loadedRecordCount, limit: this.batchSize })
-            .then(result => {
-                this.recordsToDisplay = [...this.recordsToDisplay, ...result];
-                this.loadedRecordCount += result.length;
+        // Simulate loading more records from the static array
+        setTimeout(() => {
+            const newRecords = this.allRecords.slice(
+                this.loadedRecordCount,
+                this.loadedRecordCount + this.batchSize
+            );
+            this.recordsToDisplay = [...this.recordsToDisplay, ...newRecords];
+            this.loadedRecordCount += newRecords.length;
 
-                if (result.length < this.batchSize) {
-                    this.allRecordsLoaded = true;
-                }
+            if (this.loadedRecordCount >= this.allRecords.length) {
+                this.allRecordsLoaded = true;
+            }
 
-                this.isLoading = false;
-            })
-            .catch(error => {
-                console.error('Error fetching records:', error);
-                this.isLoading = false;
-            });
+            this.isLoading = false;
+        }, 500); // Simulate server delay
     }
 
     addScrollEventListener() {
