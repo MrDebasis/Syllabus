@@ -1,4 +1,8 @@
- getCombinedNotifications({ lastCreatedDate: this.lastCreatedDate, recLimit: this.limit })
-           .then((data) => {
-               if (data.length > 0) {
-                   this.records = [...this.records, ...data];
+    const updatedData = data.map(item => {
+                    return {
+                        ...item,
+                        isEmail: item.notificationType === 'Email' // Assuming 'Email' is the type to check
+                    };
+                });
+
+                this.records = [...this.records, ...updatedData];
