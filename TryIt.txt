@@ -1,4 +1,4 @@
-
+Method does not exist or incorrect signature: void removeRange(Integer, Integer) from the type List<MessagingCenterController.Notifications>
 
 public with sharing class LazyLoadingController {
     @AuraEnabled(cacheable=true)
