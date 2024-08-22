@@ -1,10 +1,1 @@
- public Integer compareTo(Object compareTo) {
-    Notifications compareToRecord = (Notifications)compareTo;
-    if (this.CreatedDate < compareToRecord.CreatedDate) {
-        return 1;   // This record comes after the compared record
-    } else if (this.CreatedDate > compareToRecord.CreatedDate) {
-        return -1;  // This record comes before the compared record
-    } else {
-        return 0;   // They are equal
-    }
-}
+window.addEventListener('scroll', this.handleScroll.bind(this));, if we are having two scroll bars in a page how to identify that ? in lwc
