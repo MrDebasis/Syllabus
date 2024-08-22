@@ -1,23 +1,92 @@
-<template>
-    <lightning-card title="Static Data Example">
-        <div class="slds-box">
-            <template for:each={recordsToDisplay} for:item="record">
-                <lightning-layout key={record.id} class="slds-box slds-m-bottom_small">
-                    <lightning-layout-item size="12">
-                        <lightning-card>
-                            <p class="slds-p-horizontal_small slds-text-heading_small">{record.name}</p>
-                            <p class="slds-p-horizontal_small">{record.description}</p>
-                        </lightning-card>
-                    </lightning-layout-item>
-                </lightning-layout>
-            </template>
-        </div>
+public with sharing class LazyLoadingController {
+    @AuraEnabled(cacheable=true)
+    public static List<CombinedObjectWrapper> getCombinedData(DateTime lastCreatedDate, Integer limit) {
+        List<CombinedObjectWrapper> combinedData = new List<CombinedObjectWrapper>();
 
-        <div if:true={isLoading} class="slds-align_absolute-center">
-            <lightning-spinner alternative-text="Loading..."></lightning-spinner>
-        </div>
-    </lightning-card>
-</template>
+        // Fetch data from the three objects with CreatedDate greater than the last loaded one
+        List<Object1__c> object1Data = [SELECT Id, Name, CreatedDate FROM Object1__c WHERE CreatedDate > :lastCreatedDate ORDER BY CreatedDate LIMIT :limit];
+        List<Object2__c> object2Data = [SELECT Id, Name, CreatedDate FROM Object2__c WHERE CreatedDate > :lastCreatedDate ORDER BY CreatedDate LIMIT :limit];
+        List<Object3__c> object3Data = [SELECT Id, Name, CreatedDate FROM Object3__c WHERE CreatedDate > :lastCreatedDate ORDER BY CreatedDate LIMIT :limit];
+        
+        // Combine and sort the data
+        combinedData.addAll(processData(object1Data));
+        combinedData.addAll(processData(object2Data));
+        combinedData.addAll(processData(object3Data));
+        combinedData.sort();
+
+        // Return the top 'limit' records
+        return combinedData.size() > limit ? combinedData.subList(0, limit) : combinedData;
+    }
+
+    private static List<CombinedObjectWrapper> processData(List<SObject> records) {
+        List<CombinedObjectWrapper> wrappedData = new List<CombinedObjectWrapper>();
+        for (SObject record : records) {
+            wrappedData.add(new CombinedObjectWrapper(record));
+        }
+        return wrappedData;
+    }
+
+    public class CombinedObjectWrapper implements Comparable {
+        public Id Id;
+        public String Name;
+        public DateTime CreatedDate;
+
+        public CombinedObjectWrapper(SObject record) {
+            this.Id = record.Id;
+            this.Name = (String)record.get('Name');
+            this.CreatedDate = (DateTime)record.get('CreatedDate');
+        }
+
+        public Integer compareTo(Object compareTo) {
+            CombinedObjectWrapper compareToRecord = (CombinedObjectWrapper)compareTo;
+            return this.CreatedDate.compareTo(compareToRecord.CreatedDate);
+        }
+    }
+}
+
+
+import { LightningElement, track } from 'lwc';
+import getCombinedData from '@salesforce/apex/LazyLoadingController.getCombinedData';
+
+export default class LazyLoadingComponent extends LightningElement {
+    @track records = [];
+    @track isLoading = false;
+    lastCreatedDate = null;
+    limit = 10;
+
+    connectedCallback() {
+        this.loadMoreData();
+        window.addEventListener('scroll', this.handleScroll.bind(this));
+    }
+
+    loadMoreData() {
+        this.isLoading = true;
+        getCombinedData({ lastCreatedDate: this.lastCreatedDate, limit: this.limit })
+            .then((data) => {
+                if (data.length > 0) {
+                    this.records = [...this.records, ...data];
+                    this.lastCreatedDate = data[data.length - 1].CreatedDate; // Update lastCreatedDate
+                }
+                this.isLoading = false;
+            })
+            .catch((error) => {
+                console.error(error);
+                this.isLoading = false;
+            });
+    }
+
+    handleScroll() {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+            this.loadMoreData();
+        }
+    }
+
+    disconnectedCallback() {
+        window.removeEventListener('scroll', this.handleScroll.bind(this));
+    }
+}
+
+
 
 import { LightningElement, track } from 'lwc';
 
