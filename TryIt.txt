@@ -1,4 +1,15 @@
-Method is not visible: Integer Datetime.compareTo(Datetime)
+public Integer compareTo(Object compareTo) {
+        Notifications compareToRecord = (Notifications)compareTo;
+        
+        // Compare DateTime fields using standard comparison operators
+        if (this.CreatedDate > compareToRecord.CreatedDate) {
+            return 1;
+        } else if (this.CreatedDate < compareToRecord.CreatedDate) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
 public with sharing class LazyLoadingController {
     @AuraEnabled(cacheable=true)
     public static List<CombinedObjectWrapper> getCombinedData(DateTime lastCreatedDate, Integer limit) {
