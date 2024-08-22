@@ -1,57 +1,52 @@
-  <template if:true={isLoading}>
-            <lightning-spinner alternative-text="Loading"></lightning-spinner>
-        </template>
+import { LightningElement, track } from 'lwc';
+import getCombinedData from '@salesforce/apex.LazyLoadingController.getCombinedNotifications';
 
-import { LightningElement, wire, track } from 'lwc';
-import getCombinedNotifications from '@salesforce/apex/YourApexClassName.getCombinedNotifications';
-
-export default class NotificationList extends LightningElement {
-    @track notifications = [];
+export default class LazyLoadingComponent extends LightningElement {
+    @track records = [];
     @track isLoading = false;
-
-    lastCreatedDate = null;
-    recLimit = 10;
-    allDataLoaded = false;
+    lastCreatedDate = null; // Initialize as null to fetch the earliest records
+    limit = 10; // The number of records to fetch in each call
+    allDataLoaded = false; // To check if all data has been loaded
 
     connectedCallback() {
-        this.loadNotifications();
+        this.loadMoreData(); // Load the first batch of records
+        window.addEventListener('scroll', this.handleScroll.bind(this));
     }
 
-    loadNotifications() {
-        if (this.allDataLoaded || this.isLoading) {
-            return;
+    loadMoreData() {
+        if (this.isLoading || this.allDataLoaded) {
+            return; // Prevent multiple simultaneous calls or further calls after all data is loaded
         }
-        this.isLoading = true;
-        getCombinedNotifications({ lastCreatedDate: this.lastCreatedDate, recLimit: this.recLimit })
-            .then(result => {
-                if (result.length < this.recLimit) {
-                    this.allDataLoaded = true;
-                }
 
-                this.notifications = [...this.notifications, ...result];
-                if (result.length > 0) {
-                    this.lastCreatedDate = result[result.length - 1].CreatedDate;
+        this.isLoading = true;
+
+        getCombinedData({ lastCreatedDate: this.lastCreatedDate, recLimit: this.limit })
+            .then((data) => {
+                if (data.length > 0) {
+                    this.records = [...this.records, ...data];
+                    this.lastCreatedDate = data[data.length - 1].CreatedDate; // Update the lastCreatedDate
+                } else {
+                    this.allDataLoaded = true; // If no more data, stop further loading
                 }
                 this.isLoading = false;
             })
-            .catch(error => {
-                console.error('Error loading notifications:', error);
+            .catch((error) => {
+                console.error('Error loading data:', error);
                 this.isLoading = false;
             });
     }
 
-    handleScroll(event) {
-        if (this.isLoading || this.allDataLoaded) {
-            return;
-        }
-
-        const { scrollTop, scrollHeight, clientHeight } = event.target;
-
-        if (scrollTop + clientHeight >= scrollHeight - 5) {
-            this.loadNotifications();
+    handleScroll() {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+            this.loadMoreData();
         }
     }
+
+    disconnectedCallback() {
+        window.removeEventListener('scroll', this.handleScroll.bind(this));
+    }
 }
+
 
 public with sharing class LazyLoadingController {
     @AuraEnabled(cacheable=true)
