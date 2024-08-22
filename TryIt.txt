@@ -1,81 +1,13 @@
- @track records = [];
-   @track isLoading = false;
-   lastCreatedDate = null; 
-   limit = 10; 
-   allDataLoaded = false; 
-   connectedCallback() {
-    Promise.all([
-        loadStyle(this, PATIENT_PORTAL_CSS)]);
-       this.loadMoreData();
-      // window.addEventListener('scroll', this.handleScroll.bind(this));
-      const scrollableElement = this.template.querySelector('.showNotifications');
-      scrollableElement.addEventListener('scroll', this.handleScroll.bind(this));
-   }
-
-   loadMoreData() {
-       if (this.isLoading || this.allDataLoaded) {
-           return; 
-       }
-
-       this.isLoading = true;
-
-       getCombinedNotifications({ lastCreatedDate: this.lastCreatedDate, recLimit: this.limit })
-           .then((data) => {
-               if (data.length > 0) {
-                   this.records = [...this.records, ...data];
-                   this.lastCreatedDate = data[data.length - 1].CreatedDate; 
-               } else {
-                   this.allDataLoaded = true; 
-               }
-               this.isLoading = false;
-           })
-           .catch((error) => {
-               console.error('Error loading data:', error);
-               this.isLoading = false;
-           });
-   }
-
-   handleScroll() {
-    console.log('scroll event coming');
-      // if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
-      //     this.loadMoreData();
-     //  }
-
-       const scrollableElement = this.template.querySelector('.showNotifications');
-
-       if (!scrollableElement) {
-           return;
-       }
-
-       const scrollTop = scrollableElement.scrollTop;
-       const scrollHeight = scrollableElement.scrollHeight;
-       const clientHeight = scrollableElement.clientHeight;
-
-       const scrollPosition = (scrollTop + clientHeight) / scrollHeight;
-
-       if (scrollPosition >= 0.8) {
-           this.loadMoreData();
-       }
-   }
-
-   disconnectedCallback() {
-     //  window.removeEventListener('scroll', this.handleScroll.bind(this));
-     const scrollableElement = this.template.querySelector('.showNotifications');
-     scrollableElement.removeEventListener('scroll', this.handleScroll.bind(this));
-   }
-
-
-
 <template>
     <div class="container">
-
         <div class="navBar">
-            <a class="profile" href="./profile">Profile </a>
-            <span class="slash"> /</span><div class="Notifications">Program notifications</div>
+            <a class="profile" href="./profile">Profile</a>
+            <span class="slash">/</span>
+            <div class="Notifications">Program notifications</div>
         </div>  
         <div class="heading">Program notifications</div>  
 
-        <div class="showNotifications" onscroll={handleScroll}>
+        <div class="showNotifications">
             <lightning-card class="borderIgnore">
                 <template for:each={records} for:item="message">
                     <div key={message.id} class="slds-p-horizontal_small slds-p-vertical_medium msg-container">
@@ -95,19 +27,83 @@
                 </template>
             </lightning-card>
         </div>
-
-</div>   
-</template>
-
-
-parent component it got called : <template>
-    <div class="container">
-
- <lightning-layout>
-    <lightning-layout-item class="handleList">
-        <c-psp_-show-list-of-notifications_-l-w-c-component></c-psp_-show-list-of-notifications_-l-w-c-component>
-    </lightning-layout-item>
- </lightning-layout>
-
     </div>   
 </template>
+
+
+
+import { LightningElement, track } from 'lwc';
+import getCombinedNotifications from '@salesforce/apex/LazyLoadingController.getCombinedNotifications';
+import { loadStyle } from 'lightning/platformResourceLoader';
+import PATIENT_PORTAL_CSS from '@salesforce/resourceUrl/PatientPortalCSS';
+
+export default class ShowListOfNotificationsLWCComponent extends LightningElement {
+    @track records = [];
+    @track isLoading = false;
+    lastCreatedDate = null;
+    limit = 10;
+    allDataLoaded = false;
+    isScrollListenerAdded = false;
+
+    connectedCallback() {
+        loadStyle(this, PATIENT_PORTAL_CSS);
+        this.loadMoreData();
+    }
+
+    renderedCallback() {
+        if (!this.isScrollListenerAdded) {
+            const scrollableElement = this.template.querySelector('.showNotifications');
+            if (scrollableElement) {
+                scrollableElement.addEventListener('scroll', this.handleScroll.bind(this));
+                this.isScrollListenerAdded = true;
+            }
+        }
+    }
+
+    loadMoreData() {
+        if (this.isLoading || this.allDataLoaded) {
+            return;
+        }
+
+        this.isLoading = true;
+
+        getCombinedNotifications({ lastCreatedDate: this.lastCreatedDate, recLimit: this.limit })
+            .then((data) => {
+                if (data.length > 0) {
+                    this.records = [...this.records, ...data];
+                    this.lastCreatedDate = data[data.length - 1].CreatedDate;
+                } else {
+                    this.allDataLoaded = true;
+                }
+                this.isLoading = false;
+            })
+            .catch((error) => {
+                console.error('Error loading data:', error);
+                this.isLoading = false;
+            });
+    }
+
+    handleScroll() {
+        const scrollableElement = this.template.querySelector('.showNotifications');
+        if (!scrollableElement) {
+            return;
+        }
+
+        const scrollTop = scrollableElement.scrollTop;
+        const scrollHeight = scrollableElement.scrollHeight;
+        const clientHeight = scrollableElement.clientHeight;
+
+        const scrollPosition = (scrollTop + clientHeight) / scrollHeight;
+
+        if (scrollPosition >= 0.8) {
+            this.loadMoreData();
+        }
+    }
+
+    disconnectedCallback() {
+        const scrollableElement = this.template.querySelector('.showNotifications');
+        if (scrollableElement) {
+            scrollableElement.removeEventListener('scroll', this.handleScroll.bind(this));
+        }
+    }
+}
