@@ -1,5 +1,10 @@
-Method does not exist or incorrect signature: void removeRange(Integer, Integer) from the type List<MessagingCenterController.Notifications>
-
+// Create a new list with the desired number of records
+    List<Notifications> limitedData = new List<Notifications>();
+    Integer limitSize = Math.min(combinedData.size(), recLimit);
+    
+    for (Integer i = 0; i < limitSize; i++) {
+        limitedData.add(combinedData[i]);
+    }
 public with sharing class LazyLoadingController {
     @AuraEnabled(cacheable=true)
     public static List<CombinedObjectWrapper> getCombinedData(DateTime lastCreatedDate, Integer limit) {
