@@ -1,10 +1,10 @@
-    public Integer compareTo(Object compareTo) {
-        Notifications compareToRecord = (Notifications)compareTo;
-        if (this.CreatedDate > compareToRecord.CreatedDate) {
-            return 1;
-        } else if (this.CreatedDate < compareToRecord.CreatedDate) {
-            return -1;
-        } else {
-            return 0;
-        }
-    } is it assending or desending logic ?
+ public Integer compareTo(Object compareTo) {
+    Notifications compareToRecord = (Notifications)compareTo;
+    if (this.CreatedDate < compareToRecord.CreatedDate) {
+        return 1;   // This record comes after the compared record
+    } else if (this.CreatedDate > compareToRecord.CreatedDate) {
+        return -1;  // This record comes before the compared record
+    } else {
+        return 0;   // They are equal
+    }
+}
