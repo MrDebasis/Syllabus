@@ -1,5 +1,5 @@
 import { LightningElement, track } from 'lwc';
-import getCombinedData from '@salesforce/apex.LazyLoadingController.getCombinedNotifications';
+import getCombinedData from '@salesforce/apex/LazyLoadingController.getCombinedNotifications';
 
 export default class LazyLoadingComponent extends LightningElement {
     @track records = [];
@@ -10,7 +10,14 @@ export default class LazyLoadingComponent extends LightningElement {
 
     connectedCallback() {
         this.loadMoreData(); // Load the first batch of records
-        window.addEventListener('scroll', this.handleScroll.bind(this));
+    }
+
+    renderedCallback() {
+        // Attach scroll event listener to the inner scrollable container
+        const scrollableContainer = this.template.querySelector('.scrollable-container');
+        if (scrollableContainer) {
+            scrollableContainer.addEventListener('scroll', this.handleScroll.bind(this));
+        }
     }
 
     loadMoreData() {
@@ -36,14 +43,18 @@ export default class LazyLoadingComponent extends LightningElement {
             });
     }
 
-    handleScroll() {
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+    handleScroll(event) {
+        const scrollableContainer = event.target;
+        if (scrollableContainer.scrollTop + scrollableContainer.clientHeight >= scrollableContainer.scrollHeight) {
             this.loadMoreData();
         }
     }
 
     disconnectedCallback() {
-        window.removeEventListener('scroll', this.handleScroll.bind(this));
+        const scrollableContainer = this.template.querySelector('.scrollable-container');
+        if (scrollableContainer) {
+            scrollableContainer.removeEventListener('scroll', this.handleScroll.bind(this));
+        }
     }
 }
 
