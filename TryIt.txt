@@ -1,111 +1,112 @@
-
-         private static case getCaseDetails(String accId){
-        case caseRec =null;
-        if(accId !=null){
-            caseRec = [SELECT Id
-                       FROM case 
-                       WHERE AccountId =: accId and 
-                       RecordType.Name ='Patient Support' LIMIT 1];  
+public with sharing class NotificationService {
+    private static Case getCaseDetails(String accId) {
+        Case caseRec = null;
+        if (accId != null) {
+            caseRec = [
+                SELECT Id
+                FROM Case
+                WHERE AccountId = :accId AND
+                      RecordType.Name = 'Patient Support' 
+                LIMIT 1
+            ];  
         }
         return caseRec;
     }
-    
-        private static List<EmailMessage> getEmailNotifications(String caseId,DateTime lastCreatedDate, Integer recLimit ){
+
+    private static List<EmailMessage> getEmailNotifications(String caseId, DateTime lastCreatedDate, Integer recLimit) {
         List<EmailMessage> lstOfEmailMsg = new List<EmailMessage>();
-        if(caseId !=null){
-            lstOfEmailMsg = [select id,ParentId, HtmlBody,TextBody,  Subject, ToAddress, CcAddress, BccAddress ,CreatedDate
-                             from EmailMessage 
-                             where Parent.ProgramType__c = 'MYCARVKTI' and 
-                             Parent.RecordType.Name = 'Patient Support' and 
-                             ParentId =:caseId and CreatedDate > :lastCreatedDate ORDER BY CreatedDate DESC LIMIT :recLimit];
+        if (caseId != null) {
+            lstOfEmailMsg = [
+                SELECT Id, ParentId, HtmlBody, TextBody, Subject, ToAddress, CcAddress, BccAddress, CreatedDate
+                FROM EmailMessage 
+                WHERE Parent.ProgramType__c = 'MYCARVKTI' AND 
+                      Parent.RecordType.Name = 'Patient Support' AND 
+                      ParentId = :caseId AND 
+                      CreatedDate > :lastCreatedDate 
+                ORDER BY CreatedDate DESC 
+                LIMIT :recLimit
+            ];
         }
-        return !lstOfEmailMsg.isEmpty() ? lstOfEmailMsg : null;
+        return lstOfEmailMsg;
     }
-    
-        private static List<task> getSMSNotifications(String loggedInUserAccId,DateTime lastCreatedDate, Integer recLimit){
-        List<task> lstOfSMSMsg = new List<task>();
-        if(loggedInUserAccId !=null){
-            lstOfSMSMsg = [select id,Inbound_Outbound__c,Subject, Description ,CreatedDate
-                           from task  
-                           where Inbound_Outbound__c =  'Outbound SMS'  and 
-                           AccountId =: loggedInUserAccId and 
-                           CreatedDate > :lastCreatedDate ORDER BY CreatedDate DESC LIMIT :recLimit];
+
+    private static List<Task> getSMSNotifications(String loggedInUserAccId, DateTime lastCreatedDate, Integer recLimit) {
+        List<Task> lstOfSMSMsg = new List<Task>();
+        if (loggedInUserAccId != null) {
+            lstOfSMSMsg = [
+                SELECT Id, Inbound_Outbound__c, Subject, Description, CreatedDate
+                FROM Task  
+                WHERE Inbound_Outbound__c = 'Outbound SMS' AND 
+                      AccountId = :loggedInUserAccId AND 
+                      CreatedDate > :lastCreatedDate 
+                ORDER BY CreatedDate DESC 
+                LIMIT :recLimit
+            ];
         }
-         return !lstOfSMSMsg.isEmpty() ? lstOfSMSMsg : null;
+        return lstOfSMSMsg;
     }
-    
-    private static List<Notification__c > getInAppNotifications(String loggedInUserAccId,DateTime lastCreatedDate, Integer recLimit){
-        List<Notification__c > lstOfInAppMsg = new List<Notification__c >();
-        if(loggedInUserAccId !=null){
-            lstOfInAppMsg = [select Message__c,RelatedRecordId__c,Subject__c,CreatedDate 
-                             FROM Notification__c 
-                             WHERE RelatedRecordId__c =: loggedInUserAccId and 
-                             CreatedDate > :lastCreatedDate ORDER BY CreatedDate DESC LIMIT :recLimit];
+
+    private static List<Notification__c> getInAppNotifications(String loggedInUserAccId, DateTime lastCreatedDate, Integer recLimit) {
+        List<Notification__c> lstOfInAppMsg = new List<Notification__c>();
+        if (loggedInUserAccId != null) {
+            lstOfInAppMsg = [
+                SELECT Message__c, RelatedRecordId__c, Subject__c, CreatedDate 
+                FROM Notification__c 
+                WHERE RelatedRecordId__c = :loggedInUserAccId AND 
+                      CreatedDate > :lastCreatedDate 
+                ORDER BY CreatedDate DESC 
+                LIMIT :recLimit
+            ];
         }
-         return !lstOfInAppMsg.isEmpty() ? lstOfInAppMsg : null;
+        return lstOfInAppMsg;
     }
-        @AuraEnabled(cacheable=true)
-    	public static List<Notifications> getCombinedNotifications(DateTime lastCreatedDate, Integer recLimit) {
+
+    @AuraEnabled(cacheable=true)
+    public static List<Notifications> getCombinedNotifications(DateTime lastCreatedDate, Integer recLimit) {
         List<Notifications> combinedData = new List<Notifications>();
-        case caseRec =null;
-        List<User> userList = UsersSelector.newInstance().selectByIds(new Set<Id>{UserInfo.getUserId()});
-        Map<String, List<sObject>> mapOfNotifications = new Map<String, List<sObject>>();
-        if(!userList.isEmpty() && userList[0].AccountId !=null){
-           caseRec = getCaseDetails(userList[0].AccountId);  
+        Case caseRec = null;
+        List<User> userList = [SELECT Id, AccountId FROM User WHERE Id = :UserInfo.getUserId()];
+        
+        if (!userList.isEmpty() && userList[0].AccountId != null) {
+            caseRec = getCaseDetails(userList[0].AccountId);  
         }
 
-            if(caseRec !=null){
-                List<EmailMessage> listOfEmailNotifications = getEmailNotifications('5005500000DqsWXAAZ',lastCreatedDate,recLimit); 
-                List<task> listOfSMSNotifications = getSMSNotifications(userList[0].AccountId,lastCreatedDate,recLimit);
-                List<Notification__c > lstOfInAppMsg = getInAppNotifications(userList[0].AccountId,lastCreatedDate,recLimit);
-                
-                combinedData.addAll(processData(listOfEmailNotifications,'EMAIL'));
-                combinedData.addAll(processData(listOfSMSNotifications,'SMS'));
-                combinedData.addAll(processData(lstOfInAppMsg,'IN_APP_NOTIFICATIONS'));
-                combinedData.sort();
+        if (caseRec != null) {
+            List<EmailMessage> listOfEmailNotifications = getEmailNotifications(caseRec.Id, lastCreatedDate, recLimit);
+            List<Task> listOfSMSNotifications = getSMSNotifications(userList[0].AccountId, lastCreatedDate, recLimit);
+            List<Notification__c> lstOfInAppMsg = getInAppNotifications(userList[0].AccountId, lastCreatedDate, recLimit);
+            
+            combinedData.addAll(processData(listOfEmailNotifications, 'EMAIL'));
+            combinedData.addAll(processData(listOfSMSNotifications, 'SMS'));
+            combinedData.addAll(processData(lstOfInAppMsg, 'IN_APP_NOTIFICATIONS'));
+            combinedData.sort();
+        }
 
-                
-            }
-
-        // Return the top 'limit' records
         return combinedData.size() > recLimit ? combinedData.subList(0, recLimit) : combinedData;
     }
 
-    private static List<Notifications> processData(List<SObject> records,String notificationType) {
+    private static List<Notifications> processData(List<SObject> records, String notificationType) {
         List<Notifications> wrappedData = new List<Notifications>();
-         Notifications notificationRec = =null;
+        
         for (SObject record : records) {
-            if(notificationType.equals('EMAIL')){
-              notificationRec =   new Notifications();
-                notificationRec.Id = records.Id;
-                notificationRec.textBody = records.TextBody;
-                notificationRec.subject = records.Subject;
-                notificationRec.CreatedDate = records.CreatedDate;
-                notificationRec.notificationType = notificationType;
-                notificationRec.hasNotificationViewed = true;
+            Notifications notificationRec = new Notifications();
+            notificationRec.Id = (String)record.get('Id');
+            notificationRec.CreatedDate = (DateTime)record.get('CreatedDate');
+            notificationRec.notificationType = notificationType;
+            notificationRec.hasNotificationViewed = true;
 
+            if (notificationType.equals('EMAIL')) {
+                notificationRec.textBody = (String)record.get('TextBody');
+                notificationRec.subject = (String)record.get('Subject');
+            } else if (notificationType.equals('SMS')) {
+                notificationRec.textBody = (String)record.get('Description');
+                notificationRec.subject = (String)record.get('Subject');
+            } else if (notificationType.equals('IN_APP_NOTIFICATIONS')) {
+                notificationRec.textBody = (String)record.get('Message__c');
+                notificationRec.subject = (String)record.get('Subject__c');
             }
-            if(notificationType.equals('SMS')){
-              notificationRec =   new Notifications();
-                notificationRec.Id = records.Id;
-                notificationRec.textBody = records.Description;
-                notificationRec.subject = records.Subject;
-                notificationRec.CreatedDate = records.CreatedDate;
-                notificationRec.notificationType = notificationType;
-                notificationRec.hasNotificationViewed = true;
-             
-            }
-                 if(notificationType.equals('IN_APP_NOTIFICATIONS')){
-              notificationRec =   new Notifications();
-                notificationRec.Id = records.Id;
-                notificationRec.textBody = records.Message__c;
-                notificationRec.subject = records.Subject__c;
-                notificationRec.CreatedDate = records.CreatedDate;
-                notificationRec.notificationType = notificationType;
-                notificationRec.hasNotificationViewed = true;
-             
-            }
- wrappedData.add(notificationRec); 
+
+            wrappedData.add(notificationRec); 
         }
         return wrappedData;
     }
@@ -122,13 +123,14 @@
         @AuraEnabled 
         public String notificationType;
         @AuraEnabled 
-        public String hasNotificationViewed;
+        public Boolean hasNotificationViewed;
 
         public Integer compareTo(Object compareTo) {
             Notifications compareToRecord = (Notifications)compareTo;
             return this.CreatedDate.compareTo(compareToRecord.CreatedDate);
         }
-    }  
+    }
+}
 
 
 public with sharing class LazyLoadingController {
