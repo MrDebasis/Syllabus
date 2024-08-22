@@ -1,3 +1,92 @@
-   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
-           this.loadMoreData();
-       }
+import { LightningElement, track } from 'lwc';
+import getCombinedData from '@salesforce/apex/LazyLoadingController.getCombinedData';
+
+export default class LazyLoadingComponent extends LightningElement {
+    @track records = [];
+    @track isLoading = false;
+    lastCreatedDate = null;
+    limit = 10;
+
+    connectedCallback() {
+        this.loadMoreData();
+        const scrollableElement = this.template.querySelector('.scrollable-container');
+        scrollableElement.addEventListener('scroll', this.handleScroll.bind(this));
+    }
+
+    loadMoreData() {
+        if (this.isLoading) return;
+
+        this.isLoading = true;
+        getCombinedData({ lastCreatedDate: this.lastCreatedDate, limit: this.limit })
+            .then((data) => {
+                if (data.length > 0) {
+                    this.records = [...this.records, ...data];
+                    this.lastCreatedDate = data[data.length - 1].CreatedDate;
+                }
+                this.isLoading = false;
+            })
+            .catch((error) => {
+                console.error(error);
+                this.isLoading = false;
+            });
+    }
+
+    handleScroll() {
+        const scrollableElement = this.template.querySelector('.scrollable-container');
+
+        if (!scrollableElement) {
+            return;
+        }
+
+        const scrollTop = scrollableElement.scrollTop;
+        const scrollHeight = scrollableElement.scrollHeight;
+        const clientHeight = scrollableElement.clientHeight;
+
+        const scrollPosition = (scrollTop + clientHeight) / scrollHeight;
+
+        if (scrollPosition >= 0.8) {
+            this.loadMoreData();
+        }
+    }
+
+    disconnectedCallback() {
+        const scrollableElement = this.template.querySelector('.scrollable-container');
+        scrollableElement.removeEventListener('scroll', this.handleScroll.bind(this));
+    }
+}
+
+
+<template>
+    <div class="scrollable-container" style="height: 400px; overflow-y: auto;">
+        <template if:true={records}>
+            <ul>
+                <template for:each={records} for:item="record">
+                    <li key={record.Id}>
+                        <p><strong>{record.subject}</strong></p>
+                        <p>{record.textBody}</p>
+                        <p>{record.CreatedDate}</p>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template if:true={isLoading}>
+            <div class="loading">
+                <p>Loading more data...</p>
+            </div>
+        </template>
+    </div>
+</template>
+
+<style>
+.scrollable-container {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 20px 0;
+}
+
+.loading {
+    text-align: center;
+    padding: 10px;
+    color: #666;
+}
+</style>
