@@ -1,42 +1,36 @@
-timeAgo(createdDate) {
-    const date = new Date(createdDate); // Parse the date string
-    const now = new Date(); // Current date and time
-
-    const diffInSeconds = Math.floor((now - date) / 1000); // Difference in seconds
-
-    if (diffInSeconds < 60) {
-        return "Now"; // Less than a minute ago
-    }
-
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) {
-        return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-    }
-
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) {
-        return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    }
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 30) {
-        return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    }
-
-    const diffInMonths = Math.floor(diffInDays / 30);
-    if (diffInMonths < 12) {
-        return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
-    }
-
-    const diffInYears = Math.floor(diffInMonths / 12);
-    return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
-}
-
-
-
-Less than 60 seconds: Display "Now".
-Less than 60 minutes: Display the number of minutes ago.
-Less than 24 hours: Display the number of hours ago.
-Less than 30 days: Display the number of days ago.
-Less than 12 months: Display the number of months ago.
-More than 12 months: Display the number of years ago.
+CreatedDate
+: 
+"2024-05-02T11:51:24.000Z"
+Id
+: 
+"00TKS000002JtM12AK"
+hasNotificationViewed
+: 
+true
+imagePath
+: 
+"/PatientPortal/resource/1724411037000/Patient_Portal/icons/SMSIcon.svg"
+isEmail
+: 
+false
+isPortalNotification
+: 
+false
+isSMS
+: 
+true
+notificationType
+: 
+"SMS text message"
+subject
+: 
+"Trip Scheduled"
+textBody
+: 
+"Your trip is scheduled. Arrival:  04/17/2024.\r\nDeparture: 05/02/2024. \r\n\r\nQuestions? Call your Patient Support Specialist at 800-559-7875.\r\n\r\nStop texts: Reply STOP"
+timeAgo
+: 
+"NaN year ago"
+todaysDate
+: 
+"2024-08-23T14:27:01.140Z"
