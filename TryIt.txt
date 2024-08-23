@@ -1,10 +1,42 @@
-    updateFeatureAnnouncement() {
-        updateFeatureAnnouncement()
-            .then(result => {
-                console.log('Update successful');
-                this.dispatchEvent(new CustomEvent('updatefeatureannouncementflag' , {detail: true}));
-            })
-            .catch(error => {
-                console.error(error);
-            });
+timeAgo(createdDate) {
+    const date = new Date(createdDate); // Parse the date string
+    const now = new Date(); // Current date and time
+
+    const diffInSeconds = Math.floor((now - date) / 1000); // Difference in seconds
+
+    if (diffInSeconds < 60) {
+        return "Now"; // Less than a minute ago
     }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+        return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+        return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) {
+        return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+        return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInYears = Math.floor(diffInMonths / 12);
+    return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+}
+
+
+
+Less than 60 seconds: Display "Now".
+Less than 60 minutes: Display the number of minutes ago.
+Less than 24 hours: Display the number of hours ago.
+Less than 30 days: Display the number of days ago.
+Less than 12 months: Display the number of months ago.
+More than 12 months: Display the number of years ago.
