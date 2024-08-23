@@ -1,23 +1,10 @@
-
- wiredFeatureAnnouncementResult; // To store the wired result
-
-    @wire(getFeatureAnnouncement)
-    wiredgetFeatureAnnouncement(result) {
-        this.wiredFeatureAnnouncementResult = result; // Store the wired result
-        const { data, error } = result;
-
-        if (data) {
-            if (typeof data === 'object') {
-                Object.keys(data).forEach(key => {
-                    this.userDetailedMap.set(key, data[key]);
-                });
-                this.setValues();
-            }
-        } else if (error) {
-            console.error(error);
-        }
-    }
-
-    handleRefresh() {
-        refreshApex(this.wiredFeatureAnnouncementResult);
+    updateFeatureAnnouncement() {
+        updateFeatureAnnouncement()
+            .then(result => {
+                console.log('Update successful');
+                this.dispatchEvent(new CustomEvent('updatefeatureannouncementflag' , {detail: true}));
+            })
+            .catch(error => {
+                console.error(error);
+            });
     }
