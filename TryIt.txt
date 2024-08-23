@@ -1,15 +1,23 @@
 
-   @wire(getFeatureAnnouncement)
-    wiredgetFeatureAnnouncement({ error, data }) {
+ wiredFeatureAnnouncementResult; // To store the wired result
+
+    @wire(getFeatureAnnouncement)
+    wiredgetFeatureAnnouncement(result) {
+        this.wiredFeatureAnnouncementResult = result; // Store the wired result
+        const { data, error } = result;
+
         if (data) {
-            if (data && typeof data === 'object') {
+            if (typeof data === 'object') {
                 Object.keys(data).forEach(key => {
                     this.userDetailedMap.set(key, data[key]);
-            });
-            this.setValues();
-        }
-
+                });
+                this.setValues();
+            }
         } else if (error) {
             console.error(error);
         }
+    }
+
+    handleRefresh() {
+        refreshApex(this.wiredFeatureAnnouncementResult);
     }
