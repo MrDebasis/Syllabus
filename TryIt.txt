@@ -1,8 +1,15 @@
-    const updatedData = data.map(item => {
-                    return {
-                        ...item,
-                        isEmail: item.notificationType === 'Email' // Assuming 'Email' is the type to check
-                    };
-                });
 
-                this.records = [...this.records, ...updatedData];
+   @wire(getFeatureAnnouncement)
+    wiredgetFeatureAnnouncement({ error, data }) {
+        if (data) {
+            if (data && typeof data === 'object') {
+                Object.keys(data).forEach(key => {
+                    this.userDetailedMap.set(key, data[key]);
+            });
+            this.setValues();
+        }
+
+        } else if (error) {
+            console.error(error);
+        }
+    }
