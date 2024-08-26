@@ -1,1 +1,3 @@
-
+formatGMT('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
+ this.datetimeFromApex = new Date(data); 
+            console.log('Datetime from Apex (interpreted as UTC):', this.datetimeFromApex.toISOString());
