@@ -1,39 +1,25 @@
-private static String timeDifference(DateTime created, DateTime now) {
-    if (created == null || now == null) {
-        return '--';
+public class DateTimeDifference {
+    public static String getHumanReadableDifference(DateTime dt1, DateTime dt2) {
+        Long diffInMilliseconds = dt2.getTime() - dt1.getTime();
+        Long diffInSeconds = diffInMilliseconds / 1000;
+        Long diffInMinutes = diffInSeconds / 60;
+        Long diffInHours = diffInMinutes / 60;
+        Long diffInDays = diffInHours / 24;
+        Long diffInMonths = diffInDays / 30;
+        Long diffInYears = diffInMonths / 12;
+        
+        if (diffInSeconds < 60) {
+            return 'Now';
+        } else if (diffInMinutes < 60) {
+            return diffInMinutes + ' minute' + (diffInMinutes > 1 ? 's' : '') + ' ago';
+        } else if (diffInHours < 24) {
+            return diffInHours + ' hour' + (diffInHours > 1 ? 's' : '') + ' ago';
+        } else if (diffInDays < 30) {
+            return diffInDays + ' day' + (diffInDays > 1 ? 's' : '') + ' ago';
+        } else if (diffInMonths < 12) {
+            return diffInMonths + ' month' + (diffInMonths > 1 ? 's' : '') + ' ago';
+        } else {
+            return diffInYears + ' year' + (diffInYears > 1 ? 's' : '') + ' ago';
+        }
     }
-    
-    Integer diffInSeconds = (Integer) (now.getTime() - created.getTime()) / 1000;
-    if (diffInSeconds < 60) {
-        return 'Now'; 
-    }
-    Integer diffInMinutes = diffInSeconds / 60;
-    if (diffInMinutes < 60) {
-        return diffInMinutes + ' minute' + (diffInMinutes > 1 ? 's' : '') + ' ago';
-    }
-    Integer diffInHours = diffInMinutes / 60;
-    if (diffInHours < 24) {
-        return diffInHours + ' hour' + (diffInHours > 1 ? 's' : '') + ' ago';
-    }
-    Integer diffInDays = diffInHours / 24;
-    if (diffInDays < 30) {
-        return diffInDays + ' day' + (diffInDays > 1 ? 's' : '') + ' ago';
-    }
-
-    // Convert Datetime to Date for monthsBetween method
-    Date createdDate = created.date();
-    Date nowDate = now.date();
-    Integer diffInMonths = createdDate.monthsBetween(nowDate);
-
-    // Check if we need to adjust the month count based on the day difference
-    if (created.day() > now.day()) {
-        diffInMonths--;
-    }
-
-    if (diffInMonths < 12) {
-        return diffInMonths + ' month' + (diffInMonths > 1 ? 's' : '') + ' ago';
-    }
-
-    Integer diffInYears = diffInMonths / 12;
-    return diffInYears + ' year' + (diffInYears > 1 ? 's' : '') + ' ago';
 }
