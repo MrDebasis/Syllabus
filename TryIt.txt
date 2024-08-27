@@ -1,5 +1,3 @@
-Method does not exist or incorrect signature: void monthsBetween(Datetime) from the type Datetime
-created :"2024-05-02T11:51:24.000Z", now : system.now
 private static String timeDifference(DateTime created, DateTime now) {
     if (created == null || now == null) {
         return '--';
@@ -20,7 +18,10 @@ private static String timeDifference(DateTime created, DateTime now) {
     if (diffInDays < 30) {
         return diffInDays + ' day' + (diffInDays > 1 ? 's' : '') + ' ago';
     }
-    Integer diffInMonths = created.monthsBetween(now);
+    // Convert Datetime to Date for monthsBetween method
+    Date createdDate = created.date();
+    Date nowDate = now.date();
+    Integer diffInMonths = createdDate.monthsBetween(nowDate);
     if (diffInMonths < 12) {
         return diffInMonths + ' month' + (diffInMonths > 1 ? 's' : '') + ' ago';
     }
