@@ -2,6 +2,7 @@ private static String timeDifference(DateTime created, DateTime now) {
     if (created == null || now == null) {
         return '--';
     }
+    
     Integer diffInSeconds = (Integer) (now.getTime() - created.getTime()) / 1000;
     if (diffInSeconds < 60) {
         return 'Now'; 
@@ -18,13 +19,21 @@ private static String timeDifference(DateTime created, DateTime now) {
     if (diffInDays < 30) {
         return diffInDays + ' day' + (diffInDays > 1 ? 's' : '') + ' ago';
     }
+
     // Convert Datetime to Date for monthsBetween method
     Date createdDate = created.date();
     Date nowDate = now.date();
     Integer diffInMonths = createdDate.monthsBetween(nowDate);
+
+    // Check if we need to adjust the month count based on the day difference
+    if (created.day() > now.day()) {
+        diffInMonths--;
+    }
+
     if (diffInMonths < 12) {
         return diffInMonths + ' month' + (diffInMonths > 1 ? 's' : '') + ' ago';
     }
+
     Integer diffInYears = diffInMonths / 12;
     return diffInYears + ' year' + (diffInYears > 1 ? 's' : '') + ' ago';
 }
