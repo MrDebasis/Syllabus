@@ -1,25 +1,23 @@
-public class DateTimeDifference {
-    public static String getHumanReadableDifference(DateTime dt1, DateTime dt2) {
-        Long diffInMilliseconds = dt2.getTime() - dt1.getTime();
-        Long diffInSeconds = diffInMilliseconds / 1000;
-        Long diffInMinutes = diffInSeconds / 60;
-        Long diffInHours = diffInMinutes / 60;
-        Long diffInDays = diffInHours / 24;
-        Long diffInMonths = diffInDays / 30;
-        Long diffInYears = diffInMonths / 12;
-        
-        if (diffInSeconds < 60) {
-            return 'Now';
-        } else if (diffInMinutes < 60) {
-            return diffInMinutes + ' minute' + (diffInMinutes > 1 ? 's' : '') + ' ago';
-        } else if (diffInHours < 24) {
-            return diffInHours + ' hour' + (diffInHours > 1 ? 's' : '') + ' ago';
-        } else if (diffInDays < 30) {
-            return diffInDays + ' day' + (diffInDays > 1 ? 's' : '') + ' ago';
-        } else if (diffInMonths < 12) {
-            return diffInMonths + ' month' + (diffInMonths > 1 ? 's' : '') + ' ago';
-        } else {
-            return diffInYears + ' year' + (diffInYears > 1 ? 's' : '') + ' ago';
-        }
-    }
-}
+                        <lightning-input type="checkbox" variant="label-hidden" data-element="expense-all" onchange={handleSelectAll} checked ={allSelected}></lightning-input>
+                    </div>
+
+                    <template for:each={selectedData} for:item="record">
+                        <div key={record.Id} class="slds-size_12-of-12">
+                            <div class="detail-card slds-grid bordered-top slds-grid_align-spread slds-grid_vertical-align-center">
+                                <template if:true={record.ShowPicture}>
+                                    <div class="slds-size_3-of-12 slds-p-right_x-small">
+                                        <img src={showIcon}/>
+                                    </div>
+                                    <div class="slds-size_9-of-12 slds-grid slds-wrap slds-grid_vertical-align-center">
+                                        <div class="widthA">
+                                            <div class="slds-size_12-of-12 font-style4">{record.Expense_Category_R1__c}</div>
+                                            <div class="slds-size_12-of-12 font-style5">
+                                            {record.Vendor_R1__c}<span>&nbsp;|&nbsp;</span> {record.Date_R1__c}
+                                            </div>
+                                            <div class="slds-size_12-of-12 font-style4">{record.Expense_Amount_R1__c}</div>
+                                        </div>
+                                        <div class="widthB">
+                                            <lightning-input data-element="expense-checkbox" data-id={record.Id} type="checkbox" variant="label-hidden" onchange={handleCheckboxChange}></lightning-input>
+                                        </div>
+                                    </div>         
+                                </template>
