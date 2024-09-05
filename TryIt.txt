@@ -1,40 +1,94 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, api,track } from 'lwc';
+import myResource from '@salesforce/resourceUrl/Patient_Portal';
+import FORM_FACTOR from '@salesforce/client/formFactor';
 
-export default class YourComponent extends LightningElement {
-    @track allSelected = true; // Initially, all checkboxes are selected
-    @track selectedData = [
-        // Example records, replace this with your actual data
-        { Id: '1', Expense_Category_R1__c: 'Category 1', Vendor_R1__c: 'Vendor 1', Date_R1__c: '2024-09-01', Expense_Amount_R1__c: '100', ShowPicture: true },
-        { Id: '2', Expense_Category_R1__c: 'Category 2', Vendor_R1__c: 'Vendor 2', Date_R1__c: '2024-09-02', Expense_Amount_R1__c: '200', ShowPicture: true }
-    ];
+const RreceiptScreens = {
+    1: { bool: 'submitExpense' , value: 'valuesFromSubmitExpense', btnName : 'Submit Expense'}
+};
+const showWithOutReceiptScreenCategories = {
+    1: { bool: 'showMissingReceiptScreen' , value: 'valuesFromMissingReceiptScreen',btnName : 'Next'},
+    2: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next'},
+    3: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next'},
+    4: { bool: 'submitExpense', value: 'valuesFromSubmitExpense',btnName : 'Submit Expense'}
+};
 
-    // Handle the parent "Select All" checkbox
-    handleSelectAll(event) {
-        this.allSelected = event.target.checked;
-        // Update all child checkboxes based on the parent checkbox
-        this.selectedData = this.selectedData.map(record => ({
-            ...record,
-            selected: this.allSelected // Check/uncheck all records
-        }));
+export default class PspSubmitExpenses extends LightningElement {
+    blueCrossIcon = `${myResource}/icons/BlueCrossIcon.svg`;
+    mobileView;
+    @api selectedData;
+    @track selectedScreenCategory;
+    @track flowScreens = {
+        'Receipt Screens' : RreceiptScreens,
+        'Without Receipt Screens' : showWithOutReceiptScreenCategories,
     }
 
-    // Handle individual child checkbox change
-    handleCheckboxChange(event) {
-        const recordId = event.target.dataset.id;
-        const isChecked = event.target.checked;
+    @track showWarningPopUp = false;
+    @track submitExpense  =false;
+    @track showMissingReceiptScreen = false;
+    @track showMissingReceiptReasonScreen  = false;
+    @track showMissingReceiptLimitScreen = false;
 
-        // Update the specific record checkbox state
-        this.selectedData = this.selectedData.map(record => 
-            record.Id === recordId ? { ...record, selected: isChecked } : record
-        );
+    connectedCallback(){
+        this.mobileView = FORM_FACTOR == 'Small' ? true : false;
+        console.log('selectedData',this.selectedData);
+        this.showWarningPopUp = this.selectedData.length === 1 ? true : false;
 
-        // If any child checkbox is unchecked, uncheck the parent
-        if (!isChecked) {
-            this.allSelected = false;
-        } else {
-            // Check if all child checkboxes are selected
-            const allChecked = this.selectedData.every(record => record.selected);
-            this.allSelected = allChecked;
+        const selectedReceiptDataCount = this.selectedData.filter(record => record.Receipt_Uploaded_R1__c ?? 'No' === 'Yes').length;
+        const selectedDataCount = this.selectedData.length;
+        this.selectedScreenCategory = selectedDataCount === selectedReceiptDataCount ? 'Receipt Screens' : 'Without Receipt Screens';
+        this.calculateWhichScreenToRender();
+    }
+
+    calculateWhichScreenToRender(){
+    if(this.selectedScreenCategory === 'Receipt Screens' && this.selectedData.length > 1){
+        this.currentScreenIndex ++;
+        this.closeScreens();
+        this.updateScreen();
+    }else{
+        this.currentScreenIndex ++;
+        this.closeScreens();
+        this.updateScreen();
+    }
+      //  const count = this.selectedData.filter(record => record.Receipt_Uploaded_R1__c ?? 'No' === 'Yes').length;
+ 
+    }
+
+    closeScreens(){
+        for(let item in this.flowScreens[this.selectedScreenCategory]){
+            this[this.flowScreens[this.selectedScreenCategory][item].bool] = false;
+            }
+    }
+
+    @track currentScreenIndex = 0;
+    @track nextButtonName = 'Next';
+    updateScreen(){
+     this[this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].bool] = true;
+     this.nextButtonName = this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].btnName;
         }
+
+    //open for single expense
+    openSubmitExpense(){
+        this.showWarningPopUp = false;
+        //this.currentScreenIndex ++;
+        this.closeScreens();
+        this.updateScreen();
     }
+
+    closeAlert(){
+        this.showWarningPopUp =false;
+        this.closeModal();
+    }
+
+    handleNext(){
+        const selectedDataCount = this.selectedData.length;
+        const repeat = selectedDataCount * 2;
+        console.log('Next Clicked...',repeat);
+
+
+    }
+
+    closeModal(){
+        this.dispatchEvent(new CustomEvent('close' , {detail: true}));
+    }
+
 }
