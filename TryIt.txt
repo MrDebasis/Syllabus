@@ -1,23 +1,40 @@
-                        <lightning-input type="checkbox" variant="label-hidden" data-element="expense-all" onchange={handleSelectAll} checked ={allSelected}></lightning-input>
-                    </div>
+import { LightningElement, track } from 'lwc';
 
-                    <template for:each={selectedData} for:item="record">
-                        <div key={record.Id} class="slds-size_12-of-12">
-                            <div class="detail-card slds-grid bordered-top slds-grid_align-spread slds-grid_vertical-align-center">
-                                <template if:true={record.ShowPicture}>
-                                    <div class="slds-size_3-of-12 slds-p-right_x-small">
-                                        <img src={showIcon}/>
-                                    </div>
-                                    <div class="slds-size_9-of-12 slds-grid slds-wrap slds-grid_vertical-align-center">
-                                        <div class="widthA">
-                                            <div class="slds-size_12-of-12 font-style4">{record.Expense_Category_R1__c}</div>
-                                            <div class="slds-size_12-of-12 font-style5">
-                                            {record.Vendor_R1__c}<span>&nbsp;|&nbsp;</span> {record.Date_R1__c}
-                                            </div>
-                                            <div class="slds-size_12-of-12 font-style4">{record.Expense_Amount_R1__c}</div>
-                                        </div>
-                                        <div class="widthB">
-                                            <lightning-input data-element="expense-checkbox" data-id={record.Id} type="checkbox" variant="label-hidden" onchange={handleCheckboxChange}></lightning-input>
-                                        </div>
-                                    </div>         
-                                </template>
+export default class YourComponent extends LightningElement {
+    @track allSelected = true; // Initially, all checkboxes are selected
+    @track selectedData = [
+        // Example records, replace this with your actual data
+        { Id: '1', Expense_Category_R1__c: 'Category 1', Vendor_R1__c: 'Vendor 1', Date_R1__c: '2024-09-01', Expense_Amount_R1__c: '100', ShowPicture: true },
+        { Id: '2', Expense_Category_R1__c: 'Category 2', Vendor_R1__c: 'Vendor 2', Date_R1__c: '2024-09-02', Expense_Amount_R1__c: '200', ShowPicture: true }
+    ];
+
+    // Handle the parent "Select All" checkbox
+    handleSelectAll(event) {
+        this.allSelected = event.target.checked;
+        // Update all child checkboxes based on the parent checkbox
+        this.selectedData = this.selectedData.map(record => ({
+            ...record,
+            selected: this.allSelected // Check/uncheck all records
+        }));
+    }
+
+    // Handle individual child checkbox change
+    handleCheckboxChange(event) {
+        const recordId = event.target.dataset.id;
+        const isChecked = event.target.checked;
+
+        // Update the specific record checkbox state
+        this.selectedData = this.selectedData.map(record => 
+            record.Id === recordId ? { ...record, selected: isChecked } : record
+        );
+
+        // If any child checkbox is unchecked, uncheck the parent
+        if (!isChecked) {
+            this.allSelected = false;
+        } else {
+            // Check if all child checkboxes are selected
+            const allChecked = this.selectedData.every(record => record.selected);
+            this.allSelected = allChecked;
+        }
+    }
+}
