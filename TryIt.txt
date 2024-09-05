@@ -1,94 +1,143 @@
-import { LightningElement, api,track } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 import myResource from '@salesforce/resourceUrl/Patient_Portal';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 
-const RreceiptScreens = {
-    1: { bool: 'submitExpense' , value: 'valuesFromSubmitExpense', btnName : 'Submit Expense'}
+const ReceiptScreens = {
+    1: { bool: 'submitExpense', value: 'valuesFromSubmitExpense', btnName: 'Submit Expense' }
 };
-const showWithOutReceiptScreenCategories = {
-    1: { bool: 'showMissingReceiptScreen' , value: 'valuesFromMissingReceiptScreen',btnName : 'Next'},
-    2: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next'},
-    3: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next'},
-    4: { bool: 'submitExpense', value: 'valuesFromSubmitExpense',btnName : 'Submit Expense'}
+
+const WithoutReceiptScreens = {
+    1: { bool: 'showMissingReceiptScreen', value: 'valuesFromMissingReceiptScreen', btnName: 'Next' },
+    2: { bool: 'showMissingReceiptReasonScreen', value: 'valuesFromReceiptReasonScreen', btnName: 'Next' },
+    3: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen', btnName: 'Next' },
+    4: { bool: 'submitExpense', value: 'valuesFromSubmitExpense', btnName: 'Submit Expense' }
 };
 
 export default class PspSubmitExpenses extends LightningElement {
     blueCrossIcon = `${myResource}/icons/BlueCrossIcon.svg`;
     mobileView;
+
     @api selectedData;
     @track selectedScreenCategory;
     @track flowScreens = {
-        'Receipt Screens' : RreceiptScreens,
-        'Without Receipt Screens' : showWithOutReceiptScreenCategories,
-    }
+        'Receipt Screens': ReceiptScreens,
+        'Without Receipt Screens': WithoutReceiptScreens,
+    };
 
     @track showWarningPopUp = false;
-    @track submitExpense  =false;
+    @track submitExpense = false;
     @track showMissingReceiptScreen = false;
-    @track showMissingReceiptReasonScreen  = false;
+    @track showMissingReceiptReasonScreen = false;
     @track showMissingReceiptLimitScreen = false;
 
-    connectedCallback(){
-        this.mobileView = FORM_FACTOR == 'Small' ? true : false;
-        console.log('selectedData',this.selectedData);
-        this.showWarningPopUp = this.selectedData.length === 1 ? true : false;
+    // New properties for handling repeats
+    @track currentScreenIndex = 0;
+    @track repeatCounter = 0;
+    @track maxRepeats = 2; // Adjust as needed
 
-        const selectedReceiptDataCount = this.selectedData.filter(record => record.Receipt_Uploaded_R1__c ?? 'No' === 'Yes').length;
+    connectedCallback() {
+        this.mobileView = FORM_FACTOR === 'Small';
+        console.log('selectedData', this.selectedData);
+        this.showWarningPopUp = this.selectedData.length === 1;
+
+        const selectedReceiptDataCount = this.selectedData.filter(
+            record => (record.Receipt_Uploaded_R1__c ?? 'No') === 'Yes'
+        ).length;
         const selectedDataCount = this.selectedData.length;
-        this.selectedScreenCategory = selectedDataCount === selectedReceiptDataCount ? 'Receipt Screens' : 'Without Receipt Screens';
+        this.selectedScreenCategory = selectedDataCount === selectedReceiptDataCount
+            ? 'Receipt Screens'
+            : 'Without Receipt Screens';
         this.calculateWhichScreenToRender();
     }
 
-    calculateWhichScreenToRender(){
-    if(this.selectedScreenCategory === 'Receipt Screens' && this.selectedData.length > 1){
-        this.currentScreenIndex ++;
+    calculateWhichScreenToRender() {
+        // Initialize or reset counters if necessary
+        this.currentScreenIndex = 0;
+        this.repeatCounter = 0;
         this.closeScreens();
         this.updateScreen();
-    }else{
-        this.currentScreenIndex ++;
-        this.closeScreens();
-        this.updateScreen();
-    }
-      //  const count = this.selectedData.filter(record => record.Receipt_Uploaded_R1__c ?? 'No' === 'Yes').length;
- 
     }
 
-    closeScreens(){
-        for(let item in this.flowScreens[this.selectedScreenCategory]){
+    closeScreens() {
+        for (let item in this.flowScreens[this.selectedScreenCategory]) {
             this[this.flowScreens[this.selectedScreenCategory][item].bool] = false;
-            }
+        }
     }
 
-    @track currentScreenIndex = 0;
-    @track nextButtonName = 'Next';
-    updateScreen(){
-     this[this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].bool] = true;
-     this.nextButtonName = this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].btnName;
+    updateScreen() {
+        const screen = this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex + 1];
+        if (screen) {
+            this[screen.bool] = true;
+            this.nextButtonName = screen.btnName;
+        }
+    }
+
+    handleNext() {
+        if (this.selectedScreenCategory === 'Without Receipt Screens') {
+            if (this.currentScreenIndex === 1 || this.currentScreenIndex === 2) {
+                // Handle repetition for screens 2 and 3
+                if (this.repeatCounter < this.maxRepeats) {
+                    this.repeatCounter++;
+                    this.currentScreenIndex = 1; // Loop back to screen 2
+                } else {
+                    this.repeatCounter = 0;
+                    this.currentScreenIndex++;
+                }
+            } else {
+                this.currentScreenIndex++;
+            }
+        } else {
+            this.currentScreenIndex++;
         }
 
-    //open for single expense
-    openSubmitExpense(){
-        this.showWarningPopUp = false;
-        //this.currentScreenIndex ++;
+        // Prevent exceeding the number of screens
+        const totalScreens = Object.keys(this.flowScreens[this.selectedScreenCategory]).length;
+        if (this.currentScreenIndex >= totalScreens) {
+            this.currentScreenIndex = totalScreens - 1;
+        }
+
         this.closeScreens();
         this.updateScreen();
     }
 
-    closeAlert(){
-        this.showWarningPopUp =false;
+    handleBack() {
+        if (this.selectedScreenCategory === 'Without Receipt Screens') {
+            if (this.currentScreenIndex === 1 || this.currentScreenIndex === 2) {
+                if (this.repeatCounter > 0) {
+                    this.repeatCounter--;
+                    this.currentScreenIndex = 1; // Go back to screen 2
+                } else {
+                    this.currentScreenIndex--;
+                }
+            } else {
+                this.currentScreenIndex--;
+            }
+        } else {
+            this.currentScreenIndex--;
+        }
+
+        // Prevent negative index
+        if (this.currentScreenIndex < 0) {
+            this.currentScreenIndex = 0;
+        }
+
+        this.closeScreens();
+        this.updateScreen();
+    }
+
+    // Existing methods...
+    openSubmitExpense() {
+        this.showWarningPopUp = false;
+        this.closeScreens();
+        this.updateScreen();
+    }
+
+    closeAlert() {
+        this.showWarningPopUp = false;
         this.closeModal();
     }
 
-    handleNext(){
-        const selectedDataCount = this.selectedData.length;
-        const repeat = selectedDataCount * 2;
-        console.log('Next Clicked...',repeat);
-
-
+    closeModal() {
+        this.dispatchEvent(new CustomEvent('close', { detail: true }));
     }
-
-    closeModal(){
-        this.dispatchEvent(new CustomEvent('close' , {detail: true}));
-    }
-
 }
