@@ -1,36 +1,211 @@
-			else{
+import { LightningElement, api,track } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import myResource from '@salesforce/resourceUrl/Patient_Portal';
+import FORM_FACTOR from '@salesforce/client/formFactor';
+
+const RreceiptScreens = {
+    1: { bool: 'submitExpense' , value: 'valuesFromSubmitExpense', btnName : 'Submit Expense'}
+};
+const showWithOutReceiptScreenCategories = {
+    1: { bool: 'showMissingReceiptScreen' , value: 'valuesFromMissingReceiptScreen',btnName : 'Continue Without Receipt', showBack : false },
+    2: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next' , showBack : true},
+    3: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next' , showBack : true},
+    4: { bool: 'submitExpense', value: 'valuesFromSubmitExpense',btnName : 'Submit Expense' , showBack : true}
+};
+
+export default class PspSubmitExpenses extends LightningElement {
+    blueCrossIcon = `${myResource}/icons/BlueCrossIcon.svg`;
+    mobileView;
+    @api selectedData;
+    @track selectedScreenCategory;
+    @track flowScreens = {
+        'Receipt Screens' : RreceiptScreens,
+        'Without Receipt Screens' : showWithOutReceiptScreenCategories,
+    }
+
+    @track showWarningPopUp = false;
+
+    //Bool Values
+    @track submitExpense  =false;
+    @track showMissingReceiptScreen = false;
+    @track showMissingReceiptReasonScreen  = false;
+    @track showMissingReceiptLimitScreen = false;
+
+    //holding actual values from screen
+    @track valuesFromSubmitExpense;
+    @track valuesFromMissingReceiptScreen;
+    @track valuesFromReceiptReasonScreen;
+    @track valuesFromReceiptLimitScreen;
+
+
+    connectedCallback(){
+        this.mobileView = FORM_FACTOR == 'Small' ? true : false;
+
+        this.selectedData = this.selectedData.map(record => ({
+            ...record,
+            Date_R1__c : this.dateFormator(record.Date_R1__c),
+            showReceipt : record.Receipt_Uploaded_R1__c?.toLowerCase() === 'yes' ? true : false,
+            missingReceipt : record.Receipt_Uploaded_R1__c?.toLowerCase() === 'yes' ? false : true,
+            Expense_Amount_R1__c: record.Expense_Category_R1__c === 'Personal Car Mileage' ? record.Expense_Amount_R1__c === null || record.Expense_Amount_R1__c === undefined || record.Expense_Amount_R1__c === '' ? 'Calculating ...' : '$' + record.Expense_Amount_R1__c  :'$' + record.Expense_Amount_R1__c,
+            Vendor_R1__c : record.Expense_Category_R1__c === 'Personal Car Mileage' ? 'Mileage' : record.Expense_Category_R1__c === 'Tips/Gratuities' ? 'Tips' : record.Expense_Category_R1__c === 'Tolls' ? 'Toll' : record.Vendor_R1__c,
+            Expense_Category_R1__c : record.Expense_Category_R1__c === 'Personal Car Mileage' ? 'Mileage' : record.Expense_Category_R1__c === 'Tips/Gratuities' ? 'Tips' : record.Expense_Category_R1__c
+          }));
+
+        console.log('selectedData',JSON.stringify(this.selectedData));
+        this.showWarningPopUp = this.selectedData.length === 1 ? true : false;
+
+        const selectedReceiptDataCount = this.selectedData.filter(record => record.Receipt_Uploaded_R1__c ?? 'No' === 'Yes').length;
+        const selectedDataCount = this.selectedData.length;
+        this.selectedScreenCategory = selectedDataCount === selectedReceiptDataCount ? 'Receipt Screens' : 'Without Receipt Screens';
+        this.calculateWhichScreenToRender();
+    }
+
+    @track nextClicked = 0;
+    @track nextbuttonDisabled = false;
+    handleNext(){
+        this.nextClicked ++;
+    }
+
+    @track showBack =true;
+    @track backClicked = 0;
+    handleBackClicked(){
+        this.backClicked++;
+    }
+
+    @track jsonString;
+    @track caseId;
+    @track payeeDetail;
+    @track receiptSubmittedBy;
+    @track submitExpense;
+
+    screenSuccess(value){
+        console.log('success in parent : ' , value.detail);
+        if(value.detail != null) {
+            let setValues = JSON.parse(value.detail);
+            for(let key in setValues)
+            {
+                this[key] = setValues[key];
+            }
+        }
+        this[this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].value] = value.detail; 
+        if(this.submitExpense === 'SUBMIT_EXPENSE'){
+            //CALL Actual backend Method
+            //validate it
+            this.showToast();
+            this.closeModal();
+
+        }else{
+            this.currentScreenIndex ++;
+            this.closeScreens();
+            this.updateScreen(); 
+            this.nextbuttonDisabled = true;//this should be re-enabled from the next screen
+        } 
+        
+        console.log('jsonString',this.jsonString);
+        console.log('caseId',this.caseId);
+        console.log('payeeDetail',this.payeeDetail);
+        console.log('receiptSubmittedBy',this.receiptSubmittedBy);
+    }
+
+    backSuccess(value){
+        console.log('back success in parent :  ' , value.detail);
+        this[this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].value] = value.detail;
+
+        this.closeScreens();
+        console.log('back on parent , current screen index : ' , this.currentScreenIndex);
+        this.currentScreenIndex--;
+        this.updateScreen(); 
+    }
+
+
+    @track onlyMissingReceiptRecords;
+    calculateWhichScreenToRender(){
+    if(this.selectedScreenCategory === 'Receipt Screens' && this.selectedData.length > 1){
+        this.showBack =false;
+        this.currentScreenIndex ++;
+        this.closeScreens();
+        this.updateScreen();
+    }else{
       
         this.getOnlyMissingReceiptRecords(); // hold only missing receipt records except millage and cash tip
         console.log('this.onlyMissingReceiptRecords ',JSON.stringify(this.onlyMissingReceiptRecords ));
+        //GENERATE CODE HERE ...bY CALCULATING THIS ARRAY LEMGTH
         this.currentScreenIndex ++;
         this.closeScreens();
         this.updateScreen();
     }
-	
-	my requirement is ..if this array having only one element then the above json is fine but if its having 2 then the json will be 
-	
-				const showWithOutReceiptScreenCategories = {
-    1: { bool: 'showMissingReceiptScreen' , value: 'valuesFromMissingReceiptScreen',btnName : 'Continue Without Receipt', showBack : false },
-    2: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next' , showBack : true},
-    3: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next' , showBack : true},
-	
-	4: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next' , showBack : true},
-    5: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next' , showBack : true},
-    6: { bool: 'submitExpense', value: 'valuesFromSubmitExpense',btnName : 'Submit Expense' , showBack : true}
-};
+    }
 
-if its 3 then 
+    closeScreens(){
+        for(let item in this.flowScreens[this.selectedScreenCategory]){
+            this[this.flowScreens[this.selectedScreenCategory][item].bool] = false;
+            }
+    }
 
-				const showWithOutReceiptScreenCategories = {
-    1: { bool: 'showMissingReceiptScreen' , value: 'valuesFromMissingReceiptScreen',btnName : 'Continue Without Receipt', showBack : false },
-    2: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next' , showBack : true},
-    3: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next' , showBack : true},
-	
-	4: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next' , showBack : true},
-    5: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next' , showBack : true},
-	
-		6: { bool: 'showMissingReceiptReasonScreen' , value: 'valuesFromReceiptReasonScreen',btnName : 'Next' , showBack : true},
-    7: { bool: 'showMissingReceiptLimitScreen', value: 'valuesFromReceiptLimitScreen',btnName : 'Next' , showBack : true},
-    8: { bool: 'submitExpense', value: 'valuesFromSubmitExpense',btnName : 'Submit Expense' , showBack : true}
-};
-	like this it should be form dynamically.. in js 	LWC
+    @track currentScreenIndex = 0;
+    @track nextButtonName = 'Next';
+    updateScreen(){
+     this[this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].bool] = true;
+     this.nextButtonName = this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].btnName;
+     this.showBack = this.flowScreens[this.selectedScreenCategory][this.currentScreenIndex].showBack;
+        }
+
+    //open for single expense
+    openSubmitExpense(){
+        this.showWarningPopUp = false;
+        this.showBack = false;
+        //this.currentScreenIndex ++;
+        this.closeScreens();
+        this.updateScreen();
+    }
+
+    closeAlert(){
+        this.showWarningPopUp =false;
+        this.closeModal();
+    }
+
+    closeModal(){
+        this.dispatchEvent(new CustomEvent('close' , {detail: true}));
+    }
+
+    showToast() {
+        const event = new ShowToastEvent({
+            title: 'Success',
+            message: 'Report Submitted',
+            variant: 'success'
+        });
+        this.dispatchEvent(event);
+    }
+
+    dateFormator(inputDate){
+        if (inputDate) {
+            const date = new Date(inputDate);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const formattor = new Intl.DateTimeFormat('en-US', options);
+            return formattor.format(date);
+        }
+    }
+
+
+    getOnlyMissingReceiptRecords(){
+        this.onlyMissingReceiptRecords = this.selectedData.filter(record => {
+            if (record.hasOwnProperty('Receipt_Uploaded_R1__c')) {
+                return false;
+              }
+            if (record.Receipt_Uploaded_R1__c === 'Yes') {
+              return false;
+            }
+            if (record.Expense_Category_R1__c === 'Mileage' || record.Expense_Category_R1__c === 'Tips') {
+              return false;
+            }
+            return true;
+          });
+    }
+
+    @track nextbuttonDisabled = true;
+    handleNextButtonChange(value){
+        console.log('enable button on parent: ' , value.detail);
+        this.nextbuttonDisabled = !value.detail;
+    } 
+
+}
