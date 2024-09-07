@@ -1,3 +1,20 @@
+handleScreenData(event) {
+        const screenData = event.detail;
+        const { id } = screenData;
+
+        if (this.payload.has(id)) {
+            // Merge the new data with existing data for the same ID
+            const existingData = this.payload.get(id);
+            this.payload.set(id, { ...existingData, ...screenData });
+        } else {
+            // Add new data to the payload if ID is not present
+            this.payload.set(id, screenData);
+        }
+
+        console.log('Current Payload:', Array.from(this.payload.entries()));
+    }
+
+
 calculateWhichScreenToRender() {
     if (this.selectedScreenCategory === 'Receipt Screens' && this.selectedData.length > 1) {
         this.showBack = false;
