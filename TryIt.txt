@@ -1,79 +1,18 @@
-handleScreenData(event) {
-        const screenData = event.detail;
-        const { id } = screenData;
+convertDateToYYYYMMDD(inputDate) {
+    // Parse the input date (e.g., "September 3, 2024")
+    const parsedDate = new Date(inputDate);
 
-        if (this.payload.has(id)) {
-            // Merge the new data with existing data for the same ID
-            const existingData = this.payload.get(id);
-            this.payload.set(id, { ...existingData, ...screenData });
-        } else {
-            // Add new data to the payload if ID is not present
-            this.payload.set(id, screenData);
-        }
-
-        console.log('Current Payload:', Array.from(this.payload.entries()));
+    // Check if the date is valid
+    if (isNaN(parsedDate)) {
+        console.error('Invalid date format');
+        return null;
     }
 
+    // Get year, month, and day
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed, so add 1
+    const day = String(parsedDate.getDate()).padStart(2, '0'); // Pad single-digit days with a leading zero
 
-calculateWhichScreenToRender() {
-    if (this.selectedScreenCategory === 'Receipt Screens' && this.selectedData.length > 1) {
-        this.showBack = false;
-        this.currentScreenIndex++;
-        this.closeScreens();
-        this.updateScreen();
-    } else {
-
-        this.getOnlyMissingReceiptRecords(); // hold only missing receipt records except millage and cash tip
-        console.log('this.onlyMissingReceiptRecords ', JSON.stringify(this.onlyMissingReceiptRecords));
-
-        // GENERATE CODE HERE: Dynamically form screen categories based on array length
-        let categories = {};
-        const baseIndex = 1;
-        const submitExpenseIndex = (this.onlyMissingReceiptRecords.length * 2) + baseIndex + 1;
-
-        // Add the initial screen
-        categories[baseIndex] = { 
-            bool: 'showMissingReceiptScreen', 
-            value: 'valuesFromMissingReceiptScreen', 
-            btnName: 'Continue Without Receipt', 
-            showBack: false 
-        };
-
-        // Loop through the array and add the missing receipt reason and limit screens
-        for (let i = 0; i < this.onlyMissingReceiptRecords.length; i++) {
-            let screenIndex = (i * 2) + baseIndex + 1;
-
-            // Add reason screen
-            categories[screenIndex] = {
-                bool: 'showMissingReceiptReasonScreen',
-                value: 'valuesFromReceiptReasonScreen',
-                btnName: 'Next',
-                showBack: true
-            };
-
-            // Add limit screen
-            categories[screenIndex + 1] = {
-                bool: 'showMissingReceiptLimitScreen',
-                value: 'valuesFromReceiptLimitScreen',
-                btnName: 'Next',
-                showBack: true
-            };
-        }
-
-        // Add the final submit expense screen
-        categories[submitExpenseIndex] = {
-            bool: 'submitExpense',
-            value: 'valuesFromSubmitExpense',
-            btnName: 'Submit Expense',
-            showBack: true
-        };
-
-        // Update the flowScreens with the dynamically generated categories
-        this.flowScreens['Without Receipt Screens'] = categories;
-
-        // Move to the next screen
-        this.currentScreenIndex++;
-        this.closeScreens();
-        this.updateScreen();
-    }
+    // Return formatted date in 'YYYY-MM-DD'
+    return `${year}-${month}-${day}`;
 }
