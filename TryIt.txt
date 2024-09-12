@@ -1,18 +1,10 @@
-convertDateToYYYYMMDD(inputDate) {
-    // Parse the input date (e.g., "September 3, 2024")
-    const parsedDate = new Date(inputDate);
-
-    // Check if the date is valid
-    if (isNaN(parsedDate)) {
-        console.error('Invalid date format');
+    public String deleteFiles(Authorization authorization) throws MalformedURLException {
+        String queryUrl;
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Object> response= null;
+        queryUrl = ServiceUtil.formQueryUrl("https://cquence--pspltdev.sandbox.my.salesforce.com/services/Soap/u/58.0", "/services/data/v58.0/query/?q=", "SELECT+Id+FROM+Transient__c", null);
+        HttpEntity<HttpHeaders> requestEntity = new HttpEntity<>(ServiceUtil.getHeaders(authorization.getSessionId()));
+        response = restTemplate.exchange(queryUrl, HttpMethod.GET, requestEntity, Object.class);
+        System.out.println(response.getBody());
         return null;
     }
-
-    // Get year, month, and day
-    const year = parsedDate.getFullYear();
-    const month = String(parsedDate.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed, so add 1
-    const day = String(parsedDate.getDate()).padStart(2, '0'); // Pad single-digit days with a leading zero
-
-    // Return formatted date in 'YYYY-MM-DD'
-    return `${year}-${month}-${day}`;
-}
