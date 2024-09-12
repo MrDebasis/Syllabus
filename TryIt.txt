@@ -1,10 +1,84 @@
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+import java.net.MalformedURLException;
+import java.util.List;
+
+public class YourServiceClass {
+
     public String deleteFiles(Authorization authorization) throws MalformedURLException {
         String queryUrl;
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<Object> response= null;
-        queryUrl = ServiceUtil.formQueryUrl("https://cquence--pspltdev.sandbox.my.salesforce.com/services/Soap/u/58.0", "/services/data/v58.0/query/?q=", "SELECT+Id+FROM+Transient__c", null);
+        ResponseEntity<String> response = null;
+
+        // Form the query URL
+        queryUrl = ServiceUtil.formQueryUrl(
+            "https://cquence--pspltdev.sandbox.my.salesforce.com/services/Soap/u/58.0",
+            "/services/data/v58.0/query/?q=", 
+            "SELECT+Id+FROM+Transient__c", 
+            null
+        );
+
+        // Set headers with sessionId
         HttpEntity<HttpHeaders> requestEntity = new HttpEntity<>(ServiceUtil.getHeaders(authorization.getSessionId()));
-        response = restTemplate.exchange(queryUrl, HttpMethod.GET, requestEntity, Object.class);
-        System.out.println(response.getBody());
+
+        // Make the GET request
+        response = restTemplate.exchange(queryUrl, HttpMethod.GET, requestEntity, String.class);
+
+        // Parse the response body
+        String responseBody = response.getBody();
+        if (responseBody != null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            try {
+                // Map the response body to the SalesforceResponse class
+                SalesforceResponse salesforceResponse = objectMapper.readValue(responseBody, SalesforceResponse.class);
+
+                // Collect the Ids from the records
+                List<String> ids = salesforceResponse.getIds();
+
+                // Log the collected Ids
+                ids.forEach(System.out::println);
+
+                return String.join(",", ids);  // Return a comma-separated list of Ids (for example)
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         return null;
     }
+
+    // Inner class to map the Salesforce response
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class SalesforceResponse {
+        private List<Record> records;
+
+        public List<String> getIds() {
+            return records.stream().map(Record::getId).toList();
+        }
+
+        public List<Record> getRecords() {
+            return records;
+        }
+
+        public void setRecords(List<Record> records) {
+            this.records = records;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Record {
+        private String Id;
+
+        public String getId() {
+            return Id;
+        }
+
+        public void setId(String id) {
+            this.Id = id;
+        }
+    }
+}
