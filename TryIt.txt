@@ -1,8 +1,1 @@
-Worked on messaging center and backend.
-Implemented lazy loading for desktop and mobile.
-Refactored Add Expense functionality (frontend and backend).
-Enhanced single file upload to multi-file upload.
-Refactored Submit Expense and home travel functionalities.
-Refactored backend file upload class.
-Provided technical guidance to team members.
-Contributed to high-level design (HLD).
+
