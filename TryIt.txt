@@ -1,1 +1,8 @@
-worked on messaging center AND bACKEND ALSO lazy loading desktop and mobile Refector completely Add Expense Functionality from scratch (FE AND Baxkend) and enhanced single file upload to multi file upload. refector Submit expense completely worked on home travel. refectored file upload class for backend. Guiding team members technically and High level design (HLD)
+Worked on messaging center and backend.
+Implemented lazy loading for desktop and mobile.
+Refactored Add Expense functionality (frontend and backend).
+Enhanced single file upload to multi-file upload.
+Refactored Submit Expense and home travel functionalities.
+Refactored backend file upload class.
+Provided technical guidance to team members.
+Contributed to high-level design (HLD).
