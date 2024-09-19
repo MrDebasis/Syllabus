@@ -1,1 +1,8 @@
 
+ label: 'Expense date', fieldName: 'Date_R1__c', hideDefaultActions: true, fixedWidth: 151, type: "date",
+        typeAttributes: {
+            year: "numeric",
+            month: "short",
+            day: "2-digit"
+        }, sortable: true
+    },
