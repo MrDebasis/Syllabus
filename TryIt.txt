@@ -1,39 +1,21 @@
-private HttpResponse callOutToTextractAPI(ContentVersion record) {
-    if (record == null || record.VersionData == null) {
-        Application.logentry.error('ContentVersion or VersionData is null.');
-        return null; // Return null if record or VersionData is null
+private static List<ContentVersion> createContentVersion(String base64, String filename) {
+    if (String.isBlank(base64) || String.isBlank(filename)) {
+        Application.logentry.error('Base64 string or filename is null or empty.');
+        return new List<ContentVersion>();  // Return an empty list to avoid null pointer issues
     }
 
-    HttpRequest request = new HttpRequest();
-    AwsWrapper mapi = new AwsWrapper();
-    
-    Textract_API_Details__mdt apiDetails = [SELECT EndPoint__c, APIKey__c, ContentType__c, HTTPMethod__c, UserAgent__c, TimeOut__c 
-                                            FROM Textract_API_Details__mdt 
-                                            WHERE DeveloperName = 'TextractAPIDetails' LIMIT 1];
-
-    if (apiDetails == null) {
-        Application.logentry.error('API details are missing.');
-        return null;
-    }
-
-    mapi.file = EncodingUtil.Base64Encode(record.VersionData);
-
-    if (record.FileExtension != null && record.FileExtension.equalsIgnoreCase('heic')) {
-        mapi.returnFile = 'true';
-    }
-
-    request.setEndpoint(apiDetails.EndPoint__c);
-    request.setHeader('Content-Type', apiDetails.ContentType__c);
-    request.setHeader('User-Agent', apiDetails.UserAgent__c);
-    request.setHeader('x-api-key', apiDetails.APIKey__c);
-    request.setMethod(apiDetails.HTTPMethod__c);
-    request.setTimeout((Integer) apiDetails.TimeOut__c);
-    request.setBody(JSON.serialize(mapi));
+    List<ContentVersion> cvList = new List<ContentVersion>();
+    ContentVersion cv = new ContentVersion();
+    cv.VersionData = EncodingUtil.base64Decode(base64);
+    cv.Title = filename + '.jpeg';
+    cv.PathOnClient = filename;
 
     try {
-        return new Http().send(request);
-    } catch (Exception e) {
-        Application.logentry.error('Error during API callout: ' + e.getMessage());
-        return null;
+        service().insertContentversion(cvList);
+        Application.logentry.info('ContentVersion successfully created: ' + cvList);
+        return cvList;
+    } catch (DMLException e) {
+        Application.logentry.error('Error inserting ContentVersion: ' + e.getMessage());
+        return new List<ContentVersion>();  // Return an empty list on failure
     }
 }
