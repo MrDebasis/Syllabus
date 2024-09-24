@@ -1,37 +1,44 @@
+handleUploadFinished(event) {
+    const uploadedFiles = event.detail.files;
+    console.log('uploadedFiles', uploadedFiles);
 
- handleUploadFinished(event) {
-        const uploadedFiles = event.detail.files;
-        console.log('uploadedFiles',uploadedFiles);
-
-        const promises = uploadedFiles.map(file => {
-        if(file.mimeType === '' && file.name.includes('.heic')){
-            return this.getConvertedFormat(file.documentId);
+    // Map over the uploaded files and convert HEIC files if needed
+    const promises = uploadedFiles.map(file => {
+        if (file.mimeType === '' && file.name.includes('.heic')) {
+            return this.getConvertedFormat(file.documentId)  // Return converted format
+                .catch(error => {
+                    console.error(`Failed to convert format for ${file.name}`, error);
+                    return null;  // Return null to continue with other files
+                });
         } else {
-            return file.documentId;
+            return Promise.resolve(file.documentId);  // For other files, return documentId directly
         }
-        });
+    });
 
-        Promise.all(promises)
+    // Wait for all promises to resolve
+    Promise.all(promises)
         .then(results => {
+            // Filter out any null, undefined, or empty results
             this.strContentDocId = results.filter(result => result !== undefined && result !== null && result !== '');
-            if(this.strContentDocId.length !==0){
-                this.showEvent();
+            if (this.strContentDocId.length !== 0) {
+                this.showEvent();  // Trigger the next action
             }
         })
         .catch(error => {
-            console.error(error);
+            console.error('Error in processing file uploads:', error);
         });
-    }
-    getConvertedFormat(contentVersionId) {
-        getConvertedFormat({ recordId: contentVersionId })
-            .then(result => {
-                if(result){
-                    console.log('received...');
-                    return result;
-                }
-                console.log(result);
-            })
-            .catch(error => {
-                console.error(error);
-            });
-    }
+}
+
+// Method to get the converted format for HEIC files
+getConvertedFormat(contentVersionId) {
+    return getConvertedFormat({ recordId: contentVersionId })  // Ensure to return the promise
+        .then(result => {
+            if (result) {
+                console.log('Conversion successful, received format:', result);
+                return result;  // Return the converted format result
+            }
+        })
+        .catch(error => {
+            console.error(`Error in converting format for contentVersionId ${contentVersionId}:`, error);
+        });
+}
