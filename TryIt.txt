@@ -1,66 +1,39 @@
+private HttpResponse callOutToTextractAPI(ContentVersion record) {
+    if (record == null || record.VersionData == null) {
+        Application.logentry.error('ContentVersion or VersionData is null.');
+        return null; // Return null if record or VersionData is null
+    }
 
- public String convertHEICToJPEG(ContentVersion record){
-        HttpResponse response = callOutToTextractAPI(record);
-        String responseBody ='';
-        List<ContentVersion> lstOfContentVersion;
-		List<ContentVersion> lstOfContentVersionRes;
-        if(response.getStatusCode() == 200 || response.getStatusCode() == 201){
-            responseBody = response.getBody();
-            Map<String, Object> receiptMap = (Map<String, Object>) JSON.deserializeUntyped(responseBody);
-            Object base64String = receiptMap.get('file');
-            system.debug('receiptObjectList -->'+base64String);
-            lstOfContentVersion = new List<ContentVersion>();
-            lstOfContentVersion = createContentVersion((String)base64String,record.Title);
-            system.debug('lstOfContentVersion -->'+lstOfContentVersion);
-			lstOfContentVersionRes = new List<ContentVersion>();
-            lstOfContentVersionRes =ContentVersionsSelector.newInstance().getListOfContentVersionById(new List<String>{lstOfContentVersion[0].Id});
-        }else{
-            responseBody = null;
-        }
-        return lstOfContentVersionRes[0].ContentDocumentId;
-    }
+    HttpRequest request = new HttpRequest();
+    AwsWrapper mapi = new AwsWrapper();
     
-       private HttpResponse callOutToTextractAPI(ContentVersion record){
-        HttpRequest request = new HttpRequest();
-        AwsWrapper mapi = new AwsWrapper();
-             		Application.logentry.info('apiDetails : apiDetails-->');
-      //  Textract_API_Details__mdt apiDetails = Textract_API_Details__mdt.getInstance('TextractAPIDetails');
-        Textract_API_Details__mdt apiDetails =   [select id,EndPoint__c,APIKey__c,ContentType__c,HTTPMethod__c,UserAgent__c,TimeOut__c 
-                                                  from Textract_API_Details__mdt
-                                                  where DeveloperName= 'TextractAPIDetails'];
-  		Application.logentry.info('apiDetails : apiDetails'+ apiDetails);
-           
-        mapi.file = EncodingUtil.Base64Encode(record.VersionData);  
-        if(record !=null && record.FileExtension !=null && record.FileExtension.equals('heic')){
-            mapi.returnFile = 'true';
-        }
-       
-        request.setEndpoint(apiDetails.EndPoint__c);
-        request.setHeader('Content-Type',apiDetails.ContentType__c );
-        request.setHeader('User-Agent', apiDetails.UserAgent__c);
-        request.setHeader('x-api-key', apiDetails.APIKey__c);
-        request.setMethod(apiDetails.HTTPMethod__c);
-        request.setTimeout((Integer)apiDetails.TimeOut__c);
-        request.setBody(JSON.serialize(mapi));
-        Application.logentry.info('FileUploaderClass.getReceiptJSON() : Request Payload'+ request.getBody());
+    Textract_API_Details__mdt apiDetails = [SELECT EndPoint__c, APIKey__c, ContentType__c, HTTPMethod__c, UserAgent__c, TimeOut__c 
+                                            FROM Textract_API_Details__mdt 
+                                            WHERE DeveloperName = 'TextractAPIDetails' LIMIT 1];
+
+    if (apiDetails == null) {
+        Application.logentry.error('API details are missing.');
+        return null;
+    }
+
+    mapi.file = EncodingUtil.Base64Encode(record.VersionData);
+
+    if (record.FileExtension != null && record.FileExtension.equalsIgnoreCase('heic')) {
+        mapi.returnFile = 'true';
+    }
+
+    request.setEndpoint(apiDetails.EndPoint__c);
+    request.setHeader('Content-Type', apiDetails.ContentType__c);
+    request.setHeader('User-Agent', apiDetails.UserAgent__c);
+    request.setHeader('x-api-key', apiDetails.APIKey__c);
+    request.setMethod(apiDetails.HTTPMethod__c);
+    request.setTimeout((Integer) apiDetails.TimeOut__c);
+    request.setBody(JSON.serialize(mapi));
+
+    try {
         return new Http().send(request);
+    } catch (Exception e) {
+        Application.logentry.error('Error during API callout: ' + e.getMessage());
+        return null;
     }
-    
-    private static List<ContentVersion> createContentVersion(String base64, String filename) {
-        Application.logentry.info('createContentVersion : createContentVersion'+ filename);
-        List<ContentVersion> cvList = new List<ContentVersion>();
-        ContentVersion cv = new ContentVersion();
-        cv.VersionData = EncodingUtil.base64Decode(base64);
-        cv.Title = filename + '.jpeg';
-        cv.PathOnClient = filename;
-        cvList.add(cv);
-          Application.logentry.info('cv : createContentVersion'+ cv);
-        try {
-            service().insertContentversion(cvList);
-             Application.logentry.info('cvList : cvList'+ cvList);
-            return cvList;
-        } catch(DMLException e) {
-            Application.LogEntry.error(e); 
-            return null;
-        }
-    }
+}
