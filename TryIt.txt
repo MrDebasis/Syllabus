@@ -1,3 +1,1 @@
-String reimbursementName = (obj.Reimbursement__r != null && obj.Reimbursement__r.Name != null) 
-    ? (obj.Reimbursement__r.Name.contains('-') ? obj.Reimbursement__r.Name.split('-')[1] : obj.Reimbursement__r.Name) 
-    : (obj.Reimbursement__r != null ? obj.Reimbursement__r.toString() : 'Default Value');
+
