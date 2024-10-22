@@ -1,1 +1,22 @@
-
+    private static Boolean isEligibilityProgrameType(String caseId){
+        case caseRec = [SELECT Id, ProgramType__c,RecordType.name FROM Case WHERE ID =: caseId LIMIT 1];
+        return caseRec!=null && caseRec.ProgramType__c.equals('MYCARVKTI') && caseRec.RecordType.name.equals('Patient Support') ? true : false;
+    }
+    
+    private static String getEmailTemplateName(String emailTemplateId){
+      return [SELECT Name FROM EmailTemplate WHERE Id =: emailTemplateId LIMIT 1]?.Name;
+    }
+    
+    private static Boolean isEligibleEmailTemplateToSendNotification(String emailTemplateName){
+       Portal_Notification_Settings__mdt portalNotificationRec = [SELECT Name__c,Notification_Type__c,Send_Notification__c FROM Portal_Notification_Settings__mdt LIMIT 1];
+        if(portalNotificationRec !=null && portalNotificationRec.Send_Notification__c && portalNotificationRec.Name__c.equals(emailTemplateName)){
+            return true;
+        }else{
+              return true;
+        }
+    }
+    
+    public static void handleNotificationCreation(List<EmailMessage> lstOfEmailMessage){
+        
+    }
+    
