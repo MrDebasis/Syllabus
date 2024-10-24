@@ -1,1 +1,154 @@
+public without sharing class EmailMessageTriggerHandler {
+    
+    // STEP 1:  This method checks eligibility based on case ProgramType and RecordType
+    private static Map<Id, Boolean> checkEligibilityProgramType(Set<Id> caseIds) {
+        Map<Id, Boolean> eligibilityMap = new Map<Id, Boolean>();
+        
+        if (!caseIds.isEmpty()) {
+            List<Case> caseList = [
+                SELECT Id, ProgramType__c, RecordType.Name 
+                FROM Case 
+                WHERE Id IN :caseIds
+            ];
+            
+            for (Case caseRec : caseList) {
+                eligibilityMap.put(
+                    caseRec.Id, 
+                    caseRec.ProgramType__c == 'MYCARVKTI' && 
+                    caseRec.RecordType.Name == 'Patient Support'
+                );
+            }
+        }
+        return eligibilityMap;
+    }
+    
+    // STEP 2: This method fetches email template names based on their IDs
+    private static Map<Id, String> getEmailTemplateNames(Set<Id> emailTemplateIds) {
+        Map<Id, String> templateMap = new Map<Id, String>();
+        
+        if (!emailTemplateIds.isEmpty()) {
+            List<EmailTemplate> templates = [
+                SELECT Id, Name 
+                FROM EmailTemplate 
+                WHERE Id IN :emailTemplateIds
+            ];
+            
+            for (EmailTemplate template : templates) {
+                templateMap.put(template.Id, template.Name);
+            }
+        }
+        return templateMap;
+    }
+    
+    // STEP 3: This method checks if an email template is eligible for sending notifications
+    private static Map<String, Boolean> isEligibleEmailTemplateToSendNotification(Set<String> emailTemplateNames) {
+        Map<String, Boolean> notificationEligibilityMap = new Map<String, Boolean>();
+        
+        if (!emailTemplateNames.isEmpty()) {
+            List<Portal_Notification_Settings__mdt> portalNotificationList = [
+                SELECT Name__c, Send_Notification__c 
+                FROM Portal_Notification_Settings__mdt 
+                WHERE Name__c IN :emailTemplateNames
+            ];
+            
+            for (Portal_Notification_Settings__mdt portalNotificationRec : portalNotificationList) {
+                notificationEligibilityMap.put(
+                    portalNotificationRec.Name__c, 
+                    portalNotificationRec.Send_Notification__c
+                );
+            }
+        }
+        
+        // If template name is not found in metadata,then it's ineligible
+        for (String templateName : emailTemplateNames) {
+            if (!notificationEligibilityMap.containsKey(templateName)) {
+                notificationEligibilityMap.put(templateName, false);
+            }
+        }
+        
+        return notificationEligibilityMap;
+    }
+    
+    public static void handleNotificationCreation(List<EmailMessage> lstOfEmailMessage) {
+        Set<Id> caseIds = new Set<Id>();
+        Set<Id> emailTemplateIds = new Set<Id>();
+        
+        for (EmailMessage emailMsg : lstOfEmailMessage) {
+            if (emailMsg.ParentId != null) {
+                caseIds.add(emailMsg.ParentId);  // ParentId is the Case Id
+            }
+            if (emailMsg.EmailTemplateId != null) {
+                emailTemplateIds.add(emailMsg.EmailTemplateId);  // Email Template Id 
+            }
+        }
+        
+        // STEP 1:  This method checks eligibility based on case ProgramType and RecordType
+        Map<Id, Boolean> eligibilityMap = checkEligibilityProgramType(caseIds);
+        
+        // STEP 2: This method fetches email template names based on their IDs
+        Map<Id, String> templateNameMap = getEmailTemplateNames(emailTemplateIds);
+        Set<String> emailTemplateNames = new Set<String>(templateNameMap.values());
+        
+        // STEP 3: This method checks if an email template is eligible for sending notifications
+        Map<String, Boolean> emailTemplateEligibilityMap = isEligibleEmailTemplateToSendNotification(emailTemplateNames);
+        
+        List<Notification__c> notificationsToCreate = new List<Notification__c>();
+        List<String> splitedToAdressEmails = new List<String>();
+        
+        // Process each email message and create notifications 
+        for (EmailMessage emailMsg : lstOfEmailMessage) {
+            String caseId = emailMsg.ParentId;
+            String emailTemplateId = emailMsg.EmailTemplateId;
+            
+            // Check case eligibility (ProgramType and RecordType)
+            if (caseId != null && eligibilityMap.containsKey(caseId) && eligibilityMap.get(caseId)) {
+                String emailTemplateName = templateNameMap.get(emailTemplateId);
+                
+                // Check email template eligibility for sending notifications to true then only create notifications
+                if (emailTemplateName != null && emailTemplateEligibilityMap.get(emailTemplateName)) {
+                   String combineEmails = emailMsg.ToAddress;
+                    if (combineEmails.contains('.com')) {
+                        splitedToAdressEmails = combineEmails.split('.com');
+                    }
+                }
+                
+            }
+        }
+        
+        if(!splitedToAdressEmails.isEmpty()){
+            Map<String, User> userMap = getUserIdUsingEmail(splitedToAdressEmails);
+            
+            if(!userMap.isEmpty()){
+                for (String email : splitedToAdressEmails) {
+                    if (userMap.containsKey(email + '.com')) {
+                        Notification__c noti = new Notification__c();
+                        noti.Subject__c =; // htmlBody
+                        noti.Message__c =;// htmlBody
+                        noti.RelatedRecordId__c =// need asee id;
+                        noti.ReadStatus__c ='Unread';
+                        noti.AssignedTo__c = userMap.get(email + '.com').Id;
+                        noti.Country__c ='US';
+                        notificationsToCreate.add(noti);
+                    }
+                }
+            }
+        }
+        
+        if (!notificationsToCreate.isEmpty()) {
+            insert notificationsToCreate;
+        }
+    } 
+    
+    private static Map<String, User> getUserIdUsingEmail(List<String> emails) {
+        List<String> emailsWithCom = new List<String>();
+        for (String email : emails) {
+            emailsWithCom.add(email + '.com');
+        }
+        Map<String, User> userMap = new Map<String, User>();
+        for (User user : [SELECT Id, Email FROM User WHERE Email IN :emailsWithCom]) {
+            userMap.put(user.Email, user);
+        }
+        return userMap;
+    }
 
+}
