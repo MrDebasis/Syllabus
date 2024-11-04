@@ -1,1 +1,6 @@
 
+1.	Usage - repeat users, time spent in the portal
+o	Definition - I want to segregate users as repeat users and also capture the time spent on portal by users per login
+o	Criteria to calculate the metric - Based on the login count, time spent in the portal (login and logout time)
+o	Filter used to get the data - Filter by Patient/LAR/CG and Case
+o	Where are we getting the data from - Cookies/Salesforce 
