@@ -1,1 +1,1004 @@
 
+import Id from '@salesforce/user/Id';
+import { refreshApex } from "@salesforce/apex";
+import { LightningElement, wire, track } from 'lwc';
+import { labels } from 'c/pspCustomLabelsLWCComponent';
+import { NavigationMixin } from 'lightning/navigation';
+import FORM_FACTOR from '@salesforce/client/formFactor';
+import { loadStyle } from 'lightning/platformResourceLoader';
+import myResource from '@salesforce/resourceUrl/Patient_Portal';
+import pdfImage from "@salesforce/resourceUrl/PdfReceiptIcon";
+import PATIENT_PORTAL_CSS from '@salesforce/resourceUrl/PatientPortal';
+import getTrips from '@salesforce/apex/PortalAddExpenseController.getTrips';
+import getTransientRecords from '@salesforce/apex/PortalAddExpenseController.getTransientRecords';
+import getExpenseLineItemRec from '@salesforce/apex/PortalAddExpenseController.getExpenseLineItemRec';
+import getTotalCountForSubmittedExpense from '@salesforce/apex/PortalAddExpenseController.getTotalCountForSubmittedExpense';
+import getTotalCountForUnSubmittedExpense from '@salesforce/apex/PortalAddExpenseController.getTotalCountForUnSubmittedExpense';
+import getFlagDetails from '@salesforce/apex/PortalAddExpenseController.getFlagDetailsNew';
+import updateToturialFlag from '@salesforce/apex/PortalAddExpenseController.updateAnnouncementFlag';
+
+const unsubmitCOLS = [
+    { label: 'Expense type', fieldName: 'Expense_Category_R1__c', hideDefaultActions: true, fixedWidth: 175, sortable: true, wrapText: true },
+    {
+        label: 'Total amount', type: 'currency', fieldName: 'Expense_Amount_R1__c', hideDefaultActions: true, fixedWidth: 132, cellAttributes: { alignment: 'right' },
+        sortable: true
+    },
+    { label: 'Vendor', fieldName: 'Vendor_R1__c', hideDefaultActions: true, sortable: true, wrapText: true },
+    {
+        label: 'Expense date', fieldName: 'Date_R1__c', hideDefaultActions: true, fixedWidth: 151, type: "date",
+        typeAttributes: {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            timeZone: "UTC"
+        }, sortable: true
+    },
+    {
+        label: 'Date added', fieldName: 'CreatedDate', hideDefaultActions: true, fixedWidth: 151, sortable: true, type: "date",
+        typeAttributes: {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            timeZone: "UTC"
+        }
+    },
+    { label: 'Purchased for', fieldName: 'Incurred_By_R1__c', hideDefaultActions: true, fixedWidth: 136, sortable: true },
+    {
+        label: "Receipt",
+        type: "customPicture",
+        sortable: false,
+        hideDefaultActions: true,
+        fixedWidth: 125,
+        typeAttributes: {
+            pictureUrl: { fieldName: "Picture" },
+            showPicture: { fieldName: "ShowPicture" },
+            showMissingReceiptUrl: { fieldName: "showMissingReceiptUrl" },
+            missingReceiptUrl: { fieldName: "missingReceiptUrl" },
+        },
+        cellAttributes: {
+            class: {
+                fieldName: "rowClass"
+            },
+            alignment: "right"
+        },
+    },
+    {
+        type: 'button-icon',
+        typeAttributes: {
+            iconName: 'utility:chevronright',
+            name: 'chevronright',
+            title: 'chevronright',
+            variant: 'bare',
+            alternativeText: 'chevronright'
+        },
+    },
+
+];
+const submitCOLS = [
+    { label: 'Expense type', fieldName: 'ExpenseCategory__c', hideDefaultActions: true, fixedWidth: 130, sortable: true, wrapText: true },
+    {
+        label: 'Total amount', fieldName: 'ReceiptAmount__c', hideDefaultActions: true, fixedWidth: 132, cellAttributes: { alignment: 'right' }, type: 'currency',
+        typeAttributes: {
+            currencyCode: 'USD'
+        }, sortable: true
+    },
+    { label: 'Vendor', fieldName: 'ExpenseDetailVendor__c', hideDefaultActions: true, fixedWidth: 117, sortable: true, wrapText: true },
+    {
+        label: 'Expense date', fieldName: 'ExpenseDate__c', hideDefaultActions: true, fixedWidth: 135, type: "date",
+        typeAttributes: {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            timeZone: "UTC"
+        }, sortable: true
+    },
+    {
+        label: 'Date submitted', fieldName: 'CreatedDate', hideDefaultActions: true, fixedWidth: 150, sortable: true, type: "date",
+        typeAttributes: {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            timeZone: "UTC"
+        }
+    },
+    { label: 'Report number', fieldName: 'reportLink', hideDefaultActions: true, fixedWidth: 146, sortable: true, type: "url", 
+        typeAttributes:{target:'_self', label: { fieldName: 'Reimbursement__r' }, tooltip: { fieldName: 'Reimbursement__r' }} },
+    { label: 'Purchased for', fieldName: 'PersonAssociatedWithExpense__c', hideDefaultActions: true, fixedWidth: 142, sortable: true },
+    {
+        label: "Receipt",
+        type: "customPicture",
+        sortable: false,
+        hideDefaultActions: true,
+        fixedWidth: 125,
+        typeAttributes: {
+            pictureUrl: { fieldName: "Picture" },
+            showPicture: { fieldName: "ShowPicture" },
+            showMissingReceiptUrl: { fieldName: "showMissingReceiptUrl" },
+            missingReceiptUrl: { fieldName: "missingReceiptUrl" },
+        },
+        cellAttributes: {
+            class: {
+                fieldName: "rowClass"
+            },
+            alignment: "right"
+        },
+    },
+    {
+        type: 'button-icon',
+        typeAttributes: {
+            iconName: 'utility:chevronright',
+            name: 'chevronright',
+            title: 'chevronright',
+            variant: 'bare',
+            alternativeText: 'chevronright'
+        }
+    }
+
+]
+
+export default class Psp_ExpenseSummary_LWCComponent extends NavigationMixin(LightningElement) {
+    labelsList = labels;   
+    mobileView;
+    showExpenseSummaryButton = true;
+    submittedSection = false;
+    unsubmittedSection;
+    submittedSectionMobile = false;
+    unsubmittedSectionMobile;
+    unSubmittedNoRecord = false;
+    submittedNoRecord = false;
+    disableSubmitButton = true;
+    expensesubmitbutton = true;
+    summaryButtons = true;
+    loading = true;
+    @track showSubmitData;
+    @track showInfoTooltip;
+    receiptIcon = `${myResource}/icons/receiptIcon.svg`;
+    showMissingReceipt = `${myResource}/icons/missingReceipt.svg`;
+    showIcon = pdfImage;
+    unSubmittedBtnClass = 'btn-style selected-btn';
+    submittedBtnClass = 'btn-style unselected-btn';
+    unSubmittedBtnClassMobile = 'btn-styleMobile selected-btnMobile';
+    submittedBtnClassMobile = 'btn-styleMobile unselected-btnMobile';
+    runningUserId = Id;
+    unSubmittedColumns = unsubmitCOLS;
+    submittedColumns = submitCOLS;
+    @track unSubmittedArray = [];
+    submittedArray = [];
+    @track unformattedExpense = [];
+    arrayWithCheckbox = [];
+    unSubmittedReportCount = 0;
+    submittedReportCount = 0;
+    @track sortBy = 'CreatedDate';
+    @track sortDirection = 'desc';
+    @track sortBySub = 'CreatedDate';
+    @track sortDirectionSub = 'desc';
+    caseRecordId;
+    showAlert = false;
+    alertBundleLabel = this.labelsList.PatientPortalAlertTrips;
+    variablename = 'test';
+    userDetailedMap = new Map();
+    @track isUserLoggedInFirstTime=false;
+    tutorialData;
+    submitTotalCount;
+    wiredResult;
+    selectedExpenseRecords = [];
+    selectedData = [];
+    isDisabled = true;
+    showUnreportedExpenseScreen = false;
+    showReportedExpense = false;
+    @track selectedRowId;
+    allSelected = false;
+    selectUnselect = "Select All";
+    selectedItems = [];
+    @track openAddExpenseModal = false;
+    openSubmitExpenseModal = false;
+    tutorialButton = `${myResource}/icons/TutorialButton.svg`;
+    @track stepIndex;
+    step2NubbinPosition = 'top-left expenseSummaryStep2';
+    step3NubbinPosition ='top-right expenseSummaryStep3';
+    step4NubbinPosition ='top-right expenseSummaryStep4';
+    isToturialBtnClicked =false;
+    reimbursementPageToturialStep_2 = false;
+    reimbursementPageToturialStep_3 = false;
+    reimbursementPageToturialStep_4 = false;
+    reimbursementPageToturialStep_5 = false;
+    @track unsubmitTotalCount;
+    userId = [];
+    transientTotalCount;
+    rowLimit = 10;
+    rowOffSet = 0;
+    currentDataLength;
+    isLoadingMobile;
+    @track allRecordsLoaded = false;
+    currentDataLength;
+    @track allRecordsLoadedForMobile = false;
+    submitRowLimit = 10;
+    submitRowOffSet = 0;
+    currentSubmitDataLength;
+    isLoadingSubmitMobile;
+    enableOnSubmitTutorial;
+
+    connectedCallback() {
+        this.unsubmittedSection = true;
+        this.unsubmittedSectionMobile = true;
+        this.mobileView =FORM_FACTOR == 'Small' ? true : false;
+         Promise.all([
+             loadStyle(this, PATIENT_PORTAL_CSS)]);
+         this.dynamicCSSForMobToturials();
+        if(this.mobileView){
+           this.addScrollEventListener();
+        }
+        this.loadTutorialFlag();
+        refreshApex(this.unsubmitTotalCount);
+        this.enableOnSubmitTutorial = sessionStorage.getItem('EnableSubmitTutorial');
+        this.showOnSubmitTutorial(this.enableOnSubmitTutorial);
+    }
+
+    renderedCallback(){
+        this.enableInfoTooltip();
+    }
+
+   @wire(getTotalCountForUnSubmittedExpense)
+    totalCountForUnsubmitted(value){
+        this.unsubmitTotalCount = value;
+        const { data, error } = this.unsubmitTotalCount;
+        if(data){
+            this.userId = data.userId;
+            this.caseRecordId = data.caseId;
+            this.unSubmittedReportCount = data.totalCount;
+            this.unSubmittedArray.length= 0;
+            this.unformattedExpense.length=0;
+            this.rowOffSet = 0;
+            this.loadData();
+            this.loadTutorialFlag();
+            console.log('Inside wire method for Zero');
+        }
+        else{
+            //spinner close 
+            //show generic error toast 
+        }
+    }
+
+    async handleRecordSaved() {
+        try {
+            const result = await getTotalCountForUnSubmittedExpense();
+            this.unsubmitTotalCount = result;
+            const { data, error } = this.unsubmitTotalCount;
+            if (data) {
+                this.userId = data.userId;
+                this.caseRecordId = data.caseId;
+                this.unSubmittedReportCount = data.totalCount;
+                this.unSubmittedArray.length = 0;
+                this.unformattedExpense.length = 0;
+                this.rowOffSet = 0;
+                this.loadData();
+                this.loadTutorialFlag();
+                console.log('Inside wire method for Zero');
+            } else {
+                //spinner close 
+                //show generic error toast 
+            }
+        } catch (error) {
+            // Handle error
+        }
+    }
+
+    @wire(getTotalCountForSubmittedExpense, { caseId: '$caseRecordId', userId: '$userId'})
+    wiredGetTotalCountForSubmittedExpense(result) {
+        this.wiredResult = result;
+        if (result.data) {
+            this.submittedReportCount = result.data;
+            this.submittedArray.length= 0;
+            this.submitRowOffSet = 0;
+            this.loadSubmitData();
+        } else if (result.error) {
+        }
+    }
+
+    async loadTutorialFlag(){
+        const data = await getFlagDetails();
+        if (data) {
+            this.isUserLoggedInFirstTime = data[0].HasViewedPopup__c;
+            if(this.isUserLoggedInFirstTime == false){
+                this.stepIndex ='STEP 2';
+                this.isToturialBtnClicked = this.submittedReportCount === 0 && this.unSubmittedReportCount === 1 ? true : false;
+            }
+            } else if (error) {
+                //spinner close 
+                //show generic error toast 
+            }    
+    }
+
+    formatSubmitData(data) {
+        if (this.mobileView) {
+            const formattedObjects = data.map((obj) => ({
+                ...obj,
+                Reimbursement__r : 
+                obj.Reimbursement__r !== null && obj.Reimbursement__r.Name !== null ? 
+                    obj.Reimbursement__r.Name !==null && obj.Reimbursement__r.Name !==undefined ? obj.Reimbursement__r.Name.split('-')[1] : obj.Reimbursement__r
+                    : obj.Reimbursement__r, 
+                ReceiptAmount__c: (obj.ReceiptAmount__c === "" || obj.ReceiptAmount__c == null) ?
+                    "$0.00" : obj.ReceiptAmount__c.toString().includes('$') ? obj.ReceiptAmount__c : '$' + obj.ReceiptAmount__c,
+                ExpenseDetailVendor__c: (obj.ExpenseCategory__c === 'Mileage') ?
+                    "Mileage" : (obj.ExpenseCategory__c === 'Tolls') ?
+                        "Toll" : (obj.ExpenseCategory__c === 'Cash Tip') ?
+                            "Tips" : obj.ExpenseDetailVendor__c,
+                ExpenseDate__c: this.dateFormator(obj.ExpenseDate__c),
+
+            }))
+            console.log('formattedObjects->' , formattedObjects);
+            return formattedObjects
+        }else{
+            const formattedObjects = data.map((obj)=>({            
+                ...obj, 
+                Reimbursement__r : 
+                obj.Reimbursement__r !== null && obj.Reimbursement__r.Name !== null ? 
+                    obj.Reimbursement__r.Name !==null && obj.Reimbursement__r.Name !==undefined ? obj.Reimbursement__r.Name.split('-')[1] : obj.Reimbursement__r
+                    : obj.Reimbursement__r, 
+                ReceiptAmount__c : (obj.ReceiptAmount__c === "" || obj.ReceiptAmount__c == null) ? 
+                "0.00" : obj.ReceiptAmount__c
+            }))
+            return formattedObjects
+
+        }
+    }
+
+    formatUnsubmitData(data) {
+        if (this.mobileView) {
+            const formattedObjects = data.map((obj) => ({
+                ...obj,
+                Expense_Amount_R1__c: (obj.Expense_Amount_R1__c === "" || obj.Expense_Amount_R1__c == null && obj.Expense_Category_R1__c !== 'Mileage') ?
+                    "$0.00" : (obj.Expense_Category_R1__c === 'Mileage') ?
+                        "Calculating..." : obj.Expense_Amount_R1__c.toString().includes('$') ? obj.Expense_Amount_R1__c : '$' + obj.Expense_Amount_R1__c,
+                Vendor_R1__c: (obj.Expense_Category_R1__c === 'Mileage') ?
+                    "Mileage" : (obj.Expense_Category_R1__c === 'Tolls') ?
+                        "Toll" : (obj.Expense_Category_R1__c === 'Cash Tip') ?
+                            "Tips" : obj.Vendor_R1__c,
+                Date_R1__c: this.dateFormator(obj.Date_R1__c),
+            }))
+            return formattedObjects
+        } else {
+            const formattedObjects = data.map((obj) => ({
+                ...obj,
+                Expense_Amount_R1__c : (obj.Expense_Amount_R1__c === "" || obj.Expense_Amount_R1__c == null || obj.Expense_Category_R1__c === 'Mileage') ? 
+                    "0.00" : (obj.Expense_Amount_R1__c)  
+            }))
+            return formattedObjects
+        }
+    }
+
+    dateFormator(dateString) {
+        if (dateString) {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);}
+    }
+      
+    checkRecordCount() {
+        if (this.unSubmittedReportCount > 0) {
+            this.unSubmittedNoRecord = false;
+        } else {
+            this.unSubmittedNoRecord = true;
+        }
+
+        if (this.submittedReportCount > 0) {
+            this.submittedNoRecord = false;
+        } else {
+            this.submittedNoRecord = true;
+        }
+    }
+
+    showUnsubmittedSection() {
+        this.unsubmittedSection = true;
+        this.submittedSection = false;
+        this.unSubmittedBtnClass = 'btn-style selected-btn';
+        this.submittedBtnClass = 'btn-style unselected-btn';
+    }
+
+    showSubmittedSection() {
+        this.unsubmittedSection = false;
+        this.submittedSection = true;
+        this.unSubmittedBtnClass = 'btn-style unselected-btn';
+        this.submittedBtnClass = 'btn-style selected-btn';
+    }
+
+    showUnsubmittedSectionMobile() {
+        this.unsubmittedSectionMobile = true;
+        this.submittedSectionMobile = false;
+        this.unSubmittedBtnClassMobile = 'btn-styleMobile selected-btnMobile';
+        this.submittedBtnClassMobile = 'btn-styleMobile unselected-btnMobile';
+
+        //removing submit scroll event listener, when pulling UNSUBMIT data
+        window.removeEventListener("scroll", this.addScrollEventListenerForSubmit());
+        this.addScrollEventListener();
+    }
+
+    showSubmittedSectionMobile() {
+        this.unsubmittedSectionMobile = false;
+        this.submittedSectionMobile = true;
+        this.unSubmittedBtnClassMobile = 'btn-styleMobile unselected-btnMobile';
+        this.submittedBtnClassMobile = 'btn-styleMobile selected-btnMobile';
+
+        //removing unsubmit scroll event listener, when pulling SUBMIT data
+        window.removeEventListener("scroll", this.addScrollEventListener());
+        this.addScrollEventListenerForSubmit();
+    }
+
+    // expense selection for unsubmitted expense (Desktop view) starts
+    onSelectPrepareDataForSubmition(event) {
+        const selectedRows = event.detail.selectedRows;
+
+        switch (event.detail.config.action) {
+            case 'selectAllRows':
+                for (let i = 0; i < event.detail.selectedRows.length; i++) {
+                    this.selectedData.push(event.detail.selectedRows[i].Id);
+                }
+                break;
+            case 'deselectAllRows':
+                this.selectedData = [];
+                break;
+            case 'rowSelect':
+                this.selectedData.push(event.detail.config.value);
+                break;
+            case 'rowDeselect':
+                const index = this.selectedData.indexOf(event.detail.config.value);
+                if (index !== -1) {
+                    this.selectedData.splice(index, 1);
+                }
+                break;
+            default:
+                break;
+        }
+        this.isDisabled = this.selectedData.length > 0 ? false : true;
+        this.prepareDateForExpenseSubmition(this.selectedData);
+        
+    } 
+
+    prepareDateForExpenseSubmition(array) {
+        this.selectedExpenseRecords = this.unformattedExpense.filter(item => array.includes(item.Id));
+    }
+
+    handleRowAction(event) {
+        const row = event.detail.row;
+        this.selectedRowId = row.Id;
+        if (this.submittedSection) {
+            this.showUnreportedExpenseScreen = true;
+        }
+        else {
+            this.showReportedExpense = true;
+        }
+    }
+    // expense selection for unsubmitted expense (Desktop view) ends
+
+    openReported(event) {
+        this.selectedRowId = `${event.currentTarget.dataset.id}`;
+        this.showUnreportedExpenseScreen = true;
+    }
+
+    showUnsubmittedReport(event){
+        this.selectedRowId = `${event.currentTarget.dataset.id}`;
+        this.showReportedExpense = true;
+        console.log(this.showReportedExpense);
+        console.log(this.selectedRowId);
+    }
+
+    handleBackReportedExpensePage() {
+        this.showReportedExpense = false;
+        this.showUnsubmittedSection();
+        this.showUnsubmittedSectionMobile();
+    }
+
+    handleBackReportedPage(event) {
+        this.showUnreportedExpenseScreen = false;
+            this.showSubmitData = event.detail;
+            if(this.showSubmitData === "SUBMIT"){
+                this.showSubmittedSection();
+                this.showSubmittedSectionMobile();
+            }
+    }
+
+    doSorting(event) {
+        this.sortBy = event.detail.fieldName;
+        this.sortDirection = event.detail.sortDirection;
+        this.unSubmittedArray = this.sortData(this.sortBy, this.sortDirection, this.unSubmittedArray);
+    }
+
+    sortSubmittedRecord(event) {
+        this.sortBySub = event.detail.fieldName;
+        this.sortDirectionSub = event.detail.sortDirection;
+        this.submittedArray = this.sortData(this.sortBySub, this.sortDirectionSub, this.submittedArray);
+    }
+
+    sortData(fieldname, direction, dataArray) {
+        let parseData = JSON.parse(JSON.stringify(dataArray));
+        let keyValue = (a) => {
+            return a[fieldname];
+        };
+        let isReverse = direction === 'asc' ? 1 : -1;
+        parseData.sort((x, y) => {
+            x = keyValue(x) ? keyValue(x) : '';
+            y = keyValue(y) ? keyValue(y) : '';
+            return isReverse * ((x > y) - (y > x));
+        });
+        return (dataArray = parseData);
+    }
+
+    expenseCountIncrement() {
+        refreshApex(this.unsubmitTotalCount);
+        this.checkRecordCount();
+        this.openAddExpenseModal = false;
+        //window.location.reload();
+       // this.handleRecordSaved();
+    }
+    goBack() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url: '/reimbursement-landing-page?page=reimbursement'
+            }
+        }, true
+        );
+    }
+    // expense selection for unsubmitted expense (Mobile view) starts
+    handleSelectAll(event) {
+        if (this.allSelected) {
+            event.target.checked = false;
+            let selectedRows = this.template.querySelectorAll('[data-element="expense-checkbox"]').forEach((element) => {
+                element.checked = false;
+            });
+            this.selectedItems = [];
+            this.allSelected = false;
+            this.selectUnselect = "Select All"
+        } else {
+            event.target.checked = true;
+            let selectedRows = this.template.querySelectorAll('[data-element="expense-checkbox"]').forEach((element) => {
+                element.checked = true;
+            });
+            selectedRows.forEach((item) => {
+                this.selectedItems.push(item.dataset.id);
+            });
+            this.allSelected = true;
+            this.selectUnselect = "Unselect All"
+        }
+        this.expenseDataPrepareMobile();
+
+    }
+
+    handleCheckboxChange(event) {
+        let index;
+        if (event.target.checked) {
+            this.allSelected = true;
+            this.template.querySelector('[data-element="expense-all"]').checked = true;
+            this.selectUnselect = "Unselect All";
+            this.selectedItems.push(event.target.dataset.id);
+        }
+        else {
+            if (this.selectedItems) {
+                index = this.selectedItems.indexOf(event.target.dataset.id);
+                this.selectedItems.splice(index, 1);
+            }
+        }
+
+        if (this.selectedItems === null || this.selectedItems.length === 0) {
+            this.allSelected = false;
+            this.template.querySelector('[data-element="expense-all"]').checked = false;
+            this.selectUnselect = "Select All";
+        }
+        this.expenseDataPrepareMobile();
+
+    }
+
+    expenseDataPrepareMobile() {
+        this.isDisabled = this.selectedItems.length > 0 ? false : true;
+        this.prepareDateForExpenseSubmition(this.selectedItems);
+    }
+    // expense selection for unsubmitted expense (Mobile view) ends
+
+    openNewExpenseModal(){
+        this.checkTrips();
+    }
+
+    checkTrips(){
+        this.loading = true;
+        getTrips({caseId: this.caseRecordId})
+            .then(response => {
+                if (!response || response.length == 0) {
+                    this.showAlert = true;
+                }
+                else{
+                    this.showAlert = false;
+                    this.openAddExpenseModal = true;
+                } 
+                this.loading = false;
+        })
+        .catch(error => {
+            this.loading = false;
+        });
+    }
+
+    closeAlert()
+    {
+       this.showAlert = false;
+    }
+    
+    handleClose(){
+        this.openAddExpenseModal = false;  
+    }
+
+    openSubmitExpense(){
+       this.openSubmitExpenseModal = true;
+    }
+
+    handleSubmitExpenseClose(event){
+       this.openSubmitExpenseModal = false;
+       refreshApex(this.unsubmitTotalCount);
+       this.isDisabled = true;
+       if(event.detail !== null && event.detail !== undefined && event.detail !== ''){
+        this.navigateToReportSummary(event.detail);
+       }
+    }
+
+    navigateToReportSummary(reimbursementId){
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url: '/reportsummary?page=reimbursement&id=' + reimbursementId
+            }
+        }).catch(error =>{
+        });
+    }
+    
+    handleSubmitModalClose(){
+        this.openSubmitExpenseModal = false;
+    }
+
+    // tutorials start
+    enableInfoTooltip(){
+        this.showInfoTooltip = this.mobileView ? (this.unsubmittedSectionMobile ? true : false) : (this.unsubmittedSection ? true : false);
+    }
+
+    handleUpdate() {
+        updateToturialFlag({updateValue : 'HasViewedPopup'})
+            .then(result => {
+                this.isUserLoggedInFirstTime =true;
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
+    enableToturial(){
+        if(this.isUserLoggedInFirstTime === true){
+         this.stepIndex ='STEP 2';
+         this.isToturialBtnClicked = [this.reimbursementPageToturialStep_2, this.reimbursementPageToturialStep_3, this.reimbursementPageToturialStep_4, this.reimbursementPageToturialStep_5].every(step => step === false);
+       }
+    }
+
+     dynamicCSSForMobToturials(){
+         if(this.mobileView){
+             this.step2NubbinPosition = 'top-right expenseSummaryStep2';
+             this.step3NubbinPosition ='bottom expenseSummaryStep3';
+             this.step4NubbinPosition ='top-right expenseSummaryStep4';
+         }
+
+     }
+
+     updateToturialFlag(event) {
+         const flag = event.detail.message;
+         if(this.enableOnSubmitTutorial == "true"){
+            switch (flag) {
+                case 'reimbursementPageToturialStep_3':
+                    this.isToturialBtnClicked = false;
+                    this.reimbursementPageToturialStep_2 = false;
+                    this.reimbursementPageToturialStep_3 = true;
+                    this.reimbursementPageToturialStep_4 = false;
+                    this.reimbursementPageToturialStep_5 = false;
+                    this.stepIndex = 'STEP 4';
+                    this.indexNumber = '3/4';
+                    break;
+                case 'reimbursementPageToturialStep_4':
+                    this.isToturialBtnClicked = false;
+                    this.reimbursementPageToturialStep_2 = false;
+                    this.reimbursementPageToturialStep_3 = false;
+                    this.reimbursementPageToturialStep_4 = false;
+                    this.reimbursementPageToturialStep_5 = true;
+                    // this.stepIndex = 'STEP 5';
+                    this.indexNumber = '4/4';
+                    break;
+                // case 'reimbursementPageToturialStep_5':
+                //     this.isToturialBtnClicked = false;
+                //     this.reimbursementPageToturialStep_2 = false;
+                //     this.reimbursementPageToturialStep_3 = false;
+                //     this.reimbursementPageToturialStep_4 = false;
+                //     this.reimbursementPageToturialStep_5 = true;
+                //     break;
+                case 'Finish':
+                    this.isToturialBtnClicked = false;
+                    this.reimbursementPageToturialStep_3 = false;
+                    this.reimbursementPageToturialStep_2 = false;
+                    this.reimbursementPageToturialStep_4 = false;
+                    this.reimbursementPageToturialStep_5 = false;
+                    this.enableOnSubmitTutorial = false;
+                    this.stepIndex = '';
+                    sessionStorage.setItem('EnableSubmitTutorial', false)
+                    break;
+                default:
+                    break;
+   
+            }
+         }else{
+         switch (flag) {
+             case 'reimbursementPageToturialStep_2':
+                 this.isToturialBtnClicked = false;
+                 this.reimbursementPageToturialStep_3 = false;
+                 this.reimbursementPageToturialStep_4 = false;
+                 this.reimbursementPageToturialStep_5 = false;
+                 this.reimbursementPageToturialStep_2 = true;
+                 this.stepIndex = 'STEP 3';
+                 this.indexNumber = '2/5'
+                 break;
+             case 'reimbursementPageToturialStep_3':
+                 this.isToturialBtnClicked = false;
+                 this.reimbursementPageToturialStep_2 = false;
+                 this.reimbursementPageToturialStep_3 = true;
+                 this.reimbursementPageToturialStep_4 = false;
+                 this.reimbursementPageToturialStep_5 = false;
+                 this.stepIndex = 'STEP 4';
+                 this.indexNumber = '3/5'
+                 break;
+             case 'reimbursementPageToturialStep_4':
+                 this.isToturialBtnClicked = false;
+                 this.reimbursementPageToturialStep_2 = false;
+                 this.reimbursementPageToturialStep_3 = false;
+                 this.reimbursementPageToturialStep_4 = true;
+                 this.reimbursementPageToturialStep_5 = false;
+                 this.stepIndex = 'STEP 5';
+                 this.indexNumber = '4/5'
+                 break;
+             case 'reimbursementPageToturialStep_5':
+                 this.isToturialBtnClicked = false;
+                 this.reimbursementPageToturialStep_2 = false;
+                 this.reimbursementPageToturialStep_3 = false;
+                 this.reimbursementPageToturialStep_4 = false;
+                 this.reimbursementPageToturialStep_5 = true;
+                 this.indexNumber = '5/5'
+                 break;
+             case 'Finish':
+                 this.isToturialBtnClicked = false;
+                 this.reimbursementPageToturialStep_3 = false;
+                 this.reimbursementPageToturialStep_2 = false;
+                 this.reimbursementPageToturialStep_4 = false;
+                 this.reimbursementPageToturialStep_5 = false;
+                 this.handleUpdate();
+                 break;
+             default:
+                 break;
+         }
+        }
+     }
+     /**Toturial ends */
+
+    //lazy loading for Unsubmitted expense starts
+    loadData(){
+        return getTransientRecords({ limitSize: this.rowLimit, offset: this.rowOffSet, caseId: this.caseRecordId, userId:this.userId, totalCount:this.unSubmittedReportCount})
+        .then(result => {
+            if(result){
+                console.log('Insdie method ->' ,result);
+                this.unSubmittedArray = [...this.unSubmittedArray, ...result];
+                console.log('Insdie method  list->' ,this.unSubmittedArray);
+                this.unformattedExpense = [...this.unformattedExpense, ...result];
+                this.unSubmittedArray = this.unSubmittedArray.map((record) => {
+                    let expenseCategory;
+                    if (record.Expense_Category_R1__c === 'Tips/Gratuities') {
+                        expenseCategory = 'Cash tip';
+                    } else if (record.Expense_Category_R1__c === 'Personal Car Mileage') {
+                        expenseCategory = 'Mileage';
+                    } else if (record.Expense_Category_R1__c === 'Taxi or Ride Share') {
+                        expenseCategory = 'Taxi or ride share';
+                    } else if (record.Expense_Category_R1__c === 'Meals and Supplies') {
+                        expenseCategory = 'Meals and supplies';
+                    } else if (record.Expense_Category_R1__c === 'Airline Fees') {
+                        expenseCategory = 'Airline fees';
+                    } else if (record.Expense_Category_R1__c === 'Hotel Fees') {
+                        expenseCategory = 'Hotel fee';
+                    } else if (record.Expense_Category_R1__c === 'Public Transport') {
+                        expenseCategory = 'Public transport';
+                    } else {
+                        expenseCategory = record.Expense_Category_R1__c;
+                    }
+                    return {
+                        ...record,
+                        //If receipt Present
+                        Picture: this.receiptIcon,
+                        ShowPicture: record.Receipt_Uploaded_R1__c === 'Yes' ? true : false,
+                        // If Expense category is Tips/Gratuities then replace with Tips 
+                       Expense_Category_R1__c:expenseCategory,
+                        
+                        
+                        //if receipt not present
+                        showMissingReceiptUrl: 
+                                (record.Receipt_Uploaded_R1__c === 'No' || record.Receipt_Uploaded_R1__c === '' || record.Receipt_Uploaded_R1__c === undefined) ? 
+                                    (record.Expense_Category_R1__c === 'Tips/Gratuities' || record.Expense_Category_R1__c === 'Personal Car Mileage' || record.Expense_Category_R1__c === 'Cash Tip' || record.Expense_Category_R1__c === 'Mileage') ? false : true 
+                                    : false,
+                        missingReceiptUrl: this.showMissingReceipt
+
+          
+                    }});
+                    this.unSubmittedArray = this.formatUnsubmitData(this.unSubmittedArray);
+                    if (this.unSubmittedArray.length >= this.unSubmittedReportCount) {
+                        this.allRecordsLoaded = true;
+                    }    
+                    this.checkRecordCount();
+                    this.loadTutorialFlag();
+                    this.unSubmittedArray = this.sortData(this.sortBy, this.sortDirection, this.unSubmittedArray);
+                    refreshApex(this.tutorialData);
+                    this.loading = false;
+            }
+        })
+        .catch(error => { 
+            //spinner close 
+            //show generic error toast 
+            this.loading = false;
+        });    
+    }
+
+    loadMoreData(event) {
+        try {
+            this.currentDataLength = this.unSubmittedArray.length;
+            const { target } = event;
+            if (this.currentDataLength >= this.unSubmittedReportCount) {
+                target.isLoading = false;
+            } else {
+                target.isLoading = true;
+                this.rowOffSet++;
+                this.loadData()
+                    .then(() => {
+                        target.isLoading = false;
+                    });
+            }
+        } catch (error) { 
+            //spinner false
+             //show generic error toast 
+        }
+    }
+
+    addScrollEventListener() {
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.scrollY + window.innerHeight;
+            const scrollThreshold = document.documentElement.scrollHeight * 0.7;
+            if (scrollPosition >= scrollThreshold && !this.isLoadingMobile && !this.allRecordsLoaded) {
+                try {
+                    this.currentDataLength = this.unSubmittedArray.length;
+                    if (this.currentDataLength >= this.unSubmittedReportCount) {
+                        this.isLoadingMobile = false;
+                    } else {
+                        this.isLoadingMobile = true;
+                        this.rowOffSet++;
+                        this.loadData()
+                        .then(() => {
+                            this.isLoadingMobile = false;
+                        });
+                    }
+                } catch (error) { 
+                    //spinner false
+                    //show generic error toast 
+                }
+            }
+        });
+    }
+    //lazy loading for Unsubmitted expense ends
+
+    //lazy loading for Submitted expense starts
+    loadSubmitData(){
+        return getExpenseLineItemRec({limitSize: this.submitRowLimit, offset: this.submitRowOffSet, caseId: this.caseRecordId, userId:this.userId, totalCount:this.submittedReportCount})
+        .then(result => {
+            if(result){
+                this.submittedArray = [...this.submittedArray, ...result.submittedExpenses];
+                this.submittedArray = this.submittedArray.map((record) => {
+                     let expenseCategory;
+                    if (record.ExpenseCategory__c === 'Tips/Gratuities') {
+                        expenseCategory = 'Cash tip';
+                    } else if (record.ExpenseCategory__c === 'Personal Car Mileage') {
+                        expenseCategory = 'Mileage';
+                    } else if (record.ExpenseCategory__c === 'Taxi or Ride Share') {
+                        expenseCategory = 'Taxi or ride share';
+                    } else if (record.ExpenseCategory__c === 'Meals and Supplies') {
+                        expenseCategory = 'Meals and supplies';
+                    } else if (record.ExpenseCategory__c === 'Airline Fees') {
+                        expenseCategory = 'Airline fees';
+                    } else if (record.ExpenseCategory__c === 'Hotel Fees') {
+                        expenseCategory = 'Hotel fee';
+                    } else if (record.ExpenseCategory__c === 'Public Transport') {
+                        expenseCategory = 'Public transport';
+                    } else {
+                        expenseCategory = record.ExpenseCategory__c;
+                    }
+                    return {
+                        ...record,
+                        reportLink:'/reportsummary?page=reimbursement&id=' + record.Reimbursement__r.Id,
+                        //If receipt Present
+                        Picture: this.receiptIcon,
+                        ShowPicture: record.ReceiptUploaded__c === 'Yes' ? true : false,
+    
+                        ExpenseCategory__c: expenseCategory, 
+    
+                        //if receipt not present
+                        showMissingReceiptUrl: 
+                            (record.ReceiptUploaded__c === 'No' || record.ReceiptUploaded__c === '' || record.ReceiptUploaded__c === undefined) ? 
+                            (record.ExpenseCategory__c === 'Tips/Gratuities' || record.ExpenseCategory__c === 'Personal Car Mileage' || record.ExpenseCategory__c === 'Cash Tip' || record.ExpenseCategory__c === 'Mileage') ? false : true 
+                            : false,
+
+                        // (record.ReceiptUploaded__c === 'No' || record.ReceiptUploaded__c === '' || record.ReceiptUploaded__c === undefined) ? (record.ExpenseCategory__c === 'Tips/Gratuities' || record.ExpenseCategory__c === 'Personal Car Mileage') ? false : true : false,
+                        missingReceiptUrl: this.showMissingReceipt,
+    
+                    };
+                });
+                this.submittedArray = this.formatSubmitData(this.submittedArray);
+                if (this.submittedArray.length >= this.submittedReportCount) {
+                    this.allRecordsLoadedForMobile = true;
+                }    
+                this.checkRecordCount();
+                this.loadTutorialFlag();
+                this.submittedArray = this.sortData(this.sortBySub, this.sortDirectionSub, this.submittedArray);        
+                this.loading = false;
+            }
+        })
+        .catch(error => { 
+            //spinner close 
+            //show generic error toast 
+        });    
+    }
+
+    loadMoreSubmitData(event) {
+        try {
+            this.currentSubmitDataLength = this.submittedArray.length;
+            const { target } = event;
+            if (this.currentSubmitDataLength >= this.submittedReportCount) {
+                target.isLoading = false;
+            } else {
+                target.isLoading = true;
+                this.submitRowOffSet++;
+                this.loadSubmitData()
+                    .then(() => {
+                        target.isLoading = false;
+                    });
+            }
+        } catch (error) { 
+            //spinner close 
+            //show generic error toast 
+        }
+    }
+
+    addScrollEventListenerForSubmit() {
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.scrollY + window.innerHeight;
+            const scrollThreshold = document.documentElement.scrollHeight * 0.7;
+            if (scrollPosition >= scrollThreshold && !this.isLoadingSubmitMobile && !this.allRecordsLoadedForMobile) {
+                try {
+                    this.currentSubmitDataLength = this.submittedArray.length;
+                    if (this.currentSubmitDataLength >= this.submittedReportCount) {
+                        this.isLoadingSubmitMobile = false;
+                    } else {
+                        this.isLoadingSubmitMobile = true;
+                        this.submitRowOffSet++;
+                        this.loadSubmitData()
+                        .then(() => {
+                            this.isLoadingSubmitMobile = false;
+                        });
+                    }
+                } catch (error) {
+                    //spinner close 
+                    //show generic error toast 
+                 }
+            }
+        });
+    }
+    @track indexNumber = '2/5'
+    //lazy loading for Submitted expense ends
+    showOnSubmitTutorial(sessionValue){
+        if(sessionValue == "true"){
+            this.indexNumber = '2/4';
+            this.stepIndex = 'STEP 3';
+            this.reimbursementPageToturialStep_2 = true;
+        }
+    }
+}
