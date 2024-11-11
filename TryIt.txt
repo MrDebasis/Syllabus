@@ -1,1 +1,11 @@
+expenseCountIncrement() {
+    refreshApex(this.unsubmitTotalCount)
+        .then(() => {
+            this.checkRecordCount();
+            this.openAddExpenseModal = false;
+        })
+        .catch(error => {
+            console.error("Error refreshing unsubmitTotalCount:", error);
+        });
+}
 
