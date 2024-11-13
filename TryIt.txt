@@ -1,1 +1,6 @@
+LogoutEventPE__e
 
+	DeviceType__c
+	 	
+
+LogoutTime__c
