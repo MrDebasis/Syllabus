@@ -1,6 +1,36 @@
-LogoutEventPE__e
+import { LightningElement } from 'lwc';
+import { createMessageContext, releaseMessageContext, publish } from 'lightning/messageService';
+import LOGOUT_EVENT_CHANNEL from '@salesforce/messageChannel/LogoutEventPE__e';
 
-	DeviceType__c
-	 	
+export default class LogoutEventPublisher extends LightningElement {
+    context = createMessageContext();
 
-LogoutTime__c
+    // Example function to publish the Logout Event
+    publishLogoutEvent() {
+        // Get the current date and time for the logout
+        const logoutTime = new Date().toISOString();
+        
+        // Assuming device type is dynamically determined
+        const deviceType = 'Mobile'; // Or dynamically set this based on the device
+
+        // Create the payload for the Platform Event
+        const payload = {
+            DeviceType__c: deviceType,
+            LogoutTime__c: logoutTime
+        };
+
+        // Publish the platform event
+        publish(this.context, LOGOUT_EVENT_CHANNEL, payload)
+            .then(() => {
+                console.log('Logout Platform Event Published');
+            })
+            .catch(error => {
+                console.error('Error publishing logout event:', error);
+            });
+    }
+
+    // Cleanup context when component is destroyed
+    disconnectedCallback() {
+        releaseMessageContext(this.context);
+    }
+}
