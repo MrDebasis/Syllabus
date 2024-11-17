@@ -1,13 +1,20 @@
+import { LightningElement, track } from 'lwc';
+import { publish, MessageContext } from 'lightning/messageService';
+import SAMPLE_MESSAGE_CHANNEL from '@salesforce/messageChannel/SampleMessageChannel__c';
 
-SampleMessageChannel.messageChannel-meta.xml
+export default class Publisher extends LightningElement {
+    @track recordId;
 
-<?xml version="1.0" encoding="UTF-8"?>
-<MessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
-    <masterLabel>Sample Message Channel</masterLabel>
-    <description>Channel for sharing record ID</description>
-    <isExposed>true</isExposed>
-    <lightningMessageFields>
-        <fieldName>recordId</fieldName>
-        <fieldType>String</fieldType>
-    </lightningMessageFields>
-</MessageChannel>
+    // To work with LMS, you need to access the MessageContext
+    @wire(MessageContext)
+    messageContext;
+
+    handleInputChange(event) {
+        this.recordId = event.target.value;
+    }
+
+    publishMessage() {
+        const message = { recordId: this.recordId };
+        publish(this.messageContext, SAMPLE_MESSAGE_CHANNEL, message);
+    }
+}
