@@ -1,25 +1,36 @@
-import { LightningElement, track } from 'lwc';
-import { subscribe, MessageContext } from 'lightning/messageService';
+
+import { publish,subscribe, MessageContext } from 'lightning/messageService';
 import SAMPLE_MESSAGE_CHANNEL from '@salesforce/messageChannel/SampleMessageChannel__c';
 
-export default class Subscriber extends LightningElement {
-    @track recordId;
-
-    // To work with LMS, you need to access the MessageContext
-    @wire(MessageContext)
-    messageContext;
-
-    connectedCallback() {
+console.log('published 133');
+        this.publishMessage();
+        console.log('published');
         this.subscribeToMessageChannel();
+    }
+      
+    publishMessage() {
+        const message = { messageId: 'test 1234' };
+        publish(this.messageContext, SAMPLE_MESSAGE_CHANNEL, message);
+        console.log('published');
     }
 
     subscribeToMessageChannel() {
+        try{
         subscribe(this.messageContext, SAMPLE_MESSAGE_CHANNEL, (message) => {
-            this.handleMessage(message);
+           console.log(JSON.stringify(message) );
         });
+    }catch(error){
+        console.log('error --->'+error);
     }
-
-    handleMessage(message) {
-        this.recordId = message.recordId;
     }
-}
+,,,,,,
+xml file : <?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>Sample Message Channel</masterLabel>
+    <description>Channel for sharing record ID</description>
+    <isExposed>true</isExposed>
+    <lightningMessageFields>
+        <description>This is message field</description>
+        <fieldName>messageId</fieldName>
+    </lightningMessageFields>
+</LightningMessageChannel>
