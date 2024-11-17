@@ -1,36 +1,24 @@
-
-import { publish,subscribe, MessageContext } from 'lightning/messageService';
-import SAMPLE_MESSAGE_CHANNEL from '@salesforce/messageChannel/SampleMessageChannel__c';
-
-console.log('published 133');
-        this.publishMessage();
-        console.log('published');
+      console.log('connectedCallback started');
         this.subscribeToMessageChannel();
+        console.log('Subscribed to message channel');
+        this.publishMessage();
+        console.log('Message published');
     }
-      
+
     publishMessage() {
         const message = { messageId: 'test 1234' };
+        console.log('Preparing to publish message:', JSON.stringify(message));
         publish(this.messageContext, SAMPLE_MESSAGE_CHANNEL, message);
-        console.log('published');
+        console.log('Message published successfully');
     }
 
     subscribeToMessageChannel() {
-        try{
-        subscribe(this.messageContext, SAMPLE_MESSAGE_CHANNEL, (message) => {
-           console.log(JSON.stringify(message) );
-        });
-    }catch(error){
-        console.log('error --->'+error);
+        try {
+            console.log('Subscribing to message channel...');
+            subscribe(this.messageContext, SAMPLE_MESSAGE_CHANNEL, (message) => {
+                console.log('Message received:', JSON.stringify(message));
+            });
+        } catch (error) {
+            console.error('Error while subscribing:', error);
+        }
     }
-    }
-,,,,,,
-xml file : <?xml version="1.0" encoding="UTF-8"?>
-<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
-    <masterLabel>Sample Message Channel</masterLabel>
-    <description>Channel for sharing record ID</description>
-    <isExposed>true</isExposed>
-    <lightningMessageFields>
-        <description>This is message field</description>
-        <fieldName>messageId</fieldName>
-    </lightningMessageFields>
-</LightningMessageChannel>
