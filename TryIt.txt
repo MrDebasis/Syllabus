@@ -1,1 +1,1 @@
-https://help.salesforce.com/s/articleView?id=platform.external_services_define_named_credential.htm&type=5
+
