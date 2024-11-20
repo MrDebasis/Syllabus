@@ -1,6 +1,1 @@
-Round-Robin Lead Assignment
-Prompt:
-Create an Apex class for round-robin assignment of Leads based on a custom field Availability__c on the User object.
-
-Distribute leads evenly across active users with Availability__c = true.
-If no users are available, assign the lead to a default user specified in Custom Settings.
+https://help.salesforce.com/s/articleView?id=platform.external_services_define_named_credential.htm&type=5
