@@ -1,7 +1,1 @@
-checkReport() {
-    return this.reimbursmentRecords.some((item) => 
-        item.PatientPortalsPortalExpense__c === true &&
-        item.CreatedById === this.runningUserId &&
-        sessionStorage.getItem('ReportSubmitted') === 'true'
-    );
-}
+
