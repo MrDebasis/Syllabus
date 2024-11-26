@@ -1,13 +1,7 @@
-    checkReport(){
-        let flag = false;
-        this.reimbursmentRecords.forEach((item) => {
-            if(item.PatientPortalsPortalExpense__c === true && item.CreatedById == this.runningUserId && sessionStorage.getItem('ReportSubmitted') == 'true'){
-                flag = true;
-                break
-            }else{
-                flag = false;
-            }
-        });
-        return flag;
-        // this.reportSubmittedByLoggedUser = flag > 0 ? true : false;
-    }
+checkReport() {
+    return this.reimbursmentRecords.some((item) => 
+        item.PatientPortalsPortalExpense__c === true &&
+        item.CreatedById === this.runningUserId &&
+        sessionStorage.getItem('ReportSubmitted') === 'true'
+    );
+}
