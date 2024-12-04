@@ -1,27 +1,16 @@
-  Integer increaseDays =5;
-            for(Notification__c noti : notificationsRecords){
-                Test.setCreatedDate(noti.Id, DateTime.now().addDays(increaseDays--));
-                    }
-private static String timeDifference(DateTime dt1, DateTime dt2) {
-        Long diffInMilliseconds = dt2.getTime() - dt1.getTime();
-        Long diffInSeconds = diffInMilliseconds / 1000;
-        Long diffInMinutes = diffInSeconds / 60;
-        Long diffInHours = diffInMinutes / 60;
-        Long diffInDays = diffInHours / 24;
-        Long diffInMonths = diffInDays / 30;
-        Long diffInYears = diffInMonths / 12;
-        
-        if (diffInSeconds < 60) {
-            return StaticConstants.NOW;
-        } else if (diffInMinutes < 60) {
-            return diffInMinutes + StaticConstants.MINUTE + (diffInMinutes > 1 ? StaticConstants.S_CHAR : '') + StaticConstants.AGO;
-        } else if (diffInHours < 24) {
-            return diffInHours + StaticConstants.HOUR + (diffInHours > 1 ? StaticConstants.S_CHAR : '') + StaticConstants.AGO;
-        } else if (diffInDays < 30) {
-            return diffInDays + StaticConstants.DAY + (diffInDays > 1 ? StaticConstants.S_CHAR : '') + StaticConstants.AGO;
-        } else if (diffInMonths < 12) {
-            return diffInMonths + StaticConstants.MONTH + (diffInMonths > 1 ? StaticConstants.S_CHAR : '') + StaticConstants.AGO;
-        } else {
-            return diffInYears + StaticConstants.YEAR + (diffInYears > 1 ? StaticConstants.S_CHAR : '') + StaticConstants.AGO;
-        }
+private static void setNotificationCreatedDates(List<Notification__c> notifications) {
+    if (notifications == null || notifications.isEmpty()) {
+        return;
     }
+    
+    // Define time differences
+    List<Integer> timeOffsets = new List<Integer>{0, -1, -60, -1440, -43200, -518400}; // In minutes
+    // Corresponding to Now, 1 Minute, 1 Hour, 1 Day, 1 Month (30 Days), 1 Year (12 Months)
+
+    Integer i = 0;
+    for (Notification__c noti : notifications) {
+        Integer offset = (i < timeOffsets.size()) ? timeOffsets[i++] : timeOffsets[timeOffsets.size() - 1];
+        DateTime createdDate = DateTime.now().addMinutes(offset);
+        Test.setCreatedDate(noti.Id, createdDate);
+    }
+}
