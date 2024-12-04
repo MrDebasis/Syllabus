@@ -1,16 +1,1 @@
-private static void setNotificationCreatedDates(List<Notification__c> notifications) {
-    if (notifications == null || notifications.isEmpty()) {
-        return;
-    }
-    
-    // Define time differences
-    List<Integer> timeOffsets = new List<Integer>{0, -1, -60, -1440, -43200, -518400}; // In minutes
-    // Corresponding to Now, 1 Minute, 1 Hour, 1 Day, 1 Month (30 Days), 1 Year (12 Months)
 
-    Integer i = 0;
-    for (Notification__c noti : notifications) {
-        Integer offset = (i < timeOffsets.size()) ? timeOffsets[i++] : timeOffsets[timeOffsets.size() - 1];
-        DateTime createdDate = DateTime.now().addMinutes(offset);
-        Test.setCreatedDate(noti.Id, createdDate);
-    }
-}
