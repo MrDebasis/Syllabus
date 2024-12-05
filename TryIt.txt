@@ -1,5 +1,2 @@
-s = TypeError: this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push is not a function at eval 
-parsedArray.forEach(element => {
-                    this.receptIds.push(element);
-                    this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push(element);
-                }); 
+As discussed earlier, we tested Safari in desktop mode, and it is working fine. However, while testing in responsive mobile view, we are encountering issues because Safari does not have a built-in emulator like Chrome. To address this, we are trying to install the "Xcode" app from the App Store, which requires an Apple account. We are reaching out to Himansu from IT support for assistance with this. We will keep you updated in this group.
+
