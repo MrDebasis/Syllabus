@@ -1,1 +1,5 @@
-
+s = TypeError: this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push is not a function at eval 
+parsedArray.forEach(element => {
+                    this.receptIds.push(element);
+                    this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push(element);
+                }); 
