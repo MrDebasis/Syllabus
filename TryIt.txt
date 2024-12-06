@@ -1,1 +1,7 @@
-
+ 
+  we installed x code , but it didnt helped us, and there is no way to enable emulator on safari browser mac. And then we connected with Ramana, and did some experiment on safari but still didnt work. He suggested one way of testing by changing the width of the ios models. and Studio guys are using other 3rd party vender simulators like browser stack and Mobile center etc. and they dont know much on mac safari experence.
+  
+  Mac didnt helped us much on testing mobile devices but it helped us to do deskttop safari one.
+  
+  Any ways we have fixed most of the issues on mobile devices. Frw are there and we are doing debugging and will fix it.
+  
