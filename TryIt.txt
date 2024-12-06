@@ -1,6 +1,1 @@
-We found that Xcode didn't help much in testing mobile devices, and there is no straightforward way to enable an emulator for Safari on Mac. After connecting with Ramana and conducting some experiments, we couldn't achieve the desired results. He suggested testing by adjusting the width to simulate iOS models. Meanwhile, the Studio team is using third-party simulators like BrowserStack and Mobile Center, but they don't have much experience with Safari on Mac.
-
-On a positive note, the Mac did help us test Safari on desktop effectively.
-
-We have resolved most of the issues on mobile devices. A few remain, and we are actively debugging them to ensure they are fixed soon.
 
