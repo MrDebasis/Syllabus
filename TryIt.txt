@@ -1,5 +1,3 @@
- const container = this.template.querySelector('.container');
-        
-        // Add display: flex dynamically
-        if (container) {
-            container.style.display = 'flex';
+.radioGroupDesktop fieldset .slds-form-element__control span.slds-radio .slds-radio__label{
+    display: block;
+  }
