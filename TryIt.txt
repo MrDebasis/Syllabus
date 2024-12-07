@@ -1,1 +1,5 @@
-
+ const container = this.template.querySelector('.container');
+        
+        // Add display: flex dynamically
+        if (container) {
+            container.style.display = 'flex';
