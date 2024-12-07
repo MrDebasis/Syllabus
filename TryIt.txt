@@ -1,3 +1,15 @@
-.radioGroupDesktop fieldset .slds-form-element__control span.slds-radio .slds-radio__label{
-    display: block;
-  }
+import { LightningElement } from 'lwc';
+
+export default class Example extends LightningElement {
+    changeToFlex() {
+        // Select all elements matching the global CSS class selector
+        const labels = this.template.querySelectorAll(
+            '.radioGroupDesktop fieldset .slds-form-element__control span.slds-radio .slds-radio__label'
+        );
+
+        // Override the 'display' property for each element
+        labels.forEach((label) => {
+            label.style.display = 'flex'; // Override display property
+        });
+    }
+}
