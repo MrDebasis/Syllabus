@@ -1,1 +1,34 @@
 
+public class TextFileGenerator {
+
+    public static void generateTextFile() {
+        // Define the headers
+        String header = 'Sl No | Name | AccountName\n';
+
+        // Initialize the body with the headers
+        String fileContent = header;
+
+        // Query the data
+        List<Account> accounts = [SELECT Name FROM Account LIMIT 10]; // Adjust query as needed
+
+        // Generate rows for each record
+        Integer counter = 1;
+        for (Account acc : accounts) {
+            fileContent += counter + ' | ' + acc.Name + ' | ' + acc.Name + '\n'; // Add other fields as needed
+            counter++;
+        }
+
+        // Convert content to Blob
+        Blob fileBody = Blob.valueOf(fileContent);
+
+        // Create ContentVersion record
+        ContentVersion cv = new ContentVersion();
+        cv.Title = 'GeneratedTextFile';
+        cv.PathOnClient = 'GeneratedTextFile.txt';
+        cv.VersionData = fileBody;
+        insert cv;
+
+        // Return confirmation (if running from anonymous Apex)
+        System.debug('File created successfully with ID: ' + cv.Id);
+    }
+}
