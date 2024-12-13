@@ -1,1 +1,6 @@
-
+Always took complex stories and completed on time.
+Didnt get any single defect on my US's till now. 
+Taking ownership of solving Mobile Devices. Resolved most of the Mobile issues in FIT.
+Did Monkey testing on portal both Mobile and desktop. Found many observations and Unreported bugs by testing team, Fixed those and it helps team to less defect count.
+What ever Dynamic component builded, Till now we didnt face any blocker on those component.
+Always Guiding my junior team members.
