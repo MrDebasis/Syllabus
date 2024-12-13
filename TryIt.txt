@@ -1,6 +1,1 @@
-Consistently handled complex stories and delivered them on time.
-Maintained a zero-defect record for all user stories completed so far.
-Took ownership of resolving issues on mobile devices and successfully addressed most of the challenges in FIT.
-Conducted extensive monkey testing on both mobile and desktop portals, identifying numerous observations and unreported bugs missed by the testing team. Fixed these issues, significantly reducing the defect count.
-Developed dynamic components with high reliability, ensuring no blockers have been encountered on any of them to date.
-Actively mentor and guide junior team members, fostering a culture of learning and collaboration within the team.
+
