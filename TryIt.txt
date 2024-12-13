@@ -1,13 +1,16 @@
-
 if (record.hasOwnProperty("AdditionalInfoNeeded__c")) {
-                            let additionInfo = record.AdditionalInfoNeeded__c.split(";");
-                            let notesList = [];
-                            for (let i = 0; i < additionInfo.length; i++) {
-                                for (let j = 0; j < this.expenseStatusConfig.length; j++) {
-                                    if (additionInfo[i] === this.expenseStatusConfig[j].AdditionalInformationNeeded__c) {
-                                        notesList.push(this.expenseStatusConfig[j].PortalNotes__c);
-                                    }
-                                }
-                            }
-                            record.Notes__c = notesList.toString();
-                        }
+    const additionalInfo = record.AdditionalInfoNeeded__c.split(";"); // Split the additional info into an array
+    const notesList = [];
+
+    additionalInfo.forEach((info) => {
+        const matchingConfig = this.expenseStatusConfig.find(
+            (config) => config.AdditionalInformationNeeded__c === info
+        );
+        if (matchingConfig) {
+            notesList.push(matchingConfig.PortalNotes__c);
+        }
+    });
+
+    // Join the notes into a string and assign them to the Notes__c field
+    record.Notes__c = notesList.join(", ");
+}
