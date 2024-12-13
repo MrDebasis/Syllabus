@@ -1,11 +1,1 @@
-public List<Transient__c> selectTransientItems(Integer limitSize, Integer offset, Set<Id> caseId,Set<Id> userId, Integer totalCount) {
-        Integer offsetValue = offset >= totalCount ? totalCount - limitSize : offset == 0 && totalCount > 10 ? 0 : offset * 10;
-        return (List<Transient__c>) Database.query(
-            newQueryFactory()
-                .setCondition('PatientPortalIsPortalExpense__c = true AND CaseIdForPatientPortal__c IN :caseId AND CreatedById IN: userId AND PatientPortalExpenseSubmitted__c = false')
-                .setOrdering('CreatedDate', fflib_QueryFactory.SortOrder.DESCENDING)
-                .setLimit(limitSize)
-                .setOffset(offsetValue)
-                .toSOQL()
-        );
-    }
+
