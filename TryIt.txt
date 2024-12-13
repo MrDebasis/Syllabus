@@ -1,34 +1,11 @@
-
-public class TextFileGenerator {
-
-    public static void generateTextFile() {
-        // Define the headers
-        String header = 'Sl No | Name | AccountName\n';
-
-        // Initialize the body with the headers
-        String fileContent = header;
-
-        // Query the data
-        List<Account> accounts = [SELECT Name FROM Account LIMIT 10]; // Adjust query as needed
-
-        // Generate rows for each record
-        Integer counter = 1;
-        for (Account acc : accounts) {
-            fileContent += counter + ' | ' + acc.Name + ' | ' + acc.Name + '\n'; // Add other fields as needed
-            counter++;
-        }
-
-        // Convert content to Blob
-        Blob fileBody = Blob.valueOf(fileContent);
-
-        // Create ContentVersion record
-        ContentVersion cv = new ContentVersion();
-        cv.Title = 'GeneratedTextFile';
-        cv.PathOnClient = 'GeneratedTextFile.txt';
-        cv.VersionData = fileBody;
-        insert cv;
-
-        // Return confirmation (if running from anonymous Apex)
-        System.debug('File created successfully with ID: ' + cv.Id);
+public List<Transient__c> selectTransientItems(Integer limitSize, Integer offset, Set<Id> caseId,Set<Id> userId, Integer totalCount) {
+        Integer offsetValue = offset >= totalCount ? totalCount - limitSize : offset == 0 && totalCount > 10 ? 0 : offset * 10;
+        return (List<Transient__c>) Database.query(
+            newQueryFactory()
+                .setCondition('PatientPortalIsPortalExpense__c = true AND CaseIdForPatientPortal__c IN :caseId AND CreatedById IN: userId AND PatientPortalExpenseSubmitted__c = false')
+                .setOrdering('CreatedDate', fflib_QueryFactory.SortOrder.DESCENDING)
+                .setLimit(limitSize)
+                .setOffset(offsetValue)
+                .toSOQL()
+        );
     }
-}
