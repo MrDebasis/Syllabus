@@ -1,1 +1,4 @@
-
+Integer offsetValue = Math.max(
+        offset >= totalCount ? totalCount - limitSize : (offset == 0 && totalCount > 10 ? 0 : offset * 10), 
+        0
+    );
