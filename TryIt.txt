@@ -1,22 +1,92 @@
-HealthCloudGA__ContactContactRelation__c associatedContact = mapOfAccountIdWithAssociatedContact.get(accountRec.Id);
-String caseId = (associatedContact != null && associatedContact.Patient_Support_Case__c != null) ? associatedContact.Patient_Support_Case__c : '';
-if (!String.isEmpty(caseId)) {
-    // Fetch the list of trips related to the case
-    List<Trip__c> lstOfPatientTrips = mapOfCaseIdWithListOfTripRecs.get(caseId);
+public static void shareReimbursementForLAR(List<User> lstOfUserRecords){
+        
+        //STEP 1 : Check user is patient portal User => Is valid User ??
+        Map<String, User> patientPortalUsersMap = new Map<String, User>();
+        Map<String, User> accountIdWithUserMap = new Map<String, User>();
+        Map<String, User> contactIdWithUserMap = new Map<String, User>();
+        Set<String> setOfAccountIds = new Set<String>();
+        if(!lstOfUserRecords.isEmpty()){
+            for(User userRec : lstOfUserRecords){
+                if(userRec.UserPortalType__c.equals('Patient Portal') && userRec.IsActive && userRec.country__c.equals('US')){
+                    //NeedWork : Add one more condition FederationIdentifier !=null 
+                    setOfAccountIds.add(userRec.AccountId);
+                    patientPortalUsersMap.put(userRec.Id,userRec);
+                    accountIdWithUserMap.put(userRec.AccountId,userRec);
+                    contactIdWithUserMap.put(userRec.ContactId,userRec);
 
-    if (lstOfPatientTrips != null && !lstOfPatientTrips.isEmpty()) {
-        for (Reimbursement__c reimbursementRec : [
-            SELECT Id, CreatedFromTrip__c, CaseIDNumber__c
-            FROM Reimbursement__c
-            WHERE CreatedFromTrip__c IN :lstOfPatientTrips
-        ]) {
-            if (mapOfUserIdWithLstOfReimbursement.containsKey(reimbursementRec.CreatedFromTrip__c)) {
-                // Add reimbursement record to the existing list
-                mapOfUserIdWithLstOfReimbursement.get(reimbursementRec.CreatedFromTrip__c).add(reimbursementRec);
-            } else {
-                // Initialize a new list with the reimbursement record
-                mapOfUserIdWithLstOfReimbursement.put(reimbursementRec.CreatedFromTrip__c, new List<Reimbursement__c>{reimbursementRec});
+                }
+            } 
+        }
+        
+        //STEP 2: 
+        Map<String,HealthCloudGA__ContactContactRelation__c> mapOfAccountIdWithAssociatedContact = new Map<String,HealthCloudGA__ContactContactRelation__c>();
+        Set<String> setOfCaseIds = new Set<String>();
+        if(contactIdWithUserMap!=null){
+            for(HealthCloudGA__ContactContactRelation__c associatedContactRec : [SELECT ID,HealthCloudGA__RelatedContact__c,Patient_Support_Case__c
+                                                                                 FROM HealthCloudGA__ContactContactRelation__c 
+                                                                                 WHERE HealthCloudGA__RelatedContact__c IN : contactIdWithUserMap.keySet()]){
+             mapOfAccountIdWithAssociatedContact.put(contactIdWithUserMap.get(associatedContactRec.HealthCloudGA__RelatedContact__c).AccountId,associatedContactRec);                                                                        
+             setOfCaseIds.add(associatedContactRec.Patient_Support_Case__c);   
+            }
+            
+        }
+        
+        //STEP 3 :
+        Map<String, List<Trip__c>> mapOfCaseIdWithListOfTripRecs = new Map<String, List<Trip__c>>();
+        if (setOfCaseIds != null) {
+            for (Trip__c tripRec : [SELECT ID, RelatedCase__c,PatientOrCaregiverTrip__c FROM Trip__c WHERE RelatedCase__c IN :setOfCaseIds]) {
+                if(tripRec.PatientOrCaregiverTrip__c.equals('Patient')){
+                    if (mapOfCaseIdWithListOfTripRecs.containsKey(tripRec.RelatedCase__c)) {
+                        mapOfCaseIdWithListOfTripRecs.get(tripRec.RelatedCase__c).add(tripRec);
+                    } else {
+                        mapOfCaseIdWithListOfTripRecs.put(tripRec.RelatedCase__c, new List<Trip__c>{tripRec});
+                    }
+                }
+                
             }
         }
+           
+        //STEP 4 : 
+        List<Trip__c> lstOfPatientTrips = new List<Trip__c>();
+        Map<String,List<Reimbursement__c>> mapOfUserIdWithLstOfReimbursement = new Map<String,List<Reimbursement__c>>();
+        for(Account accountRec : [SELECT ID, AccountType__c FROM Account WHERE Id =:setOfAccountIds]){
+            if(accountRec!=null && !String.isEmpty(accountRec.AccountType__c)){
+                switch on accountRec.AccountType__c {
+                    when 'Patient' {		
+                        
+                    }
+                    when 'Caregiver' {		
+                        
+                    }
+                    when 'Legally Authorized Representative' {		
+                        HealthCloudGA__ContactContactRelation__c associatedContact =  mapOfAccountIdWithAssociatedContact.get(accountRec.Id);
+                        String caseId = associatedContact !=null && associatedContact.Patient_Support_Case__c !=null ? associatedContact.Patient_Support_Case__c : '';
+                        if(!String.isEmpty(caseId)){
+                            lstOfPatientTrips = mapOfCaseIdWithListOfTripRecs.get(caseId);  
+                        }
+                        
+                        if (lstOfPatientTrips != null && !lstOfPatientTrips.isEmpty()) {
+                            for (Reimbursement__c reimbursementRec : [
+                                SELECT Id, CreatedFromTrip__c, CaseIDNumber__c
+                                FROM Reimbursement__c
+                                WHERE CreatedFromTrip__c IN :lstOfPatientTrips
+                            ]) {
+                                if (mapOfUserIdWithLstOfReimbursement.containsKey(reimbursementRec.CreatedFromTrip__c)) {
+                                    mapOfUserIdWithLstOfReimbursement.get(reimbursementRec.CreatedFromTrip__c).add(reimbursementRec);
+                                } else {
+                                    mapOfUserIdWithLstOfReimbursement.put(reimbursementRec.CreatedFromTrip__c, new List<Reimbursement__c>{reimbursementRec});
+                                }
+                            }
+                        }
+                    }
+                    
+                    when else {		  
+                    }
+                }
+            }
+        }
+        
+        
+        
+        
     }
-}
