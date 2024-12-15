@@ -1,18 +1,22 @@
-                        HealthCloudGA__ContactContactRelation__c associatedContact =  mapOfAccountIdWithAssociatedContact.get(accountRec.Id);
-                        String caseId = associatedContact !=null && associatedContact.Patient_Support_Case__c !=null ? associatedContact.Patient_Support_Case__c : '';
-                        if(!String.isEmpty(caseId)){
-                         lstOfPatientTrips = mapOfCaseIdWithListOfTripRecs.get(caseId);  
-                        }
-                        
-                        if(lstOfPatientTrips!=null){
-                            for(Reimbursement__c reimbursementRec : [SELECT ID,CreatedFromTrip__c,CaseIDNumber__c,CreatedFromTrip__c 
-                                                                     FROM Reimbursement__c 
-                                                                     WHERE CreatedFromTrip__c IN : lstOfPatientTrips] ){
-                           if (mapOfUserIdWithLstOfReimbursement.containsKey(reimbursementRec.CreatedFromTrip__c)) {
-                                mapOfUserIdWithLstOfReimbursement.get(reimbursementRec.CreatedFromTrip__c).add(reimbursementRec);
-                           } else {
-                                mapOfUserIdWithLstOfReimbursement.put(reimbursementRec.CreatedFromTrip__c, new List<Trip__c>{reimbursementRec});
-                          }
-                                                                     }
-                        }
-                    }
+HealthCloudGA__ContactContactRelation__c associatedContact = mapOfAccountIdWithAssociatedContact.get(accountRec.Id);
+String caseId = (associatedContact != null && associatedContact.Patient_Support_Case__c != null) ? associatedContact.Patient_Support_Case__c : '';
+if (!String.isEmpty(caseId)) {
+    // Fetch the list of trips related to the case
+    List<Trip__c> lstOfPatientTrips = mapOfCaseIdWithListOfTripRecs.get(caseId);
+
+    if (lstOfPatientTrips != null && !lstOfPatientTrips.isEmpty()) {
+        for (Reimbursement__c reimbursementRec : [
+            SELECT Id, CreatedFromTrip__c, CaseIDNumber__c
+            FROM Reimbursement__c
+            WHERE CreatedFromTrip__c IN :lstOfPatientTrips
+        ]) {
+            if (mapOfUserIdWithLstOfReimbursement.containsKey(reimbursementRec.CreatedFromTrip__c)) {
+                // Add reimbursement record to the existing list
+                mapOfUserIdWithLstOfReimbursement.get(reimbursementRec.CreatedFromTrip__c).add(reimbursementRec);
+            } else {
+                // Initialize a new list with the reimbursement record
+                mapOfUserIdWithLstOfReimbursement.put(reimbursementRec.CreatedFromTrip__c, new List<Reimbursement__c>{reimbursementRec});
+            }
+        }
+    }
+}
