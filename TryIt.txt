@@ -1,1 +1,11 @@
-
+Map<String,List<Trip__c>> mapOfCaseIdWithListOfTripRecs = new Map<String,List<Trip__c>>();
+        if(setOfCaseIds !=null){
+            for(Trip__c tripRec : [SELECT ID,RelatedCase__c FROM Trip__c WHERE RelatedCase__c IN : setOfCaseIds]){
+                if(mapOfCaseIdWithListOfTripRecs.contains(tripRec.RelatedCase__c)){
+                    mapOfCaseIdWithListOfTripRecs.put(tripRec.RelatedCase__c,mapOfCaseIdWithListOfTripRecs.get(tripRec.RelatedCase__c).add(tripRec));
+                }else{
+                    mapOfCaseIdWithListOfTripRecs.put(tripRec.RelatedCase__c,new List<Trip__c>(){tripRec});  
+                }
+                
+            }  
+        }
