@@ -1,12 +1,18 @@
-Map<String, List<Trip__c>> mapOfCaseIdWithListOfTripRecs = new Map<String, List<Trip__c>>();
-if (setOfCaseIds != null) {
-    for (Trip__c tripRec : [SELECT ID, RelatedCase__c FROM Trip__c WHERE RelatedCase__c IN :setOfCaseIds]) {
-        if (mapOfCaseIdWithListOfTripRecs.containsKey(tripRec.RelatedCase__c)) {
-            // Fetch the existing list and add the trip record
-            mapOfCaseIdWithListOfTripRecs.get(tripRec.RelatedCase__c).add(tripRec);
-        } else {
-            // Initialize a new list with the trip record
-            mapOfCaseIdWithListOfTripRecs.put(tripRec.RelatedCase__c, new List<Trip__c>{tripRec});
-        }
-    }
-}
+                        HealthCloudGA__ContactContactRelation__c associatedContact =  mapOfAccountIdWithAssociatedContact.get(accountRec.Id);
+                        String caseId = associatedContact !=null && associatedContact.Patient_Support_Case__c !=null ? associatedContact.Patient_Support_Case__c : '';
+                        if(!String.isEmpty(caseId)){
+                         lstOfPatientTrips = mapOfCaseIdWithListOfTripRecs.get(caseId);  
+                        }
+                        
+                        if(lstOfPatientTrips!=null){
+                            for(Reimbursement__c reimbursementRec : [SELECT ID,CreatedFromTrip__c,CaseIDNumber__c,CreatedFromTrip__c 
+                                                                     FROM Reimbursement__c 
+                                                                     WHERE CreatedFromTrip__c IN : lstOfPatientTrips] ){
+                           if (mapOfUserIdWithLstOfReimbursement.containsKey(reimbursementRec.CreatedFromTrip__c)) {
+                                mapOfUserIdWithLstOfReimbursement.get(reimbursementRec.CreatedFromTrip__c).add(reimbursementRec);
+                           } else {
+                                mapOfUserIdWithLstOfReimbursement.put(reimbursementRec.CreatedFromTrip__c, new List<Trip__c>{reimbursementRec});
+                          }
+                                                                     }
+                        }
+                    }
