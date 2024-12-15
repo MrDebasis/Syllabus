@@ -1,1 +1,36 @@
+public static void shareReimbursements(Map<String, List<Reimbursement__c>> mapOfUserIdWithReimbursements) {
+    if (mapOfUserIdWithReimbursements == null || mapOfUserIdWithReimbursements.isEmpty()) {
+        return; // Exit if no reimbursements to share
+    }
+
+    List<Reimbursement__Share> sharesToInsert = new List<Reimbursement__Share>();
+
+    // Iterate over the map entries
+    for (String userId : mapOfUserIdWithReimbursements.keySet()) {
+        List<Reimbursement__c> reimbursements = mapOfUserIdWithReimbursements.get(userId);
+
+        if (reimbursements != null && !reimbursements.isEmpty()) {
+            // Create share records for all reimbursements for the current user
+            List<Reimbursement__Share> userShares = new List<Reimbursement__Share>();
+            for (Reimbursement__c reimbursement : reimbursements) {
+                Reimbursement__Share shareRecord = new Reimbursement__Share();
+                shareRecord.ParentId = reimbursement.Id;
+                shareRecord.UserOrGroupId = userId;
+                shareRecord.AccessLevel = 'Edit'; // Change to 'Read' if needed
+                shareRecord.RowCause = Schema.Reimbursement__Share.RowCause.Manual;
+                userShares.add(shareRecord);
+            }
+            sharesToInsert.addAll(userShares);
+        }
+    }
+
+    // Bulk insert the share records
+    if (!sharesToInsert.isEmpty()) {
+        try {
+            insert sharesToInsert;
+        } catch (DmlException ex) {
+            System.debug('Error while inserting share records: ' + ex.getMessage());
+        }
+    }
+}
 
