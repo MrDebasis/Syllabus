@@ -1,3 +1,44 @@
-At J&J, I delivered 70% of the Experience Site Portal design, creating dynamic, reusable components for efficiency and consistency. Delivered User Stories ahead of time and refactored the codebase to avoid blockers or defects during FIT, UAT, and BST cycles. Owned key functionalities like Header/Footer, Add/Submit Expense, Edit Expense, OCR Integration, Notification Center, and Lazy Loading, ensuring zero defects. Executed POCs that drove project growth, resolved mobile CSS issues during FIT, and led mobile testing, ensuring seamless user experience. Achieved defect-free implementations across all testing cycles through robust development practices.
+public class PostDataQueueable implements Queueable, Database.AllowsCallouts {
+    private String accountName;
+    private String patientNameOrId;
 
-At GP, I enhanced the Subscription List View UI/UX and designed detailed HLD/LLD diagrams for clarity. Delivered impactful POCs, enabling future User Stories. Conducted successful KT sessions, resolved critical FIT integration issues, and supported ACR scenario testing. Refactored major functionalities and took ownership of features like Unsubscribe/Resubscribe and Notification History, achieving bug-free performance and earning recognition for my contributions.
+    // Constructor to initialize the parameters
+    public PostDataQueueable(String accountName, String patientNameOrId) {
+        this.accountName = accountName;
+        this.patientNameOrId = patientNameOrId;
+    }
+
+    // Execute method to perform the callout
+    public void execute(QueueableContext context) {
+        try {
+            // Prepare the JSON body
+            Map<String, Object> requestBody = new Map<String, Object>();
+            requestBody.put('accountName', accountName);
+            requestBody.put('patientNameOrId', patientNameOrId);
+
+            // Convert the body to JSON format
+            String jsonBody = JSON.serialize(requestBody);
+
+            // Set up the HTTP request
+            Http http = new Http();
+            HttpRequest request = new HttpRequest();
+            request.setEndpoint('https://jsonplaceholder.typicode.com/posts');
+            request.setMethod('POST');
+            request.setHeader('Content-Type', 'application/json; charset=UTF-8');
+            request.setBody(jsonBody);
+
+            // Send the request
+            HttpResponse response = http.send(request);
+
+            // Process the response
+            if (response.getStatusCode() == 201) { // Successful POST response
+                System.debug('Response received: ' + response.getBody());
+            } else {
+                System.debug('Error: Status Code = ' + response.getStatusCode());
+                System.debug('Response: ' + response.getBody());
+            }
+        } catch (Exception ex) {
+            System.debug('Exception occurred: ' + ex.getMessage());
+        }
+    }
+}
