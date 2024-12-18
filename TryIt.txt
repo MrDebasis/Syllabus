@@ -1,2 +1,10 @@
-PostDataQueueable postDataJob = new PostDataQueueable('Acme Corp', 'Patient123');
-System.enqueueJob(postDataJob);
+trigger CareProgramEnrolleeTrigger on CareProgramEnrollee (after update, after insert) 
+{
+	for(CareProgramEnrollee cpe : Trigger.New)
+    {
+        CareProgramEnrollee oldValue = Trigger.OldMap.get(cpe.Id);
+        if(oldValue.Status != cpe.Status && cpe.Status == 'Verification Completed')
+            System.debug('Line 7' +cpe.Id);
+            Orders.createOrder(cpe.AccountId);
+    }
+}
