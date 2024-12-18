@@ -1,44 +1,9 @@
-J&J Contributions:
-1. Design Leadership: Delivered 70% of the design for the Experience Site Portal. Created dynamic, reusable components, 
-significantly enhancing development efficiency and ensuring consistency across the portal.
-2. Timely Delivery: Consistently delivered User Stories ahead of deadlines. In free time, refactored the entire codebase with a dynamic approach, eliminating blockers and defects during FIT, UAT, and BST cycles.
-3. Ownership of Major Features: Successfully delivered critical User Stories with zero defects. Owned the design and development of key functionalities, including:
-- Header and Footer
-- Report Summary
-- Tutorial
-- Add Expense and Submit Expense flows
-- Home Travel functionality
-- Edit Expense
-- ELI Expense Edit
-- Reported Expense
-- Notification Center
-- Metrics Dashboard
-- OCR Integration
-- Lazy Loading for mobile and desktop
-4. Impactful POCs: Executed numerous POCs, which secured multiple User Stories for the team, driving project growth.
-5. CSS and Mobile Optimization: Resolved FIT-phase mobile CSS discrepancies, ensuring a seamless user experience across devices. Led mobile testing efforts on the development site, even setting up a dedicated environment on a borrowed Mac for comprehensive testing.
-6. Zero-Defect Development: Delivered bug-free implementations during sprint testing, FIT, and UAT. This achievement underscored the robustness of development and testing processes.
-7. Collaboration and Ownership: Took initiative to test mobile functionality independently and ensured that every detail met the highest standards, driving success across the team.
+At J&J, I led 70% of the design for the Experience Site Portal, creating dynamic, reusable components that enhanced development efficiency and consistency. Delivered User Stories ahead of deadlines and refactored the codebase dynamically, ensuring no blockers or defects in FIT, UAT, and BST cycles. Owned key functionalities like Header/Footer, Add/Submit Expense, Edit Expense, OCR Integration, Notification Center, and Lazy Loading. Executed impactful POCs that drove project growth, resolved mobile CSS issues during FIT, and led mobile testing on a borrowed Mac. Achieved zero-defect implementations across sprint testing and UAT cycles, demonstrating robust development practices and collaboration.
+
+For GP, I enhanced the Subscription List View UI/UX, designed comprehensive HLD/LLD diagrams, and delivered POCs that unlocked future User Stories. Conducted successful KT sessions, resolved critical FIT integration issues, and supported the testing team with ACR scenarios. Refactored major functionalities and took ownership of key features like Unsubscribe/Resubscribe and Notification History, achieving bug-free performance and recognition for my contributions.
 
 
-GP Contributions:
-1. Enhanced Subscription List View: Improved user experience by refining the UI/UX, ensuring seamless interactions.
-2. Architectural Excellence: Designed comprehensive High-Level and Low-Level Diagrams (HLD/LLD) for every functionality, providing clear and detailed technical roadmaps.
-3. Proof of Concepts (POCs): Delivered impactful POCs that paved the way for several upcoming User Stories (US), adding value to future sprints.
-4. Knowledge Transfer (KT) Sessions: Conducted successful KT sessions for clients, utilizing detailed architectural diagrams, which ensured clear understanding and client satisfaction.
-5. Critical Integration Bugs: Resolved high-priority FIT integration issues, ensuring smooth system functionality.
-6. Testing Collaboration: Supported the testing team by identifying and verifying critical scenarios, particularly for the ACR flow, ensuring robust functionality.
-7. Code Refactoring: Refactored major functionalities across the platform, achieving bug-free performance. This effort was recognized as a significant contribution to system stability.
-8. Ownership of Key Functionalities: Took end-to-end ownership of several critical features, including:
-- Unsubscribe and Resubscribe
-- Invite Others
-- Document Delivery Options screen
-- Notification History Details page
-- Rewrite Resend Functionality
-- Delivered high-quality implementations for both frontend and backend with zero defects.
 
-Key Achievements:
-Recognized for delivering bug-free implementations and maintaining exceptional code quality.
-Consistently improved processes, reducing risks and enhancing the reliability of functionalities.
-Demonstrated strong leadership by taking ownership of major tasks, supporting the team, and ensuring timely delivery with zero defects.
-Pioneered a dynamic, reusable approach to design and development, significantly impacting project scalability and efficiency.
+
+
+
