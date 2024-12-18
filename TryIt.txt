@@ -1,1 +1,20 @@
+GP :
+1. Worked on Subscription List View enhance the User experence.
+2. Created Many arthicture diagrams (HLD/ LLD)each and every functinality.
+3. Did many POCs, Depending on that we hgot many US going foward.
+4. By using those diagrams, we have given KT to client. It went very well and Its was clearly understanding.
+5. Worked on critical Integration FIT bugs. 
+6. Helped testing team, to test critical scenarious for ACR flow.
+7  Worked on refectoring all mejor functionality, by doing all these didnt get any single bug. For this I got reconized.
+8. Took ownership of many functionality with Frontend and backend ,there are teh functionality Unsubscribe and Resubscribe,Invite Others,Document Delivery Options screen,Notification History Details page,Rewrite Resend Functionality
+
+
+J&J
+- Most of 70% design done by me. For experence site portal. Created many dynamic components and it helped team to reuse in whole portal.
+- Delivered US before time and on my free time I refectored whole code with dynamic approach. This way we didnt faced any blocker or any defects in FIT/ UAT/BST cycles.
+- Alwayd took major and critical US. And deliveryed on time with zero defect.
+- I m owning whole functionality with FE and apex. Many functionaity I m done here like Header / Footer/ Report summery/ Toturial/ Add expense / Submit Expense /Home travel functionality/Edit expense / ELI Expense edit/ Reported expense/Notification Center/ Metrices/ OCR integration/ Lazy loading for mobile and desktop etc.
+- Did many POCs, based on that we got lot of US. 
+- During FIT phase we got issues on mobile css describancies. That I resolved. Many issues taken care. Took ownership for demobile testing for dev site. and took lonor mac to testing also.
+- In this team also didnt get any single defect in sprint testig and FIT as well. 
 
