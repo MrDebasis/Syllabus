@@ -1,53 +1,69 @@
- async processFile(file) {
-        try {
-            const fileReader = new FileReader();
-            fileReader.readAsDataURL(file);
+import { LightningElement, track } from 'lwc';
+import uploadFileToContentDocument from '@salesforce/apex/FileUploadHandlerDemo.uploadFile';
 
-            // Wait for the file to be read
-            const fileData = await new Promise((resolve, reject) => {
-                fileReader.onload = () => resolve(fileReader.result.split(',')[1]);
-                fileReader.onerror = () => reject(fileReader.error);
-            });
+export default class FileUploadPOC extends LightningElement {
+    @track file; // Tracks the file upload status
 
-            // Split the file into chunks
-            const totalChunks = Math.ceil(fileData.length / CHUNK_SIZE);
-            let contentDocumentId = null;
+    handleFileChange(event) {
+        const file = event.target.files[0];
 
-            for (let i = 0; i < totalChunks; i++) {
-                const start = i * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE, fileData.length);
+        if (!file) {
+            alert('No file selected.');
+            return;
+        }
 
-                const chunk = fileData.substring(start, end);
-                contentDocumentId = await this.uploadChunk({
-                    fileName: file.name,
-                    base64Data: chunk,
-                    contentType: file.type,
-                });
+        if (file.size > 25 * 1024 * 1024) { // File size validation
+            alert('File size exceeds 25 MB. Please upload a smaller file.');
+            return;
+        }
 
-                this.file = {
-                    name: file.name,
-                    status: `Uploading... (${i + 1}/${totalChunks} chunks uploaded)`,
-                };
-            }
+        this.readFile(file);
+    }
 
-            if (contentDocumentId) {
+    readFile(file) {
+        const fileReader = new FileReader();
+
+        fileReader.onload = () => {
+            const base64 = fileReader.result.split(',')[1]; // Extract Base64
+            const fileData = {
+                fileName: file.name,
+                base64Data: base64,
+                contentType: file.type,
+            };
+
+            this.uploadFile(fileData);
+        };
+
+        fileReader.onerror = () => {
+            alert('Error reading file. Please try again.');
+            console.error('FileReader error:', fileReader.error);
+        };
+
+        fileReader.readAsDataURL(file); // Read file as Base64
+    }
+
+    uploadFile(fileData) {
+        uploadFileToContentDocument(fileData)
+            .then((contentDocumentId) => {
                 alert(`File uploaded successfully! ContentDocumentId: ${contentDocumentId}`);
-                this.file = { ...this.file, status: 'Upload Complete' };
-            } else {
-                throw new Error('File upload failed to generate a ContentDocumentId.');
-            }
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            this.file = { name: file.name, status: 'Failed' };
-            alert('Failed to upload file. Please try again.');
-        }
+                this.file = { ...fileData, status: 'Uploaded' };
+            })
+            .catch((error) => {
+                console.error('Error uploading file:', error);
+                this.file = { ...fileData, status: 'Failed' };
+                alert('Failed to upload file. Please try again.');
+            });
     }
+}
 
-    async uploadChunk(fileData) {
-        try {
-            return await uploadFileToContentDocument(fileData);
-        } catch (error) {
-            console.error('Error uploading chunk:', error);
-            throw new Error('Failed to upload chunk. Please try again.');
-        }
-    }
+ <div>
+        <lightning-input
+            type="file"
+            accept="image/png, image/jpeg"
+            onchange={handleFileChange}
+            label="Click to Upload File">
+        </lightning-input>
+        <template if:true={file}>
+            <p>File: {file.fileName} - {file.status}</p>
+        </template>
+    </div>
