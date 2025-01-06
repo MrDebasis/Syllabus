@@ -1,114 +1,85 @@
-<template>
-    <div class="slds-form-element">
-        <span class="slds-form-element__label">Attachment</span>
-        <div class="slds-form-element__control">
-            <div class="slds-file-selector slds-file-selector_images">
-                <div 
-                    class="slds-file-selector__dropzone"
-                    ondragover={handleDragOver}
-                    ondrop={handleDrop}>
-                    <span class="slds-file-selector__text">Drag and drop a file here or click to upload</span>
-                </div>
-                <lightning-input 
-                    type="file" 
-                    accept="image/png, image/jpeg"
-                    onchange={handleFileChange} 
-                    label="Upload File">
-                </lightning-input>
-            </div>
-        </div>
-        <template if:true={file}>
-            <p>File: {file.name} ({file.size} bytes) - {file.status}</p>
-        </template>
-    </div>
-</template>
+public with sharing class FileUploadHandlerDemo {
+    @AuraEnabled
+    public static String uploadFile(String fileName, String base64Data, String contentType) {
+        try {
+            ContentVersion contentVersion = new ContentVersion();
+            contentVersion.Title = fileName;
+            contentVersion.PathOnClient = fileName;
+            contentVersion.VersionData = EncodingUtil.base64Decode(base64Data);
+            contentVersion.IsMajorVersion = true;
+            insert contentVersion;
+
+            return [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :contentVersion.Id].ContentDocumentId;
+        } catch (Exception e) {
+            throw new AuraHandledException('File upload failed: ' + e.getMessage());
+        }
+    }
+}
+
 
 import { LightningElement, track } from 'lwc';
 import uploadFileToContentDocument from '@salesforce/apex/FileUploadHandlerDemo.uploadFile';
 
+const CHUNK_SIZE = 750000; // 750 KB per chunk
+
 export default class FileUploadPOC extends LightningElement {
-    @track file; // Holds the single file being uploaded
-
-    handleDragOver(event) {
-        event.preventDefault();
-    }
-
-    async handleDrop(event) {
-        event.preventDefault();
-        const uploadedFiles = event.dataTransfer.files;
-
-        if (uploadedFiles.length > 1) {
-            alert('Please upload only one file at a time.');
-            return;
-        }
-
-        await this.processFile(uploadedFiles[0]);
-    }
+    @track file; // Track file upload status
 
     async handleFileChange(event) {
-        const uploadedFiles = event.target.files;
+        const file = event.target.files[0];
 
-        if (uploadedFiles.length > 1) {
-            alert('Please upload only one file at a time.');
+        if (file.size > 25 * 1024 * 1024) {
+            alert('File size exceeds 25 MB. Please upload a smaller file.');
             return;
         }
 
-        await this.processFile(uploadedFiles[0]);
+        await this.processFile(file);
     }
 
     async processFile(file) {
-        if (!file) {
-            alert('No file selected.');
-            return;
-        }
-
         try {
             const fileReader = new FileReader();
             fileReader.readAsDataURL(file);
 
+            // Wait for file read completion
             const fileData = await new Promise((resolve, reject) => {
-                fileReader.onload = () => {
-                    const base64 = fileReader.result.split(',')[1];
-                    resolve({
-                        fileName: file.name,
-                        base64Data: base64,
-                        contentType: file.type,
-                    });
-                };
+                fileReader.onload = () => resolve(fileReader.result.split(',')[1]);
                 fileReader.onerror = () => reject(fileReader.error);
             });
 
-            this.file = { ...fileData, status: 'Uploading' };
+            // Split file into chunks and upload
+            const totalChunks = Math.ceil(fileData.length / CHUNK_SIZE);
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, fileData.length);
 
-            // Upload the file to Salesforce
-            await this.uploadFile(fileData);
+                const chunk = fileData.substring(start, end);
+                await this.uploadChunk({
+                    fileName: file.name,
+                    base64Data: chunk,
+                    contentType: file.type,
+                });
 
-            this.file = { ...this.file, status: 'Uploaded' };
+                this.file = {
+                    name: file.name,
+                    status: `Uploading... (${i + 1}/${totalChunks} chunks uploaded)`,
+                };
+            }
+
             alert('File uploaded successfully!');
+            this.file = { ...this.file, status: 'Upload Complete' };
         } catch (error) {
             console.error('Error uploading file:', error);
-            this.file = { ...this.file, status: 'Failed' };
+            this.file = { name: file.name, status: 'Failed' };
             alert('Failed to upload file. Please try again.');
         }
     }
 
-    uploadFile(fileData) {
-        return uploadFileToContentDocument({
-            fileName: fileData.fileName,
-            base64Data: fileData.base64Data,
-            contentType: fileData.contentType,
-        });
+    async uploadChunk(fileData) {
+        try {
+            await uploadFileToContentDocument(fileData);
+        } catch (error) {
+            throw new Error(`Failed to upload chunk: ${error.message}`);
+        }
     }
-}
-.slds-file-selector__dropzone {
-    border: 2px dashed #0070d2;
-    border-radius: 0.25rem;
-    padding: 1rem;
-    text-align: center;
-    margin-bottom: 1rem;
-    cursor: pointer;
-}
-
-.slds-file-selector__dropzone:hover {
-    background-color: #f4f6f9;
 }
