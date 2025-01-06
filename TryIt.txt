@@ -1,104 +1,32 @@
-public without sharing class FileUploadHandlerDemo {
- @AuraEnabled
-    public static void uploadFile(String fileName, String base64Data, String contentType) {
-        try {
-            ContentVersion contentVersion = new ContentVersion();
-            contentVersion.Title = fileName;
-            contentVersion.PathOnClient = fileName;
-            contentVersion.VersionData = EncodingUtil.base64Decode(base64Data);
-            contentVersion.IsMajorVersion = true;
-            insert contentVersion;
-        } catch (Exception e) {
-            throw new AuraHandledException('File upload failed: ' + e.getMessage());
-        }
-    }
-
 <template>
-        <div class="slds-form-element">
-            <span class="slds-form-element__label" id="file-selector-primary-label-101">Attachment</span>
-            <div class="slds-form-element__control">
-                <div class="slds-file-selector slds-file-selector_images">
-                    <div class="slds-file-selector__dropzone">
-                        <input 
-                            type="file" 
-                            class="slds-file-selector__input slds-assistive-text" 
-                            accept="image/png, image/jpeg" 
-                            id="file-upload-input-103" 
-                            aria-labelledby="file-selector-primary-label-101 file-selector-secondary-label102" 
-                            onchange={handleFileChange} />
-                        <label class="slds-file-selector__body" for="file-upload-input-103" id="file-selector-secondary-label102">
-                            <span class="slds-file-selector__button slds-button slds-button_neutral">
-                                <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
-                                    <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#upload"></use>
-                                </svg>
-                                Upload Image
-                            </span>
-                            <span class="slds-file-selector__text slds-medium-show">or Drop Image</span>
-                        
-                            <div class="container">
-                                <!-- Drag-and-Drop Area -->
-                                <div class="drop-zone" 
-                                    ondragover={handleDragOver} 
-                                    ondrop={handleDrop}>
-                                    <p>Drag and drop a file here or click to upload</p>
-                                </div>
-                        
-                                <!-- File Input -->
-                                <lightning-input type="file" 
-                                    onchange={handleFileChange} 
-                                    label="Upload File">
-                                </lightning-input>
-                        
-                                <!-- File Status -->
-                                <template if:true={file}>
-                                    <p>File: {file.name} ({file.size} bytes) - {file.status}</p>
-                                </template>
-                            </div>
-                            
-                        </label>
-                    </div>
+    <div class="slds-form-element">
+        <span class="slds-form-element__label">Attachment</span>
+        <div class="slds-form-element__control">
+            <div class="slds-file-selector slds-file-selector_images">
+                <div 
+                    class="slds-file-selector__dropzone"
+                    ondragover={handleDragOver}
+                    ondrop={handleDrop}>
+                    <span class="slds-file-selector__text">Drag and drop a file here or click to upload</span>
                 </div>
+                <lightning-input 
+                    type="file" 
+                    accept="image/png, image/jpeg"
+                    onchange={handleFileChange} 
+                    label="Upload File">
+                </lightning-input>
             </div>
         </div>
-    </template>
+        <template if:true={file}>
+            <p>File: {file.name} ({file.size} bytes) - {file.status}</p>
+        </template>
+    </div>
+</template>
 
-import { LightningElement ,track} from 'lwc';
+import { LightningElement, track } from 'lwc';
 import uploadFileToContentDocument from '@salesforce/apex/FileUploadHandlerDemo.uploadFile';
-import uploadFileToSalesforce from '@salesforce/apex/FileUploadHandlerDemo.uploadFile';
+
 export default class FileUploadPOC extends LightningElement {
-
-  /*  //Need to add custom check for .heic
-    handleFileChange(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result.split(',')[1];
-                const fileData = {
-                    fileName: file.name,
-                    base64,
-                    contentType: file.type
-                };
-                this.uploadFile(fileData);
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    uploadFile(fileData) {
-        uploadFileToContentDocument({ 
-            fileName: fileData.fileName, 
-            base64Data: fileData.base64, 
-            contentType: fileData.contentType 
-        })
-        .then(() => {
-            alert('File uploaded successfully!');
-        })
-        .catch(error => {
-            console.error('Error uploading file:', error);
-        });
-    }
-
     @track file; // Holds the single file being uploaded
 
     handleDragOver(event) {
@@ -114,7 +42,7 @@ export default class FileUploadPOC extends LightningElement {
             return;
         }
 
-        await this.uploadFile(uploadedFiles[0]);
+        await this.processFile(uploadedFiles[0]);
     }
 
     async handleFileChange(event) {
@@ -125,10 +53,10 @@ export default class FileUploadPOC extends LightningElement {
             return;
         }
 
-        await this.uploadFile(uploadedFiles[0]);
+        await this.processFile(uploadedFiles[0]);
     }
 
-    async uploadFile(file) {
+    async processFile(file) {
         if (!file) {
             alert('No file selected.');
             return;
@@ -145,108 +73,42 @@ export default class FileUploadPOC extends LightningElement {
                         fileName: file.name,
                         base64Data: base64,
                         contentType: file.type,
-                        status: 'Uploading',
                     });
                 };
                 fileReader.onerror = () => reject(fileReader.error);
             });
 
-            // Update the file being tracked
             this.file = { ...fileData, status: 'Uploading' };
 
             // Upload the file to Salesforce
-            await uploadFileToSalesforce({ fileDataList: [fileData] });
+            await this.uploadFile(fileData);
 
-            // Update status to 'Uploaded'
             this.file = { ...this.file, status: 'Uploaded' };
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            this.file = { ...this.file, status: 'Failed' };
-            alert('Failed to upload file. Please try again.');
-        }
-    }
-*/
-    //drag and drop
-    @track file; // Holds the single file being uploaded
-
-    handleDragOver(event) {
-        event.preventDefault();
-    }
-
-    async handleDrop(event) {
-        event.preventDefault();
-        const uploadedFiles = event.dataTransfer.files;
-
-        if (uploadedFiles.length > 1) {
-            alert('Please upload only one file at a time.');
-            return;
-        }
-
-        await this.uploadFile(uploadedFiles[0]);
-    }
-
-   /* async handleFileChange(event) {
-        const uploadedFiles = event.target.files;
-
-        if (uploadedFiles.length > 1) {
-            alert('Please upload only one file at a time.');
-            return;
-        }
-
-        await this.uploadFile(uploadedFiles[0]);
-    }*/
-
-    async uploadFile(file) {
-        if (!file) {
-            alert('No file selected.');
-            return;
-        }
-
-        try {
-            const fileReader = new FileReader();
-            fileReader.readAsDataURL(file);
-
-            const fileData = await new Promise((resolve, reject) => {
-                fileReader.onload = () => {
-                    const base64 = fileReader.result.split(',')[1];
-                    resolve({
-                        fileName: file.name,
-                        base64Data: base64,
-                        contentType: file.type,
-                        status: 'Uploading',
-                    });
-                };
-           
-                fileReader.onerror = () => reject(fileReader.error);
-            });
-
-            // Update the file being tracked
-            this.file = { ...fileData, status: 'Uploading' };
-
-            // Upload the file to Salesforce
-            this.uploadFile12(fileData);
-
-            // Update status to 'Uploaded'
-            this.file = { ...this.file, status: 'Uploaded' };
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            this.file = { ...this.file, status: 'Failed' };
-            alert('Failed to upload file. Please try again.');
-        }
-    }
-
-    uploadFile12(fileData) {
-        uploadFileToContentDocument({ 
-            fileName: fileData.fileName, 
-            base64Data: fileData.base64, 
-            contentType: fileData.contentType 
-        })
-        .then(() => {
             alert('File uploaded successfully!');
-        })
-        .catch(error => {
+        } catch (error) {
             console.error('Error uploading file:', error);
+            this.file = { ...this.file, status: 'Failed' };
+            alert('Failed to upload file. Please try again.');
+        }
+    }
+
+    uploadFile(fileData) {
+        return uploadFileToContentDocument({
+            fileName: fileData.fileName,
+            base64Data: fileData.base64Data,
+            contentType: fileData.contentType,
         });
     }
-    
+}
+.slds-file-selector__dropzone {
+    border: 2px dashed #0070d2;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+
+.slds-file-selector__dropzone:hover {
+    background-color: #f4f6f9;
 }
