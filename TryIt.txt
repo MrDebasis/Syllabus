@@ -1,1 +1,119 @@
+<template>
+    <div class="container">
+        <!-- Drag-and-Drop Area -->
+        <div class="drop-zone" 
+            ondragover={handleDragOver} 
+            ondrop={handleDrop}>
+            <p>Drag and drop a file here or click to upload</p>
+        </div>
+
+        <!-- File Input -->
+        <lightning-input type="file" 
+            onchange={handleFileChange} 
+            label="Upload File">
+        </lightning-input>
+
+        <!-- File Status -->
+        <template if:true={file}>
+            <p>File: {file.name} ({file.size} bytes) - {file.status}</p>
+        </template>
+    </div>
+</template>
+
+
+
+import { LightningElement, track } from 'lwc';
+import uploadFileToSalesforce from '@salesforce/apex/FileUploadController.uploadFile';
+
+export default class FileUploader extends LightningElement {
+    @track file; // Holds the single file being uploaded
+
+    handleDragOver(event) {
+        event.preventDefault();
+    }
+
+    async handleDrop(event) {
+        event.preventDefault();
+        const uploadedFiles = event.dataTransfer.files;
+
+        if (uploadedFiles.length > 1) {
+            alert('Please upload only one file at a time.');
+            return;
+        }
+
+        await this.uploadFile(uploadedFiles[0]);
+    }
+
+    async handleFileChange(event) {
+        const uploadedFiles = event.target.files;
+
+        if (uploadedFiles.length > 1) {
+            alert('Please upload only one file at a time.');
+            return;
+        }
+
+        await this.uploadFile(uploadedFiles[0]);
+    }
+
+    async uploadFile(file) {
+        if (!file) {
+            alert('No file selected.');
+            return;
+        }
+
+        try {
+            const fileReader = new FileReader();
+            fileReader.readAsDataURL(file);
+
+            const fileData = await new Promise((resolve, reject) => {
+                fileReader.onload = () => {
+                    const base64 = fileReader.result.split(',')[1];
+                    resolve({
+                        fileName: file.name,
+                        base64Data: base64,
+                        contentType: file.type,
+                        status: 'Uploading',
+                    });
+                };
+                fileReader.onerror = () => reject(fileReader.error);
+            });
+
+            // Update the file being tracked
+            this.file = { ...fileData, status: 'Uploading' };
+
+            // Upload the file to Salesforce
+            await uploadFileToSalesforce({ fileDataList: [fileData] });
+
+            // Update status to 'Uploaded'
+            this.file = { ...this.file, status: 'Uploaded' };
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            this.file = { ...this.file, status: 'Failed' };
+            alert('Failed to upload file. Please try again.');
+        }
+    }
+}
+
+
+public with sharing class FileUploadController {
+    @AuraEnabled
+    public static void uploadFile(List<FileData> fileDataList) {
+        List<ContentVersion> contentVersions = new List<ContentVersion>();
+        for (FileData fileData : fileDataList) {
+            ContentVersion contentVersion = new ContentVersion();
+            contentVersion.Title = fileData.fileName;
+            contentVersion.PathOnClient = fileData.fileName;
+            contentVersion.VersionData = EncodingUtil.base64Decode(fileData.base64Data);
+            contentVersion.ContentType = fileData.contentType;
+            contentVersions.add(contentVersion);
+        }
+        insert contentVersions;
+    }
+
+    public class FileData {
+        @AuraEnabled public String fileName;
+        @AuraEnabled public String base64Data;
+        @AuraEnabled public String contentType;
+    }
+}
 
