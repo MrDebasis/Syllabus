@@ -1,4 +1,4 @@
-	var meta = document.createElement('meta');
-meta.httpEquiv = "X-UA-Compatible";
-meta.content = "IE=edge";document.getElementsByTagName('head')[0].appendChild(meta);
-<meta name="format-detection" content="telephone=no">
+var metaFormatDetection = document.createElement('meta');
+metaFormatDetection.name = "format-detection";
+metaFormatDetection.content = "telephone=no";
+document.getElementsByTagName('head')[0].appendChild(metaFormatDetection);
