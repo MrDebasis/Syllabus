@@ -1,8 +1,4 @@
-import { LightningElement, track } from 'lwc';
-import uploadFileToContentDocument from '@salesforce/apex/FileUploadHandlerDemo.uploadFile';
-
-export default class FileUploadPOC extends LightningElement {
-    @track file; // Tracks the file upload status
+@track file; // Tracks the file upload status
 
     handleFileChange(event) {
         const file = event.target.files[0];
@@ -26,7 +22,7 @@ export default class FileUploadPOC extends LightningElement {
         fileReader.onload = () => {
             const base64 = fileReader.result.split(',')[1]; // Extract Base64
             const fileData = {
-                fileName: file.name,
+                fileName: file.name.split('0')[0],
                 base64Data: base64,
                 contentType: file.type,
             };
@@ -43,27 +39,99 @@ export default class FileUploadPOC extends LightningElement {
     }
 
     uploadFile(fileData) {
+        this.isLoading = true;
+        this.enableNextButton = false;
+        this.validateForNextButton();
+
         uploadFileToContentDocument(fileData)
             .then((contentDocumentId) => {
-                alert(`File uploaded successfully! ContentDocumentId: ${contentDocumentId}`);
+              //  alert(`File uploaded successfully! ContentDocumentId: ${contentDocumentId}`);
+                if(contentDocumentId !== '' && contentDocumentId !== undefined && contentDocumentId !==null){
+
+                    console.log('contentDocumentId'+contentDocumentId);
+                  console.log('this.strContentDocId'+this.strContentDocId);
+                    this.strContentDocId.push(contentDocumentId);
+
+                    if (this.strContentDocId.length !== 0) {
+                        this.contentDocumentIds = contentDocumentId;
+                        refreshApex(this.wiredActivities);
+                        this.isDisabled =true;
+                        this.isLoading = false;
+                        this.showEvent(); 
+                        this.enableNextButton = true;
+                        this.validateForNextButton(); 
+                    }
+                }
+
                 this.file = { ...fileData, status: 'Uploaded' };
             })
             .catch((error) => {
                 console.error('Error uploading file:', error);
                 this.file = { ...fileData, status: 'Failed' };
-                alert('Failed to upload file. Please try again.');
+                //alert('Failed to upload file. Please try again.');
+
+                this.isLoading = false;
+                //return error toast message 
+                this.enableNextButton = true;
+                this.validateForNextButton();
             });
     }
-}
 
- <div>
-        <lightning-input
-            type="file"
-            accept="image/png, image/jpeg"
-            onchange={handleFileChange}
-            label="Click to Upload File">
-        </lightning-input>
-        <template if:true={file}>
-            <p>File: {file.fileName} - {file.status}</p>
-        </template>
-    </div>
+    //Display Preview after getting contentDocumentId
+    @api
+    get contentDocumentIds() {
+        return this._contentDocumentIds;
+    }
+    set contentDocumentIds(value) {
+        console.log('third screen recordids', value);
+        this._contentDocumentIds = value;
+    }
+
+    @track fileList;
+    @track files = [];
+    receiptImage = pdfImage;
+    isFileLoaded = false;
+    @track showWhenImageIsAvailable = false;
+    @wire(getFileVersions, { recordIds: '$contentDocumentIds' })
+    fileResponse(value) {
+        this.wiredActivities = value;
+        const { data, error } = value;
+        this.fileList = "";
+        if (data) {
+            this.fileList = data;
+            for (let i = 0; i < this.fileList.length; i++) {
+                let file = {
+                    Id: this.fileList[i].Id, //contentVersionId
+                    Title: this.fileList[i].Title,
+                    Extension: this.fileList[i].FileExtension,
+                    ContentDocumentId: this.fileList[i].ContentDocumentId,
+                    ContentDocument: this.fileList[i].ContentDocument,
+                    CreatedDate: this.fileList[i].CreatedDate,
+                    thumbnailFileCard:
+                        "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
+                        this.fileList[i].Id +
+                        "&operationContext=CHATTER&contentId=" +
+                        this.fileList[i].ContentDocumentId,
+                    downloadUrl:
+                        "/sfc/servlet.shepherd/document/download/" +
+                        this.fileList[i].ContentDocumentId
+                };
+                file.pdfURL = file.downloadUrl;
+                file.downloadUrl = file.Extension == 'pdf' ? this.receiptImage : file.downloadUrl;
+                this.files.push(file);
+                this.showWhenImageIsAvailable = this.files.length === 0 ? false : true;
+            }
+            //if(this.showWhenImageIsAvailable){
+           //     this.prePopulateValuesWhenReceptIsUpdated(this.files[0].Id);
+          //  }
+            this.isFileLoaded = true;
+        } else if (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: "Error loading Files",
+                    message: error.body.message,
+                    variant: "error"
+                })
+            );
+        }
+    }
