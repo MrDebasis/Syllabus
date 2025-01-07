@@ -1,4 +1,1 @@
-var metaFormatDetection = document.createElement('meta');
-metaFormatDetection.name = "format-detection";
-metaFormatDetection.content = "telephone=no";
-document.getElementsByTagName('head')[0].appendChild(metaFormatDetection);
+
