@@ -1,135 +1,55 @@
-@track file; // Tracks the file upload status
-
-    handleFileChange(event) {
-        const file = event.target.files[0];
-
-        if (!file) {
-            alert('No file selected.');
-            return;
-        }
-
-        if (file.size > 25 * 1024 * 1024) { // File size validation
-            alert('File size exceeds 25 MB. Please upload a smaller file.');
-            return;
-        }
-
-        this.readFile(file);
-    }
-
-    readFile(file) {
-        const fileReader = new FileReader();
-
-        fileReader.onload = () => {
-            const base64 = fileReader.result.split(',')[1]; // Extract Base64
-            const fileData = {
-                fileName: file.name.split('0')[0],
-                base64Data: base64,
-                contentType: file.type,
-            };
-
-            this.uploadFile(fileData);
-        };
-
-        fileReader.onerror = () => {
-            alert('Error reading file. Please try again.');
-            console.error('FileReader error:', fileReader.error);
-        };
-
-        fileReader.readAsDataURL(file); // Read file as Base64
-    }
-
-    uploadFile(fileData) {
-        this.isLoading = true;
-        this.enableNextButton = false;
-        this.validateForNextButton();
-
-        uploadFileToContentDocument(fileData)
-            .then((contentDocumentId) => {
-              //  alert(`File uploaded successfully! ContentDocumentId: ${contentDocumentId}`);
-                if(contentDocumentId !== '' && contentDocumentId !== undefined && contentDocumentId !==null){
-
-                    console.log('contentDocumentId'+contentDocumentId);
-                  console.log('this.strContentDocId'+this.strContentDocId);
-                    this.strContentDocId.push(contentDocumentId);
-
-                    if (this.strContentDocId.length !== 0) {
-                        this.contentDocumentIds = contentDocumentId;
-                        refreshApex(this.wiredActivities);
-                        this.isDisabled =true;
-                        this.isLoading = false;
-                        this.showEvent(); 
-                        this.enableNextButton = true;
-                        this.validateForNextButton(); 
-                    }
-                }
-
-                this.file = { ...fileData, status: 'Uploaded' };
-            })
-            .catch((error) => {
-                console.error('Error uploading file:', error);
-                this.file = { ...fileData, status: 'Failed' };
-                //alert('Failed to upload file. Please try again.');
-
-                this.isLoading = false;
-                //return error toast message 
-                this.enableNextButton = true;
-                this.validateForNextButton();
-            });
-    }
-
-    //Display Preview after getting contentDocumentId
-    @api
-    get contentDocumentIds() {
-        return this._contentDocumentIds;
-    }
-    set contentDocumentIds(value) {
-        console.log('third screen recordids', value);
-        this._contentDocumentIds = value;
-    }
-
-    @track fileList;
+ @track fileList = [];
     @track files = [];
     receiptImage = pdfImage;
     isFileLoaded = false;
     @track showWhenImageIsAvailable = false;
-    @wire(getFileVersions, { recordIds: '$contentDocumentIds' })
-    fileResponse(value) {
-        this.wiredActivities = value;
-        const { data, error } = value;
-        this.fileList = "";
-        if (data) {
-            this.fileList = data;
-            for (let i = 0; i < this.fileList.length; i++) {
-                let file = {
-                    Id: this.fileList[i].Id, //contentVersionId
-                    Title: this.fileList[i].Title,
-                    Extension: this.fileList[i].FileExtension,
-                    ContentDocumentId: this.fileList[i].ContentDocumentId,
-                    ContentDocument: this.fileList[i].ContentDocument,
-                    CreatedDate: this.fileList[i].CreatedDate,
+    @api contentDocumentIds;
+
+    async fetchFileVersions() {
+        try {
+            this.isFileLoaded = false; // Reset loading state
+
+            if (!this.contentDocumentIds || this.contentDocumentIds.length === 0) {
+                console.log('No contentDocumentIds provided.');
+                return;
+            }
+
+            // Call the Apex method
+            const data = await getFileVersions({ recordIds: this.contentDocumentIds });
+
+            if (data) {
+                this.fileList = data;
+                this.files = data.map((file) => ({
+                    Id: file.Id, // ContentVersionId
+                    Title: file.Title,
+                    Extension: file.FileExtension,
+                    ContentDocumentId: file.ContentDocumentId,
+                    ContentDocument: file.ContentDocument,
+                    CreatedDate: file.CreatedDate,
                     thumbnailFileCard:
                         "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
-                        this.fileList[i].Id +
+                        file.Id +
                         "&operationContext=CHATTER&contentId=" +
-                        this.fileList[i].ContentDocumentId,
+                        file.ContentDocumentId,
                     downloadUrl:
                         "/sfc/servlet.shepherd/document/download/" +
-                        this.fileList[i].ContentDocumentId
-                };
-                file.pdfURL = file.downloadUrl;
-                file.downloadUrl = file.Extension == 'pdf' ? this.receiptImage : file.downloadUrl;
-                this.files.push(file);
-                this.showWhenImageIsAvailable = this.files.length === 0 ? false : true;
+                        file.ContentDocumentId,
+                    pdfURL:
+                        file.FileExtension === 'pdf'
+                            ? this.receiptImage
+                            : "/sfc/servlet.shepherd/document/download/" + file.ContentDocumentId
+                }));
+
+                this.showWhenImageIsAvailable = this.files.length > 0;
             }
-            //if(this.showWhenImageIsAvailable){
-           //     this.prePopulateValuesWhenReceptIsUpdated(this.files[0].Id);
-          //  }
-            this.isFileLoaded = true;
-        } else if (error) {
+
+            this.isFileLoaded = true; // Mark loading as complete
+        } catch (error) {
+            console.error('Error fetching file versions:', error);
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: "Error loading Files",
-                    message: error.body.message,
+                    message: error.body ? error.body.message : error.message,
                     variant: "error"
                 })
             );
