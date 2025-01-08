@@ -1,203 +1,94 @@
+@track file; // Tracks the file upload status
 
-  @track file; // Tracks the file upload status
+handleFileChange(event) {
+    const file = event.target.files[0];
+    try {
+        if (!file) {
+            return;
+        }
 
-    handleFileChange(event) {
-        const file = event.target.files[0];
-        try{
-            if (!file) {
-                return;
-            }
-            if(file.name !==null && file.name !==undefined && file.name !== '' && file.name.split(".")[file.name.split(".").length-1].toLowerCase().includes('heic', 'jpeg', 'jpg', 'png', 'pdf')){
-            if (file.size !==undefined &&  file.size !== '' && file.size !== null && file.size > 25 * 1024 * 1024) { // File size validation
+        const allowedFileTypes = ['heic', 'jpeg', 'jpg', 'png', 'pdf'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        if (file.name && allowedFileTypes.includes(fileExtension)) {
+            if (file.size !== undefined && file.size > 25 * 1024 * 1024) { // File size validation
                 this.showErrorMessage('File size limit is 25MB. Please try again.', true);
                 return;
-            }else{
+            } else {
                 this.showErrorMessage('', false);
             }
-            try{
+
+            try {
                 this.readFile(file);
-            }catch(error){
+            } catch (error) {
                 this.showErrorMessage('Error in uploading. Please try again.', true);
             }
-        }else{
-                this.showErrorMessage('Unsupported file type. Please upload a file in JPEG, PNG, PDF, or HEIC format.', true);
-                return;
-            }
-
-
-        }catch(error){
-            this.showErrorMessage('Error in uploading. Please try again.', true);
+        } else {
+            this.showErrorMessage('Unsupported file type. Please upload a file in JPEG, PNG, PDF, or HEIC format.', true);
+            return;
         }
+    } catch (error) {
+        this.showErrorMessage('Error in uploading. Please try again.', true);
     }
+}
 
-    readFile(file) {
-        const fileReader = new FileReader();
+readFile(file) {
+    const fileReader = new FileReader();
 
-        fileReader.onload = () => {
-            const base64 = fileReader.result.split(',')[1]; // Extract Base64
-            const fileData = {
-                fileName: file.name.split('0')[0],
-                base64Data: base64,
-                contentType: file.name.split(".")[file.name.split(".").length-1],
-            };
-            try{
-                this.uploadFile(fileData);
-            }
-            catch(error){
-                this.showErrorMessage('Error in uploading. Please try again.', true);
-            }
-            this.showErrorMessage('', false);
+    fileReader.onload = () => {
+        const base64 = fileReader.result.split(',')[1]; // Extract Base64
+        const fileData = {
+            fileName: file.name.split('.')[0],
+            base64Data: base64,
+            contentType: file.name.split('.').pop().toLowerCase(),
         };
-
-        fileReader.onerror = () => {
-            this.showErrorMessage('Error in uploading. Please try again.', true);
-        };
-
-        fileReader.readAsDataURL(file); // Read file as Base64
-    }
-
-    uploadFile(fileData) {
-        this.isLoading = true;
-        this.enableNextButton = false;
-        this.validateForNextButton();
-
-        uploadFileToContentDocument(fileData)
-            .then((contentDocumentId) => {
-              //  alert(`File uploaded successfully! ContentDocumentId: ${contentDocumentId}`);
-                if(contentDocumentId !== '' && contentDocumentId !== undefined && contentDocumentId !==null){
-
-                    console.log('contentDocumentId'+contentDocumentId);
-                  console.log('this.strContentDocId'+this.strContentDocId);
-                    this.strContentDocId.push(contentDocumentId);
-
-                    if (this.strContentDocId.length !== 0) {
-                        this.contentDocumentIds = contentDocumentId;
-                        this.fetchFileVersions();
-                        this.isDisabled =true;
-                        this.showEvent();
-                        this.enableNextButton = true;
-                        this.validateForNextButton(); 
-                    }else{
-                        this.isLoading = false;
-                        this.showWhenImageIsAvailable = false;
-                    }
-                }
-                this.file = { ...fileData, status: 'Uploaded' };
-            })
-            .catch((error) => {
-                this.showErrorMessage('Error in uploading. Please try again.', true);
-                // this.file = { ...fileData, status: 'Failed' };
-                //alert('Failed to upload file. Please try again.');
-
-                this.isLoading = false;
-                //return error toast message 
-                this.enableNextButton = true;
-                this.validateForNextButton();
-            });
-    }
-
-    //Display Preview after getting contentDocumentId
-    @track fileList = [];
-    @track files = [];
-    receiptImage = pdfImage;
-    isFileLoaded = false;
-    @track showWhenImageIsAvailable = false;
-    @api contentDocumentIds;
-
-    async fetchFileVersions() {
         try {
-            this.isFileLoaded = false; // Reset loading state
-
-            if (!this.contentDocumentIds || this.contentDocumentIds.length === 0) {
-                console.log('No contentDocumentIds provided.');
-                return;
-            }
-
-            // Call the Apex method
-            const data = await getFileVersions({ recordIds: this.contentDocumentIds });
-
-            if (data) {
-                this.fileList = data;
-                this.files = data.map((file) => ({
-                    Id: file.Id, // ContentVersionId
-                    Title: file.Title,
-                    Extension: file.FileExtension,
-                    ContentDocumentId: file.ContentDocumentId,
-                    ContentDocument: file.ContentDocument,
-                    CreatedDate: file.CreatedDate,
-                    thumbnailFileCard:
-                        "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
-                        file.Id +
-                        "&operationContext=CHATTER&contentId=" +
-                        file.ContentDocumentId,
-                    downloadUrl:
-                        "/sfc/servlet.shepherd/document/download/" +
-                        file.ContentDocumentId,
-                    pdfURL:
-                        file.FileExtension === 'pdf'
-                            ? this.receiptImage
-                            : "/sfc/servlet.shepherd/document/download/" + file.ContentDocumentId
-                }));
-
-                this.showWhenImageIsAvailable = this.files.length > 0;
-            }
-            // if(this.showWhenImageIsAvailable){
-            //     this.showEvent(); 
-            // }else{
-            //     this.isDisabled =true;
-            //     this.isLoading = false;
-            //     this.enableNextButton = true;
-            //     this.validateForNextButton();         
-            // }
-
-            this.isFileLoaded = true; // Mark loading as complete
-            this.isLoading = false;
+            this.uploadFile(fileData);
         } catch (error) {
             this.showErrorMessage('Error in uploading. Please try again.', true);
         }
-    }
+        this.showErrorMessage('', false);
+    };
 
+    fileReader.onerror = () => {
+        this.showErrorMessage('Error in uploading. Please try again.', true);
+    };
 
-    //toast message
-    @track toastClass='custom-toast' ;
-    message;
-    @track showToast = false;
+    fileReader.readAsDataURL(file); // Read file as Base64
+}
 
-        showToastMsg(message) {
-            console.log(message,"toast message");
-            this.message = message;
-            if (this.message !== null) {
-                this.showToast = true;
-                setTimeout(() => {
-                    this.showToast = false;
-                }, 5000);
+uploadFile(fileData) {
+    this.isLoading = true;
+    this.enableNextButton = false;
+    this.validateForNextButton();
+
+    uploadFileToContentDocument(fileData)
+        .then((contentDocumentId) => {
+            if (contentDocumentId) {
+                console.log('contentDocumentId:', contentDocumentId);
+
+                this.strContentDocId.push(contentDocumentId);
+
+                if (this.strContentDocId.length !== 0) {
+                    this.contentDocumentIds = contentDocumentId;
+                    this.fetchFileVersions();
+                    this.isDisabled = true;
+                    this.showEvent();
+                    this.enableNextButton = true;
+                    this.validateForNextButton();
+                } else {
+                    this.isLoading = false;
+                    this.showWhenImageIsAvailable = false;
+                }
             }
-        }
+            this.file = { ...fileData, status: 'Uploaded' };
+        })
+        .catch((error) => {
+            this.showErrorMessage('Error in uploading. Please try again.', true);
+            this.isLoading = false;
+            this.enableNextButton = true;
+            this.validateForNextButton();
+        });
+}
 
-        // error state
-        @track errorMessage;
-        @track enableErrorFlag;
-
-        showErrorMessage(errorMsg, isErrorEnabled) {
-            this.errorMessage = errorMsg;
-            this.enableErrorFlag = isErrorEnabled;
-        }
-
- <template if:false={isLoading}>
-        <template if:false={showWhenImageIsAvailable}>
-            <lightning-input
-            type="file"
-            accept="image/png, image/jpeg, image/heic"
-            onchange={handleFileChange}
-            variant="label-hidden"
-            multiple ="1"
-            class="uploadFileInput">
-            </lightning-input>
-            <!-- <template if:true={file}>
-                <p>File: {file.fileName} - {file.status}</p>
-            </template> -->
-            <template if:true={enableErrorFlag}>
-                <p>{errorMessage}</p>
-            </template>
-        </template>
-    </template>
+// Other parts of the code remain unchanged
