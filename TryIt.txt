@@ -1,94 +1,94 @@
-@track file; // Tracks the file upload status
+handleUploadFinished(event) {
+        this.isLoading = true;
+        this.enableNextButton = false;
+        this.validateForNextButton();
 
-handleFileChange(event) {
-    const file = event.target.files[0];
-    try {
-        if (!file) {
-            return;
-        }
-
-        const allowedFileTypes = ['heic', 'jpeg', 'jpg', 'png', 'pdf'];
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        if (file.name && allowedFileTypes.includes(fileExtension)) {
-            if (file.size !== undefined && file.size > 25 * 1024 * 1024) { // File size validation
-                this.showErrorMessage('File size limit is 25MB. Please try again.', true);
-                return;
+        const uploadedFiles = event.detail.files;
+        console.log('uploadedFiles', uploadedFiles);
+    
+        // Map the uploaded files and convert HEIC files to JPEG
+        const promises = uploadedFiles.map(file => {
+            if (file.mimeType === '' && file.name.includes('.heic')) {
+                return this.getConvertedFormat(file.documentId) 
+                    .catch(error => {
+                        this.isLoading = false;
+                        //return error toast message 
+                        return null;  // Return null to continue with other files
+                    });       
             } else {
-                this.showErrorMessage('', false);
+                return Promise.resolve(file.documentId);  
             }
-
-            try {
-                this.readFile(file);
-            } catch (error) {
-                this.showErrorMessage('Error in uploading. Please try again.', true);
-            }
-        } else {
-            this.showErrorMessage('Unsupported file type. Please upload a file in JPEG, PNG, PDF, or HEIC format.', true);
-            return;
-        }
-    } catch (error) {
-        this.showErrorMessage('Error in uploading. Please try again.', true);
-    }
-}
-
-readFile(file) {
-    const fileReader = new FileReader();
-
-    fileReader.onload = () => {
-        const base64 = fileReader.result.split(',')[1]; // Extract Base64
-        const fileData = {
-            fileName: file.name.split('.')[0],
-            base64Data: base64,
-            contentType: file.name.split('.').pop().toLowerCase(),
-        };
-        try {
-            this.uploadFile(fileData);
-        } catch (error) {
-            this.showErrorMessage('Error in uploading. Please try again.', true);
-        }
-        this.showErrorMessage('', false);
-    };
-
-    fileReader.onerror = () => {
-        this.showErrorMessage('Error in uploading. Please try again.', true);
-    };
-
-    fileReader.readAsDataURL(file); // Read file as Base64
-}
-
-uploadFile(fileData) {
-    this.isLoading = true;
-    this.enableNextButton = false;
-    this.validateForNextButton();
-
-    uploadFileToContentDocument(fileData)
-        .then((contentDocumentId) => {
-            if (contentDocumentId) {
-                console.log('contentDocumentId:', contentDocumentId);
-
-                this.strContentDocId.push(contentDocumentId);
-
-                if (this.strContentDocId.length !== 0) {
-                    this.contentDocumentIds = contentDocumentId;
-                    this.fetchFileVersions();
-                    this.isDisabled = true;
-                    this.showEvent();
-                    this.enableNextButton = true;
-                    this.validateForNextButton();
-                } else {
-                    this.isLoading = false;
-                    this.showWhenImageIsAvailable = false;
-                }
-            }
-            this.file = { ...fileData, status: 'Uploaded' };
-        })
-        .catch((error) => {
-            this.showErrorMessage('Error in uploading. Please try again.', true);
-            this.isLoading = false;
-            this.enableNextButton = true;
-            this.validateForNextButton();
         });
-}
+    
+        // Wait for all promises to resolve
+        Promise.all(promises)
+            .then(results => {
+                this.strContentDocId = results.filter(result => result !== undefined && result !== null && result !== '');
+                if (this.strContentDocId.length !== 0) {
+                    this.isDisabled =true;
+                    this.isLoading = false;
+                    this.showEvent(); 
+                    this.enableNextButton = true;
+                    this.validateForNextButton(); 
+                }
+            })
+            .catch(error => {
+                this.isLoading = false;
+                //return error toast message 
+                this.enableNextButton = true;
+                this.validateForNextButton();
+            });
+    }
+    
+    // Method to get the converted format for HEIC files
+    getConvertedFormat(contentVersionId) {
+        return getConvertedFormat({ recordId: contentVersionId })  
+            .then(result => {
+                if (result) {
+                    this.isDisabled =true;
+                    return result; 
+                }
+            })
+            .catch(error => {
+                this.isLoading = false;
+                //return error toast message 
+            });
+    }
 
-// Other parts of the code remain unchanged
+  this.strContentDocId.push(this.getConvertedFormat(contentDocumentId)); getting error ..here but the above code is old code it is working fine.
+
+uploadFileToContentDocument(fileData)
+            .then((contentDocumentId) => {
+                if (contentDocumentId) {
+                    console.log('contentDocumentId:', contentDocumentId);
+                    console.log('this.fileData.contentType.toLowerCase():', fileData.contentType.toLowerCase());
+    
+                    if(fileData.contentType.toLowerCase() === 'heic'){
+                        console.log('contentDocumentId heic inn:', contentDocumentId);
+                        this.strContentDocId.push(this.getConvertedFormat(contentDocumentId));
+                    }else{
+                        this.strContentDocId.push(contentDocumentId);
+                    }
+                    
+    
+                    if (this.strContentDocId.length !== 0) {
+                        this.contentDocumentIds = contentDocumentId;
+                        this.fetchFileVersions();
+                        this.isDisabled = true;
+                        this.showEvent();
+                        this.enableNextButton = true;
+                        this.validateForNextButton();
+                    } else {
+                        this.isLoading = false;
+                        this.showWhenImageIsAvailable = false;
+                    }
+                }
+                this.file = { ...fileData, status: 'Uploaded' };
+            })
+            .catch((error) => {
+                this.showErrorMessage('Error in uploading. Please try again.', true);
+                this.isLoading = false;
+                this.enableNextButton = true;
+                this.validateForNextButton();
+            });
+    }
