@@ -1,94 +1,14 @@
-handleUploadFinished(event) {
-        this.isLoading = true;
-        this.enableNextButton = false;
-        this.validateForNextButton();
-
-        const uploadedFiles = event.detail.files;
-        console.log('uploadedFiles', uploadedFiles);
-    
-        // Map the uploaded files and convert HEIC files to JPEG
-        const promises = uploadedFiles.map(file => {
-            if (file.mimeType === '' && file.name.includes('.heic')) {
-                return this.getConvertedFormat(file.documentId) 
-                    .catch(error => {
-                        this.isLoading = false;
-                        //return error toast message 
-                        return null;  // Return null to continue with other files
-                    });       
-            } else {
-                return Promise.resolve(file.documentId);  
-            }
-        });
-    
-        // Wait for all promises to resolve
-        Promise.all(promises)
-            .then(results => {
-                this.strContentDocId = results.filter(result => result !== undefined && result !== null && result !== '');
-                if (this.strContentDocId.length !== 0) {
-                    this.isDisabled =true;
-                    this.isLoading = false;
-                    this.showEvent(); 
-                    this.enableNextButton = true;
-                    this.validateForNextButton(); 
-                }
-            })
-            .catch(error => {
-                this.isLoading = false;
-                //return error toast message 
-                this.enableNextButton = true;
-                this.validateForNextButton();
-            });
-    }
-    
-    // Method to get the converted format for HEIC files
-    getConvertedFormat(contentVersionId) {
-        return getConvertedFormat({ recordId: contentVersionId })  
-            .then(result => {
-                if (result) {
-                    this.isDisabled =true;
-                    return result; 
-                }
-            })
-            .catch(error => {
-                this.isLoading = false;
-                //return error toast message 
-            });
-    }
-
-  this.strContentDocId.push(this.getConvertedFormat(contentDocumentId)); getting error ..here but the above code is old code it is working fine.
-
-uploadFileToContentDocument(fileData)
-            .then((contentDocumentId) => {
-                if (contentDocumentId) {
-                    console.log('contentDocumentId:', contentDocumentId);
-                    console.log('this.fileData.contentType.toLowerCase():', fileData.contentType.toLowerCase());
-    
-                    if(fileData.contentType.toLowerCase() === 'heic'){
-                        console.log('contentDocumentId heic inn:', contentDocumentId);
-                        this.strContentDocId.push(this.getConvertedFormat(contentDocumentId));
-                    }else{
-                        this.strContentDocId.push(contentDocumentId);
-                    }
-                    
-    
-                    if (this.strContentDocId.length !== 0) {
-                        this.contentDocumentIds = contentDocumentId;
-                        this.fetchFileVersions();
-                        this.isDisabled = true;
-                        this.showEvent();
-                        this.enableNextButton = true;
-                        this.validateForNextButton();
-                    } else {
-                        this.isLoading = false;
-                        this.showWhenImageIsAvailable = false;
-                    }
-                }
-                this.file = { ...fileData, status: 'Uploaded' };
-            })
-            .catch((error) => {
-                this.showErrorMessage('Error in uploading. Please try again.', true);
-                this.isLoading = false;
-                this.enableNextButton = true;
-                this.validateForNextButton();
-            });
-    }
+// Call `getConvertedFormat` and handle it asynchronously
+                    this.getConvertedFormat(contentDocumentId)
+                        .then((convertedDocumentId) => {
+                            if (convertedDocumentId) {
+                                this.strContentDocId.push(convertedDocumentId);
+                                this.finalizeUpload();
+                            } else {
+                                this.showErrorMessage('Failed to convert HEIC to JPEG.', true);
+                            }
+                        })
+                        .catch(() => {
+                            this.showErrorMessage('Error during HEIC conversion. Please try again.', true);
+                            this.isLoading = false;
+                        });
