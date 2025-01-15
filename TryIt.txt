@@ -1,14 +1,1 @@
-// Call `getConvertedFormat` and handle it asynchronously
-                    this.getConvertedFormat(contentDocumentId)
-                        .then((convertedDocumentId) => {
-                            if (convertedDocumentId) {
-                                this.strContentDocId.push(convertedDocumentId);
-                                this.finalizeUpload();
-                            } else {
-                                this.showErrorMessage('Failed to convert HEIC to JPEG.', true);
-                            }
-                        })
-                        .catch(() => {
-                            this.showErrorMessage('Error during HEIC conversion. Please try again.', true);
-                            this.isLoading = false;
-                        });
+I recently participated in testing Codify, an internal tool at Deloitte. During the testing phase, I provided detailed feedback and suggestions for improvement. Based on this feedback, some significant updates and releases were made to enhance the tool's functionality. I dedicated a considerable amount of time to this process, and it was a great experience contributing to the refinement of such a valuable resource.
