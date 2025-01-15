@@ -1,1 +1,10 @@
-
+  @track showWhenImageIsAvailable = false;
+            async fetchFileVersions() {
+                try {
+                    this.isFileLoaded = false; // Reset loading state
+        
+                    if (!this.imageIds) {
+                        console.log('No imageIds provided.');
+                        return;
+                    }
+                    const data = await getFileVersions({ recordIds: this.imageIds });
