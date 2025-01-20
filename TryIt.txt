@@ -1,19 +1,1 @@
-In our project, we have OCTA integration, and while I was occupied with other tasks, I expressed my interest in learning about how OCTA was integrated. Upon hearing this, he immediately included me in a client call discussing OCTA integration. This opportunity allowed me to gain firsthand insight into how it works.
-
-He always motivates me to work on POCs based on my abilities. This encouragement has helped me learn new concepts, improve my technical skills, and gain valuable exposure.
-
-Moreover, he consistently provides me with opportunities to interact with clients, which has been instrumental in boosting my confidence and enhancing my communication skills.
-
-Whenever he assigns tasks, he ensures that I understand the complete context, enabling me to improve the code quality and think through various scenarios more effectively. This holistic approach has significantly improved my problem-solving skills.
-
-
-
-
-What he could do further to help me get more opportunities to grow:
-
-Recently, during a year-end discussion, he provided constructive feedback, which included:
-
-Exploring the work of other teams to understand their processes and methodologies, helping me gain broader exposure within the organization.
-Guiding other team members, particularly in areas like code quality, system design, HLD (High-Level Design), and LLD (Low-Level Design).
-If I get opportunities to collaborate more with other teams and mentor their members, I’m confident it will help me showcase my abilities, strengthen my expertise, and expand my network within the organization.
 
