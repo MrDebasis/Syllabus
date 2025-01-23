@@ -1,6 +1,1 @@
-Receipt Attachment in CCM: While creating a transient record, a receipt was attached in CCM for the categories Mileage and Cash Tip.
-Vendor Field Value Issue: When creating a transient record in the Mileage category, the Vendor field is correctly set to "N/A". However, upon updating the record, the field incorrectly changes to "Mileage" instead of retaining the "N/A" value.
-Unexpected OCR Popup: The OCR popup appears unexpectedly in the read-only Report Summary screen when viewing details in ELI.
-Scenario: A is the Patient, and B is the LAR. A creates and submits a transient record, resulting in a reimbursement record that is shared with B. While A sees the OCR screen during transient creation, the popup also appears when B views the ELI in the Report Summary screen, which should not happen. This issue also occurs in Action Needed Reimbursement scenarios.
-Lazy Loading Breakage: The lazy loading functionality in the Expense Summary screen breaks when there are more than 10 records. It was working earlier but seems to have been impacted by modifications during BST observations.
-Action Needed Flow Issues: The Action Needed flow has been breaking under negative scenarios during monkey testing. This issue has been present since at least Sprint 19.
+
