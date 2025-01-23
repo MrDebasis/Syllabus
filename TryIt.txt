@@ -1,6 +1,1 @@
 
-
-returnVal.RECEPT_ADDED = 
-    Array.isArray(this.contentDocumentIds) && this.contentDocumentIds.length > 0 
-    ? 'RECEPT_ADDED' 
-    : 'RECEPT_NOT_ADDED';
