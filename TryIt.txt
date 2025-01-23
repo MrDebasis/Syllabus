@@ -1,7 +1,6 @@
-Issue 1 : Receipt was attached in CCM, while creating transient record when category is Millage and Cash Tip.
-Issue 2 :  When we are creating transient record in category millage that time Vendor field should come N/A,  and its coming but when we are updating that record it should keep the same value but its coming ‘Millage’.
-Issue 3 :  OCR pop up coming unexpectedly in read only screen in report summery while viewing details in ELI. Happy path is working fine but this scenario is fails : - A is Patient and B is the LAR, So A created a transient record and submitted it, Reimbursement record created and that is shared to B, While A is creating transient OCR screen is popped up, but when B is viewing that ELI in report summery screen then that pop up is coming. That should not be the case. Its happening for Action Needed Reimbursement also.
-
-Issue 4 : Lazy Loading is breaking in expense summery screen. If we keep more then 10 records. Earlier it was working but during BST observations modification it was broken.
-
-Issue 5 : Action needed flow it never worked, if we do monkey testing. All the negative scenarios it was breaking since from sprint 19 I believe. 
+Receipt Attachment in CCM: While creating a transient record, a receipt was attached in CCM for the categories Mileage and Cash Tip.
+Vendor Field Value Issue: When creating a transient record in the Mileage category, the Vendor field is correctly set to "N/A". However, upon updating the record, the field incorrectly changes to "Mileage" instead of retaining the "N/A" value.
+Unexpected OCR Popup: The OCR popup appears unexpectedly in the read-only Report Summary screen when viewing details in ELI.
+Scenario: A is the Patient, and B is the LAR. A creates and submits a transient record, resulting in a reimbursement record that is shared with B. While A sees the OCR screen during transient creation, the popup also appears when B views the ELI in the Report Summary screen, which should not happen. This issue also occurs in Action Needed Reimbursement scenarios.
+Lazy Loading Breakage: The lazy loading functionality in the Expense Summary screen breaks when there are more than 10 records. It was working earlier but seems to have been impacted by modifications during BST observations.
+Action Needed Flow Issues: The Action Needed flow has been breaking under negative scenarios during monkey testing. This issue has been present since at least Sprint 19.
