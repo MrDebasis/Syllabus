@@ -1,6 +1,7 @@
-We identified some observations during development that were not covered in the testing scope:
+Issue 1 : Receipt was attached in CCM, while creating transient record when category is Millage and Cash Tip.
+Issue 2 :  When we are creating transient record in category millage that time Vendor field should come N/A,  and its coming but when we are updating that record it should keep the same value but its coming ‘Millage’.
+Issue 3 :  OCR pop up coming unexpectedly in read only screen in report summery while viewing details in ELI. Happy path is working fine but this scenario is fails : - A is Patient and B is the LAR, So A created a transient record and submitted it, Reimbursement record created and that is shared to B, While A is creating transient OCR screen is popped up, but when B is viewing that ELI in report summery screen then that pop up is coming. That should not be the case. Its happening for Action Needed Reimbursement also.
 
-[Issue 1]: [Brief description].
-[Issue 2]: [Brief description].
-[Issue 3]: [Brief description].
-I’ve informed the testing team to include these scenarios in their scope and keep a track of them. Let me know if there’s anything else you’d like to address.
+Issue 4 : Lazy Loading is breaking in expense summery screen. If we keep more then 10 records. Earlier it was working but during BST observations modification it was broken.
+
+Issue 5 : Action needed flow it never worked, if we do monkey testing. All the negative scenarios it was breaking since from sprint 19 I believe. 
