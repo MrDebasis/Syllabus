@@ -1,18 +1,6 @@
-function formatDate(dateString) {
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            throw new Error('Invalid date input');
-        }
+We identified some observations during development that were not covered in the testing scope:
 
-        const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-        const year = utcDate.getUTCFullYear();
-        const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(utcDate.getUTCDate()).padStart(2, '0'); // Use `utcDate` to avoid timezone issues
-
-        return `${year}-${month}-${day}`;
-    } catch (error) {
-        console.error('Error formatting date:', error.message);
-        return null; // Or handle as needed
-    }
-}
+[Issue 1]: [Brief description].
+[Issue 2]: [Brief description].
+[Issue 3]: [Brief description].
+I’ve informed the testing team to include these scenarios in their scope and keep a track of them. Let me know if there’s anything else you’d like to address.
