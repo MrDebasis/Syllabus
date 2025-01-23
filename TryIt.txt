@@ -1,4 +1,1 @@
- <div class="expenseDetailsFieldsLabelDesktop">
-                <lightning-input data-label="Vendor" type="text" label="Vendor" message-when-value-missing={labelsList.PortalVendorValidate} value={vendor}  onchange={handleChange} required>
-                </lightning-input>
-            </div>
+ returnVal.RECEPT_ADDED = this.contentDocumentIds !==null && this.contentDocumentIds.length > 0 ? 'RECEPT_ADDED' : 'RECEPT_NOT_ADDED';
