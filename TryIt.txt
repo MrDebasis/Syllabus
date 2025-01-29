@@ -2,26 +2,29 @@ uploadInChunks(fileName, base64Data, contentType) {
     this.isLoading = true;
     let startPosition = 0;
     let endPosition = Math.min(CHUNK_SIZE, base64Data.length);
-    let contentDocumentId = null; // Store ContentDocumentId, not ContentVersionId
+    let contentDocumentId = null; // This will be set to the ContentDocumentId from Apex
 
     const uploadChunk = () => {
         const chunk = base64Data.substring(startPosition, endPosition);
 
+        // Pass the current contentDocumentId along with the chunk
         uploadChunkToContentDocument({
             fileName: fileName,
             base64Chunk: chunk,
             contentType: contentType,
             isLastChunk: endPosition >= base64Data.length,
-            contentDocumentId: contentDocumentId // Track ContentDocumentId
+            contentDocumentId: contentDocumentId // Pass the correct ContentDocumentId
         })
         .then((returnedId) => {
-            if (!contentDocumentId) {
-                contentDocumentId = returnedId; // Set ContentDocumentId from the first response
+            if (!contentDocumentId && returnedId) {
+                // On first chunk, set the contentDocumentId
+                contentDocumentId = returnedId;
+                console.log('First ContentDocumentId:', contentDocumentId); // Debug log
             }
             if (endPosition < base64Data.length) {
                 startPosition = endPosition;
                 endPosition = Math.min(startPosition + CHUNK_SIZE, base64Data.length);
-                uploadChunk();
+                uploadChunk(); // Upload next chunk
             } else {
                 this.uploadedFileIds.push(contentDocumentId);
                 this.showSuccessMessage("File uploaded successfully!");
@@ -45,7 +48,7 @@ public static String uploadChunkToContentDocument(
     String base64Chunk,
     String contentType,
     Boolean isLastChunk,
-    String contentDocumentId // Now passing ContentDocumentId instead of ContentVersionId
+    String contentDocumentId // Passing ContentDocumentId
 ) {
     try {
         ContentVersion newVersion;
@@ -56,7 +59,7 @@ public static String uploadChunkToContentDocument(
                 Title = fileName,
                 PathOnClient = fileName,
                 VersionData = EncodingUtil.base64Decode(base64Chunk),
-                FirstPublishLocationId = UserInfo.getUserId(), // Associate with a user or record
+                FirstPublishLocationId = UserInfo.getUserId(), // Associate with the user or a record
                 IsMajorVersion = false
             );
             insert newVersion;
@@ -69,13 +72,13 @@ public static String uploadChunkToContentDocument(
                 Title = fileName,
                 PathOnClient = fileName,
                 VersionData = EncodingUtil.base64Decode(base64Chunk),
-                ContentDocumentId = contentDocumentId, // Correct way to link new chunks
+                ContentDocumentId = contentDocumentId, // Correctly link to the previous ContentDocument
                 IsMajorVersion = isLastChunk
             );
             insert newVersion;
         }
 
-        // Return ContentDocumentId to keep appending new versions
+        // Always return the ContentDocumentId to continue appending
         return contentDocumentId;
 
     } catch (Exception e) {
