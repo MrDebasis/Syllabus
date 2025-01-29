@@ -1,69 +1,70 @@
 const CHUNK_SIZE = 750 * 1024;
-        handleFileChange(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-    
-            const allowedFileTypes = ["heic", "jpeg", "jpg", "png", "pdf"];
-            const fileExtension = file.name.split(".").pop().toLowerCase();
-    
-            if (!allowedFileTypes.includes(fileExtension)) {
-                this.showErrorMessage("Invalid file type!", true);
-                return;
-            }
-    
-            if (file.size > 10 * 1024 * 1024) {
-                this.showErrorMessage("File size exceeds 10 MB!", true);
-                return;
-            }
-    
-            this.showErrorMessage("", false);
-            this.readFile(file);
-        }
 
-        readFile(file) {
-            const fileReader = new FileReader();
-    
-            fileReader.onload = () => {
-                const base64 = fileReader.result.split(",")[1]; // Remove metadata
-                this.uploadInChunks(file.name, base64, file.type);
-            };
-    
-            fileReader.onerror = () => {
-                this.showErrorMessage("File reading error!", true);
-            };
-    
-            fileReader.readAsDataURL(file);
-        }
+handleFileChange(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const allowedFileTypes = ["heic", "jpeg", "jpg", "png", "pdf"];
+    const fileExtension = file.name.split(".").pop().toLowerCase();
+
+    if (!allowedFileTypes.includes(fileExtension)) {
+        this.showErrorMessage("Invalid file type!", true);
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        this.showErrorMessage("File size exceeds 10 MB!", true);
+        return;
+    }
+
+    this.showErrorMessage("", false);
+    this.readFile(file);
+}
+
+readFile(file) {
+    const fileReader = new FileReader();
+
+    fileReader.onload = () => {
+        const base64 = fileReader.result.split(",")[1]; // Remove metadata
+        this.uploadInChunks(file.name, base64, file.type);
+    };
+
+    fileReader.onerror = () => {
+        this.showErrorMessage("File reading error!", true);
+    };
+
+    fileReader.readAsDataURL(file);
+}
 
 uploadInChunks(fileName, base64Data, contentType) {
     this.isLoading = true;
     let startPosition = 0;
     let endPosition = Math.min(CHUNK_SIZE, base64Data.length);
-    let contentDocumentId = null; // This will be set to the ContentDocumentId from Apex
+    let contentVersionId = null; // This will be set to the ContentVersionId from the API response
 
     const uploadChunk = () => {
         const chunk = base64Data.substring(startPosition, endPosition);
 
-        // Pass the current contentDocumentId along with the chunk
-        uploadChunkToContentDocument({
+        // Pass the current contentVersionId along with the chunk
+        this.uploadChunkToSalesforce({
             fileName: fileName,
             base64Chunk: chunk,
             contentType: contentType,
             isLastChunk: endPosition >= base64Data.length,
-            contentDocumentId: contentDocumentId // Pass the correct ContentDocumentId
+            contentVersionId: contentVersionId // Pass the correct ContentVersionId
         })
         .then((returnedId) => {
-            if (!contentDocumentId && returnedId) {
-                // On first chunk, set the contentDocumentId
-                contentDocumentId = returnedId;
-                console.log('First ContentDocumentId:', contentDocumentId); // Debug log
+            if (!contentVersionId && returnedId) {
+                // On first chunk, set the contentVersionId
+                contentVersionId = returnedId;
+                console.log('First ContentVersionId:', contentVersionId); // Debug log
             }
             if (endPosition < base64Data.length) {
                 startPosition = endPosition;
                 endPosition = Math.min(startPosition + CHUNK_SIZE, base64Data.length);
                 uploadChunk(); // Upload next chunk
             } else {
-                this.uploadedFileIds.push(contentDocumentId);
+                this.uploadedFileIds.push(contentVersionId);
                 this.showSuccessMessage("File uploaded successfully!");
                 this.isLoading = false;
             }
@@ -78,44 +79,45 @@ uploadInChunks(fileName, base64Data, contentType) {
     uploadChunk(); // Start chunked upload
 }
 
-    @AuraEnabled
-    public static String uploadChunkToContentDocument1(
-        String fileName,
-        String base64Chunk,
-        String contentType,
-        Boolean isLastChunk,
-        String contentVersionId // Now passing ContentVersionId, not ContentDocumentId
-    ) {
-        try {
-            ContentVersion newVersion;
+uploadChunkToSalesforce({ fileName, base64Chunk, contentType, isLastChunk, contentVersionId }) {
+    const url = '/services/data/v50.0/sobjects/ContentVersion/';
+    const body = {
+        Title: fileName,
+        PathOnClient: fileName,
+        VersionData: base64Chunk,
+        IsMajorVersion: true,
+    };
 
-            if (contentVersionId == null) {
-                // First chunk: create a new ContentVersion
-                newVersion = new ContentVersion(
-                    Title = fileName,
-                    PathOnClient = fileName,
-                    VersionData = EncodingUtil.base64Decode(base64Chunk),
-                    IsMajorVersion = false
-                );
-                insert newVersion;
-
-                // Return ContentVersionId (not ContentDocumentId) for next chunks
-                return newVersion.Id;
-            } else {
-                // Subsequent chunks: find existing ContentVersion using ContentVersionId
-                ContentVersion existingVersion = [SELECT Id, VersionData FROM ContentVersion WHERE Id = :contentVersionId LIMIT 1];
-
-               // String previousData = EncodingUtil.base64Encode(existingVersion.VersionData);
-                //String updatedData = previousData + base64Chunk;
-                existingVersion.VersionData = EncodingUtil.base64Decode(EncodingUtil.base64Encode(existingVersion.VersionData)+base64Chunk);
-                update existingVersion;
-                newVersion = existingVersion;
-            }
-
-            // Return ContentDocumentId only at the last chunk
-            return isLastChunk ? newVersion.ContentDocumentId : newVersion.Id;
-
-        } catch (Exception e) {
-            throw handleException(e);
-        }
+    // If we have a contentVersionId, we update it with the new chunk.
+    if (contentVersionId) {
+        body['ContentVersionId'] = contentVersionId;
     }
+
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('access_token')}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    })
+    .then(response => response.json())
+    .then(result => {
+        console.log('File uploaded, ContentVersionId:', result.id);
+        return result.id; // Return ContentVersionId for next chunk
+    })
+    .catch((error) => {
+        console.error("Error uploading chunk:", error);
+        throw new Error("File upload failed!");
+    });
+}
+
+showErrorMessage(message, show = true) {
+    if (show) {
+        alert("Error: " + message);
+    }
+}
+
+showSuccessMessage(message) {
+    alert(message);
+}
