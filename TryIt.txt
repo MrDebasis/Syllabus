@@ -1,1 +1,121 @@
+//html
+<lightning-input
+                type="file"
+                accept="image/png, image/jpeg, image/heic"
+                onchange={handleFileChange}
+                variant="label-hidden"
+                multiple ="1"
+                class ={uploadFileInputClass}>
+                </lightning-input>
 
+//JS
+ @track file; 
+    handleFileChange(event) {
+        const file = event.target.files[0];
+        try {
+            if (!file) {
+                return;
+            }
+            const allowedFileTypes = ['heic', 'jpeg', 'jpg', 'png', 'pdf'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+    
+            if (file.name && allowedFileTypes.includes(fileExtension)) {
+                if (file.size !== undefined && file.size > 10 * 1024 * 1024) { 
+                    this.showErrorMessage(labels.FileSizeLimitError, true);
+                    return;
+                } else {
+                    this.showErrorMessage('', false);
+                }
+    
+                try {
+                    this.readFile(file);
+                } catch (error) {
+                    this.showErrorMessage(labels.FileUploadError, true);
+                }
+            } else {
+                this.showErrorMessage(labels.FileTypeError, true);
+                return;
+            }
+        } catch (error) {
+            this.showErrorMessage(labels.FileUploadError, true);
+        }
+    }
+    
+    readFile(file) {
+        const fileReader = new FileReader();
+    
+        fileReader.onload = () => {
+            const base64 = fileReader.result.split(',')[1]; 
+            const fileData = {
+                fileName: file.name.split('.')[0],
+                base64Data: base64,
+                contentType: file.name.split(".")[file.name.split(".").length-1],
+            };
+            try {
+                this.uploadFile(fileData);
+            } catch (error) {
+                this.handleExceptions();
+            }
+            this.showErrorMessage('', false);
+        };
+    
+        fileReader.onerror = () => {
+            this.showErrorMessage(labels.FileUploadError, true);
+        };
+        fileReader.readAsDataURL(file); 
+    }
+    
+    uploadFile(fileData) {
+        this.isLoading = true;
+        this.enableNextButton = false;
+        this.validateForNextButton();
+    
+        uploadFileToContentDocument(fileData)
+            .then((contentDocumentId) => {
+                if (contentDocumentId) {
+                    if(fileData.contentType.toLowerCase() === 'heic'){
+                        this.getConvertedFormat(contentDocumentId)
+                        .then((convertedDocumentId) => {
+                            if (convertedDocumentId) {
+                                this.strContentDocId.push(convertedDocumentId);
+                                this.contentDocumentIds = convertedDocumentId;
+                                this.fetchFileVersions();
+                                this.isDisabled = true;
+                                this.showEvent();
+                                this.enableNextButton = true;
+                                this.validateForNextButton();
+                                this.sendDocumentIdToParent(convertedDocumentId);
+                                
+                        }
+                        }).catch(() => {
+                            this.handleExceptions();
+                        });
+                    }else{
+                        this.strContentDocId.push(contentDocumentId);
+                        if (this.strContentDocId.length !== 0) {
+                            this.contentDocumentIds = contentDocumentId;
+                            this.fetchFileVersions();
+                            this.isDisabled = true;
+                            this.showEvent();
+                            this.enableNextButton = true;
+                            this.validateForNextButton();
+                            this.sendDocumentIdToParent(contentDocumentId);
+
+                        } 
+                    }
+                }
+            })
+            .catch((error) => {
+                this.handleExceptions();
+            });
+    }
+
+//apex
+    @AuraEnabled
+    public static String uploadFile(String fileName, String base64Data, String contentType) {
+        try{
+            return ContentVersionsService.newInstance().insertContentVersionAndGetContentDocId(fileName, base64Data, contentType);
+        } catch(Exception ex){
+            throw handleException(ex);
+        } 
+    }
