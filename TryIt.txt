@@ -1,43 +1,46 @@
-if (contentVersionId == null) {
-    newVersion = new ContentVersion(
-        Title = fileName,
-        PathOnClient = fileName,
-        VersionData = EncodingUtil.base64Decode(base64Chunk),
-        FirstPublishLocationId = UserInfo.getUserId(), // Associate with the user or a record
-        IsMajorVersion = false
-    );
-    insert newVersion;
-} else {
-    // Create a new ContentVersion record for each chunk
-    newVersion = new ContentVersion(
-        Title = fileName,
-        PathOnClient = fileName,
-        VersionData = EncodingUtil.base64Decode(base64Chunk),
-        ContentDocumentId = contentVersionId, // Associate with previous ContentDocument
-        IsMajorVersion = false
-    );
-    insert newVersion;
-}
+	private HttpResponse callOutToTextractAPI(ContentVersion record) {
+		if (record == null || record.VersionData == null) {
+			Application.logentry.error('ContentVersionsService.callOutToTextractAPI(): ContentVersion or VersionData is null.');
+			return null; 
+		}
 
+		HttpRequest request = new HttpRequest();
+		AwsWrapper mapi = new AwsWrapper();
+		Textract_API_Details__mdt apiDetails = TextractMetaDataSelector.newInstance().getTextractAPIDetails('TextractAPIDetails');
 
-uploadChunkToContentDocument({
-    fileName: fileName,
-    base64Chunk: chunk,
-    contentType: contentType,
-    isLastChunk: endPosition >= base64Data.length,
-    contentVersionId: contentDocumentId // Use ContentDocumentId instead
-})
-.then((returnedId) => {
-    if (!contentDocumentId) {
-        contentDocumentId = returnedId; // Set ContentDocumentId from the first response
+		if (apiDetails == null) {
+			Application.logentry.error('ContentVersionsService.callOutToTextractAPI(): API details are missing.');
+			return null;
+		}
+
+		mapi.file = EncodingUtil.Base64Encode(record.VersionData);
+
+		if (record.FileExtension != null && record.FileExtension.equalsIgnoreCase('heic') || record.PathOnClient != null && record.PathOnClient.substringAfterLast('.').equalsIgnoreCase('heic')) {
+			mapi.returnFile = true;
+		}
+
+		request.setEndpoint(apiDetails.EndPoint__c);
+		request.setHeader('Content-Type', apiDetails.ContentType__c);
+		request.setHeader('User-Agent', apiDetails.UserAgent__c);
+		request.setHeader('x-api-key', apiDetails.APIKey__c);
+		request.setMethod(apiDetails.HTTPMethod__c);
+		request.setTimeout((Integer) apiDetails.TimeOut__c);
+		request.setBody(JSON.serialize(mapi));
+
+		try {
+			return new Http().send(request);
+		} catch (Exception e) {
+			Application.logentry.error('ContentVersionsService.callOutToTextractAPI(): Error during API callout: ' + e);
+			return null;
+		}
+	}
+
+    public Map<String, String> getReceiptJSON(String contentVersionId){
+        String responseBody ='';
+        List<ContentVersion> listOfContentVersion = ContentVersionsSelector.newInstance().getListOfContentVersionById(new List<String>{contentVersionId});
+        HttpResponse response = callOutToTextractAPI(listOfContentVersion[0]);
+        if(response.getStatusCode() == 200 || response.getStatusCode() == 201){
+            responseBody = response.getBody();
+        }
+        return parseReceiptJSON(responseBody);
     }
-    if (endPosition < base64Data.length) {
-        startPosition = endPosition;
-        endPosition = Math.min(startPosition + CHUNK_SIZE, base64Data.length);
-        uploadChunk();
-    } else {
-        this.uploadedFileIds.push(contentDocumentId);
-        this.showSuccessMessage("File uploaded successfully!");
-        this.isLoading = false;
-    }
-});
