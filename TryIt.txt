@@ -1,97 +1,84 @@
-import { LightningElement, track } from "lwc";
-import uploadChunkToContentDocument from "@salesforce/apex/FileUploadController.uploadChunkToContentDocument";
+public with sharing class FileUploadController {
+    @AuraEnabled
+    public static String uploadChunkToContentDocument(
+        String fileName,
+        String base64Chunk,
+        String contentType,
+        Boolean isLastChunk,
+        String contentVersionId // Now passing ContentVersionId, not ContentDocumentId
+    ) {
+        try {
+            ContentVersion newVersion;
 
-const CHUNK_SIZE = 750 * 1024; // 750 KB per chunk (safe for Apex)
+            if (contentVersionId == null) {
+                // First chunk: create a new ContentVersion
+                newVersion = new ContentVersion(
+                    Title = fileName,
+                    PathOnClient = fileName,
+                    VersionData = EncodingUtil.base64Decode(base64Chunk),
+                    IsMajorVersion = true
+                );
+                insert newVersion;
 
-export default class FileUploader extends LightningElement {
-    @track file;
-    @track isLoading = false;
-    @track uploadedFileIds = [];
+                // Return ContentVersionId (not ContentDocumentId) for next chunks
+                return newVersion.Id;
+            } else {
+                // Subsequent chunks: find existing ContentVersion using ContentVersionId
+                ContentVersion existingVersion = [SELECT Id, VersionData FROM ContentVersion WHERE Id = :contentVersionId LIMIT 1];
 
-    handleFileChange(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+                String previousData = EncodingUtil.base64Encode(existingVersion.VersionData);
+                String updatedData = previousData + base64Chunk;
+                existingVersion.VersionData = EncodingUtil.base64Decode(updatedData);
+                update existingVersion;
+                newVersion = existingVersion;
+            }
 
-        const allowedFileTypes = ["heic", "jpeg", "jpg", "png", "pdf"];
-        const fileExtension = file.name.split(".").pop().toLowerCase();
+            // Return ContentDocumentId only at the last chunk
+            return isLastChunk ? newVersion.ContentDocumentId : newVersion.Id;
 
-        if (!allowedFileTypes.includes(fileExtension)) {
-            this.showErrorMessage("Invalid file type!", true);
-            return;
-        }
-
-        if (file.size > 10 * 1024 * 1024) {
-            this.showErrorMessage("File size exceeds 10 MB!", true);
-            return;
-        }
-
-        this.showErrorMessage("", false);
-        this.readFile(file);
-    }
-
-    readFile(file) {
-        const fileReader = new FileReader();
-
-        fileReader.onload = () => {
-            const base64 = fileReader.result.split(",")[1]; // Remove metadata
-            this.uploadInChunks(file.name, base64, file.type);
-        };
-
-        fileReader.onerror = () => {
-            this.showErrorMessage("File reading error!", true);
-        };
-
-        fileReader.readAsDataURL(file);
-    }
-
-    uploadInChunks(fileName, base64Data, contentType) {
-        this.isLoading = true;
-        let startPosition = 0;
-        let endPosition = Math.min(CHUNK_SIZE, base64Data.length);
-        let contentDocumentId = null; // Will store the final ContentDocumentId
-
-        const uploadChunk = () => {
-            const chunk = base64Data.substring(startPosition, endPosition);
-
-            uploadChunkToContentDocument({
-                fileName: fileName,
-                base64Chunk: chunk,
-                contentType: contentType,
-                isLastChunk: endPosition >= base64Data.length,
-                contentDocId: contentDocumentId, // Pass previous ID for chunk continuation
-            })
-                .then((docId) => {
-                    contentDocumentId = docId; // Store the ID after the first chunk
-
-                    if (endPosition < base64Data.length) {
-                        startPosition = endPosition;
-                        endPosition = Math.min(startPosition + CHUNK_SIZE, base64Data.length);
-                        uploadChunk(); // Upload next chunk
-                    } else {
-                        this.uploadedFileIds.push(contentDocumentId);
-                        this.showSuccessMessage("File uploaded successfully!");
-                        this.isLoading = false;
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error uploading chunk:", error);
-                    this.showErrorMessage("File upload failed!", true);
-                    this.isLoading = false;
-                });
-        };
-
-        uploadChunk(); // Start chunked upload
-    }
-
-    showErrorMessage(message, show = true) {
-        // Replace this with your actual error handling
-        if (show) {
-            alert("Error: " + message);
+        } catch (Exception e) {
+            throw new AuraHandledException("Error uploading file: " + e.getMessage());
         }
     }
+}
 
-    showSuccessMessage(message) {
-        // Replace this with your actual success handling
-        alert(message);
-    }
+
+
+uploadInChunks(fileName, base64Data, contentType) {
+    this.isLoading = true;
+    let startPosition = 0;
+    let endPosition = Math.min(CHUNK_SIZE, base64Data.length);
+    let contentVersionId = null; // Now using ContentVersionId instead of ContentDocumentId
+
+    const uploadChunk = () => {
+        const chunk = base64Data.substring(startPosition, endPosition);
+
+        uploadChunkToContentDocument({
+            fileName: fileName,
+            base64Chunk: chunk,
+            contentType: contentType,
+            isLastChunk: endPosition >= base64Data.length,
+            contentVersionId: contentVersionId // Track ContentVersionId, not ContentDocumentId
+        })
+        .then((returnedId) => {
+            contentVersionId = returnedId; // Store the ID after the first chunk
+
+            if (endPosition < base64Data.length) {
+                startPosition = endPosition;
+                endPosition = Math.min(startPosition + CHUNK_SIZE, base64Data.length);
+                uploadChunk(); // Upload next chunk
+            } else {
+                this.uploadedFileIds.push(contentVersionId);
+                this.showSuccessMessage("File uploaded successfully!");
+                this.isLoading = false;
+            }
+        })
+        .catch((error) => {
+            console.error("Error uploading chunk:", error);
+            this.showErrorMessage("File upload failed!", true);
+            this.isLoading = false;
+        });
+    };
+
+    uploadChunk(); // Start chunked upload
 }
