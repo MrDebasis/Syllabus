@@ -1,3 +1,40 @@
+const CHUNK_SIZE = 750 * 1024;
+        handleFileChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+    
+            const allowedFileTypes = ["heic", "jpeg", "jpg", "png", "pdf"];
+            const fileExtension = file.name.split(".").pop().toLowerCase();
+    
+            if (!allowedFileTypes.includes(fileExtension)) {
+                this.showErrorMessage("Invalid file type!", true);
+                return;
+            }
+    
+            if (file.size > 10 * 1024 * 1024) {
+                this.showErrorMessage("File size exceeds 10 MB!", true);
+                return;
+            }
+    
+            this.showErrorMessage("", false);
+            this.readFile(file);
+        }
+
+        readFile(file) {
+            const fileReader = new FileReader();
+    
+            fileReader.onload = () => {
+                const base64 = fileReader.result.split(",")[1]; // Remove metadata
+                this.uploadInChunks(file.name, base64, file.type);
+            };
+    
+            fileReader.onerror = () => {
+                this.showErrorMessage("File reading error!", true);
+            };
+    
+            fileReader.readAsDataURL(file);
+        }
+
 uploadInChunks(fileName, base64Data, contentType) {
     this.isLoading = true;
     let startPosition = 0;
@@ -41,47 +78,44 @@ uploadInChunks(fileName, base64Data, contentType) {
     uploadChunk(); // Start chunked upload
 }
 
+    @AuraEnabled
+    public static String uploadChunkToContentDocument1(
+        String fileName,
+        String base64Chunk,
+        String contentType,
+        Boolean isLastChunk,
+        String contentVersionId // Now passing ContentVersionId, not ContentDocumentId
+    ) {
+        try {
+            ContentVersion newVersion;
 
-@AuraEnabled
-public static String uploadChunkToContentDocument(
-    String fileName,
-    String base64Chunk,
-    String contentType,
-    Boolean isLastChunk,
-    String contentDocumentId // Passing ContentDocumentId
-) {
-    try {
-        ContentVersion newVersion;
+            if (contentVersionId == null) {
+                // First chunk: create a new ContentVersion
+                newVersion = new ContentVersion(
+                    Title = fileName,
+                    PathOnClient = fileName,
+                    VersionData = EncodingUtil.base64Decode(base64Chunk),
+                    IsMajorVersion = false
+                );
+                insert newVersion;
 
-        if (contentDocumentId == null) {
-            // First chunk: Create a new ContentVersion
-            newVersion = new ContentVersion(
-                Title = fileName,
-                PathOnClient = fileName,
-                VersionData = EncodingUtil.base64Decode(base64Chunk),
-                FirstPublishLocationId = UserInfo.getUserId(), // Associate with the user or a record
-                IsMajorVersion = false
-            );
-            insert newVersion;
+                // Return ContentVersionId (not ContentDocumentId) for next chunks
+                return newVersion.Id;
+            } else {
+                // Subsequent chunks: find existing ContentVersion using ContentVersionId
+                ContentVersion existingVersion = [SELECT Id, VersionData FROM ContentVersion WHERE Id = :contentVersionId LIMIT 1];
 
-            // Return the associated ContentDocumentId for next chunks
-            return newVersion.ContentDocumentId;
-        } else {
-            // Subsequent chunks: Associate with existing ContentDocument
-            newVersion = new ContentVersion(
-                Title = fileName,
-                PathOnClient = fileName,
-                VersionData = EncodingUtil.base64Decode(base64Chunk),
-                ContentDocumentId = contentDocumentId, // Correctly link to the previous ContentDocument
-                IsMajorVersion = isLastChunk
-            );
-            insert newVersion;
+               // String previousData = EncodingUtil.base64Encode(existingVersion.VersionData);
+                //String updatedData = previousData + base64Chunk;
+                existingVersion.VersionData = EncodingUtil.base64Decode(EncodingUtil.base64Encode(existingVersion.VersionData)+base64Chunk);
+                update existingVersion;
+                newVersion = existingVersion;
+            }
+
+            // Return ContentDocumentId only at the last chunk
+            return isLastChunk ? newVersion.ContentDocumentId : newVersion.Id;
+
+        } catch (Exception e) {
+            throw handleException(e);
         }
-
-        // Always return the ContentDocumentId to continue appending
-        return contentDocumentId;
-
-    } catch (Exception e) {
-        throw new AuraHandledException('Error uploading file: ' + e.getMessage());
     }
-}
