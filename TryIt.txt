@@ -1,47 +1,80 @@
-private HttpResponse callOutToTextractAPI(String base64File, String fileExtension) {
-    if (String.isEmpty(base64File)) {
-        Application.logentry.error('ContentVersionsService.callOutToTextractAPI(): Base64 file data is empty.');
-        return null;
+@AuraEnabled
+    public static String uploadChunkToContentDocument(
+        String fileName,
+        String base64Chunk,
+        String contentType,
+        Boolean isLastChunk,
+        String contentVersionId // Now passing ContentVersionId, not ContentDocumentId
+    ) {
+        try {
+            ContentVersion newVersion;
+
+            if (contentVersionId == null) {
+                newVersion = new ContentVersion(
+                    Title = fileName,
+                    PathOnClient = fileName,
+                    VersionData = EncodingUtil.base64Decode(base64Chunk),
+                    FirstPublishLocationId = UserInfo.getUserId(), // Associate with the user or a record
+                    IsMajorVersion = false
+                );
+                insert newVersion;
+            } else {
+                // Create a new ContentVersion record for each chunk
+                newVersion = new ContentVersion(
+                    Title = fileName,
+                    PathOnClient = fileName,
+                    VersionData = EncodingUtil.base64Decode(base64Chunk),
+                    id = contentVersionId, // Associate with previous ContentDocument
+                    IsMajorVersion = isLastChunk
+                );
+                insert newVersion;
+            }
+
+            // Return ContentDocumentId only at the last chunk
+            return isLastChunk ? newVersion.ContentDocumentId : newVersion.Id;
+
+        } catch (Exception e) {
+            throw handleException(e);
+        }
     }
 
-    HttpRequest request = new HttpRequest();
-    AwsWrapper mapi = new AwsWrapper();
-    Textract_API_Details__mdt apiDetails = TextractMetaDataSelector.newInstance().getTextractAPIDetails('TextractAPIDetails');
 
-    if (apiDetails == null) {
-        Application.logentry.error('ContentVersionsService.callOutToTextractAPI(): API details are missing.');
-        return null;
-    }
-
-    // Assign Base64 data
-    mapi.file = base64File;
-
-    // Check if the file is HEIC format
-    if (fileExtension != null && fileExtension.equalsIgnoreCase('heic')) {
-        mapi.returnFile = true;
-    }
-
-    request.setEndpoint(apiDetails.EndPoint__c);
-    request.setHeader('Content-Type', apiDetails.ContentType__c);
-    request.setHeader('User-Agent', apiDetails.UserAgent__c);
-    request.setHeader('x-api-key', apiDetails.APIKey__c);
-    request.setMethod(apiDetails.HTTPMethod__c);
-    request.setTimeout((Integer) apiDetails.TimeOut__c);
-    request.setBody(JSON.serialize(mapi));
-
-    try {
-        return new Http().send(request);
-    } catch (Exception e) {
-        Application.logentry.error('ContentVersionsService.callOutToTextractAPI(): Error during API callout: ' + e);
-        return null;
-    }
-}
-
-public Map<String, String> getReceiptJSON(String base64File, String fileExtension) {
-    String responseBody = '';
-    HttpResponse response = callOutToTextractAPI(base64File, fileExtension);
-    if (response != null && (response.getStatusCode() == 200 || response.getStatusCode() == 201)) {
-        responseBody = response.getBody();
-    }
-    return parseReceiptJSON(responseBody);
-}
+        uploadInChunks(fileName, base64Data, contentType) {
+            this.isLoading = true;
+            let startPosition = 0;
+            let endPosition = Math.min(CHUNK_SIZE, base64Data.length);
+            let contentDocumentId = null; // Now using ContentVersionId instead of ContentDocumentId
+        
+            const uploadChunk = () => {
+                const chunk = base64Data.substring(startPosition, endPosition);
+        
+                uploadChunkToContentDocument({
+                    fileName: fileName,
+                    base64Chunk: chunk,
+                    contentType: contentType,
+                    isLastChunk: endPosition >= base64Data.length,
+                    contentVersionId: contentDocumentId // Use ContentDocumentId instead
+                })
+                .then((returnedId) => {
+                    if (!contentDocumentId) {
+                        contentDocumentId = returnedId; // Set ContentDocumentId from the first response
+                    }
+                    if (endPosition < base64Data.length) {
+                        startPosition = endPosition;
+                        endPosition = Math.min(startPosition + CHUNK_SIZE, base64Data.length);
+                        uploadChunk();
+                    } else {
+                        this.uploadedFileIds.push(contentDocumentId);
+                        this.showSuccessMessage("File uploaded successfully!");
+                        this.isLoading = false;
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error uploading chunk:", error);
+                    this.showErrorMessage("File upload failed!", true);
+                    this.isLoading = false;
+                });
+            };
+        
+            uploadChunk(); // Start chunked upload
+        }
