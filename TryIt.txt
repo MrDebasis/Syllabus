@@ -1,1 +1,6 @@
 
+deleteEventFromWarningPopUp(value){
+        console.log('value --->'+value.detail);
+        //this.showItemizedReceipt = this.contentDocumentIds !==null ? Array.isArray(this.contentDocumentIds) ? this.contentDocumentIds.length > 0  : false : false;
+        this.dispatchEvent(new CustomEvent('delete' , {detail:false}));
+    }
