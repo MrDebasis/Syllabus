@@ -1,6 +1,5 @@
-
-deleteEventFromWarningPopUp(value){
-        console.log('value --->'+value.detail);
-        //this.showItemizedReceipt = this.contentDocumentIds !==null ? Array.isArray(this.contentDocumentIds) ? this.contentDocumentIds.length > 0  : false : false;
-        this.dispatchEvent(new CustomEvent('delete' , {detail:false}));
-    }
+ if (Array.isArray(this.contentDocumentIds) && this.contentDocumentIds.includes(value.detail)) {
+        // Remove the value.detail from contentDocumentIds array
+        this.contentDocumentIds = this.contentDocumentIds.filter(id => id !== value.detail);
+        console.log('Updated contentDocumentIds:', this.contentDocumentIds);
+    } 
