@@ -1,5 +1,1 @@
-if (this.submitrec?.length > 0 && this.submitrec[0]?.issubmitreport__c !== null && this.submitrec[0]?.issubmitreport__c !== undefined) {
-    console.log('Field is present and not null:', this.submitrec[0].issubmitreport__c);
-} else {
-    console.warn('Field is either missing or null');
-}
+
