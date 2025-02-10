@@ -1,19 +1,1 @@
 
-    updateContentDocId(value){
-     /*   let parsedArray = JSON.parse(value.detail);
-        if(parsedArray.length !== 0) {
-        parsedArray.forEach(element => {
-            this.valuesFromReceiptScreen.push(element);
-        }); 
-    }*/
-        console.log('Its comming contentDocId from 2nd screen' + value.detail);
-        if(value !== null && value !== undefined && value !== '' && value.detail !== null && value.detail !== undefined && value.detail !== ''){
-            this.showItemizedReceipt = true;
-
-            if(!Array.isArray(this.contentDocumentIds)){
-                this.contentDocumentIds = []; 
-            }
-            this.contentDocumentIds.push(value.detail);
-            this.dispatchEvent(new CustomEvent('imageupload', { detail: value.detail}));
-        }
-    }
