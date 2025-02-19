@@ -1,29 +1,21 @@
 <template>
-   <!-- <lightning-card title="Uploaded Files" icon-name="standard:file">
-       <div class ="boxview">
-     <template for:each={files} for:item="file">
-                                         <img class="file-preview" key ={file.Id} src={file.downloadUrl} alt={file.title} onclick={filePreview} />
-
-                                         <template if:true={file.isPdf} key ={file.Id}>
-                                            <p key ={file.Id}> pdf file wala</p>
-                <iframe src={file.pdfURL} width="100%" height="300px" key ={file.Id}></iframe>
-            </template>
-                                    </template>
-       </div>
-    </lightning-card>-->
     <lightning-card title="Uploaded Files" icon-name="standard:file">
         <div class="boxview">
             <template for:each={files} for:item="file">
-                <img class="file-preview" key={file.Id} src={file.downloadUrl} alt={file.Title} onclick={filePreview} />
-                
-                <template if:true={file.isPdf}>
-                    <p key={file.Id}>PDF File</p>
-                    <iframe src={file.pdfURL} width="100%" height="300px" key={file.Id}></iframe>
-                    <iframe embed={file.pdfURL} type ="application/pdf" width="100%" height="300px" key={file.Id}></iframe>
-                     
-                    <div class="slds-media__body slds-var-p-left_xx-small" key={file.Id}>
-                    <span class="slds-file__text slds-truncate" title={file.Title}>{file.Title}.{file.Extension}</span>
-                </template>
+                <div key={file.Id}>
+                    <img class="file-preview" src={file.downloadUrl} alt={file.Title} onclick={filePreview} />
+                    
+                    <template if:true={file.isPdf}>
+                        <p>PDF File</p>
+                        <iframe src={file.pdfURL} type="application/pdf" width="100%" height="300px"></iframe>
+                        
+                        <div class="slds-media__body slds-var-p-left_xx-small">
+                            <span class="slds-file__text slds-truncate" title={file.Title}>
+                                {file.Title}.{file.Extension}
+                            </span>
+                        </div>
+                    </template>
+                </div>
             </template>
         </div>
     </lightning-card>
