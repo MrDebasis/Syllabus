@@ -1,1 +1,80 @@
 
+import { LightningElement , api, wire, track} from 'lwc';
+import getFileData from '@salesforce/apex/PortalAddExpenseController.getAssignContentDocuments';
+import pdfImage from "@salesforce/resourceUrl/PdfReceiptIcon";
+
+
+
+
+
+export default class Darsh_FileAdditionalFunctionality extends LightningElement {
+   //recordId ='a2odp00000085AbAAI';
+   
+   @api expenseLineItemId ='a2odp00000085AbAAI'; // Contact record Id
+   @api recordId;
+    @track files = [];
+    receiptImage = pdfImage;
+   
+   connectedCallback(){
+    this.fetchFileData();
+
+   }
+
+ fetchFileData() {
+            this.fileList = "";
+            getFileData({ recordId: this.recordId })
+                .then(result => {
+                    this.fileList = result;
+                    if (this.fileList.length > 0) {
+                        this.showAlluploadedFile = true;
+                    }
+                    else {
+                        this.showAlluploadedFile = false;
+                    }
+                    for (let i = 0; i < this.fileList.length; i++) {
+                        let file = {
+                            
+                            Id: this.fileList[i].Id,
+                            Title: this.fileList[i].ContentDocument.Title,
+                            Extension: this.fileList[i].ContentDocument.FileExtension,
+                            ContentDocumentId: this.fileList[i].ContentDocumentId,
+                            CreatedDate: this.fileList[i].CreatedDate,
+                            thumbnailFileCard:
+                                "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
+                                this.fileList[i].Id +
+                                "&operationContext=CHATTER&contentId=" +
+                                this.fileList[i].ContentDocumentId,
+                            downloadUrl:
+                                "/sfc/servlet.shepherd/document/download/" +
+                                this.fileList[i].ContentDocumentId,
+                            pdfview:
+                            "/sfc/servlet.shepherd/document/download/" +  this.fileList[i].ContentDocumentId + "#toolbar=0"
+                        };
+                        file.pdfURL = file.pdfview;
+                        file.downloadUrl = file.Extension == 'pdf' ? this.receiptImage : file.downloadUrl;
+                        this.files.push(file);
+
+                    }
+
+                })
+        
+    }
+
+ 
+}
+
+
+<template>
+    <lightning-card title="Uploaded Files" icon-name="standard:file">
+       <div class ="boxview">
+     <template for:each={files} for:item="file">
+                                         <img class="file-preview" key ={file.Id} src={file.downloadUrl} alt={file.title} onclick={filePreview} />
+
+                                         <template if:true={file.isPdf} key ={file.Id}>
+                                            <p key ={file.Id}> pdf file wala</p>
+                <iframe src={file.pdfURL} width="100%" height="300px" key ={file.Id}></iframe>
+            </template>
+                                    </template>
+       </div>
+    </lightning-card>
+</template>
