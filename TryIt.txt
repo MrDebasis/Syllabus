@@ -1,58 +1,30 @@
-<lightning-card title="Uploaded Files" icon-name="standard:file">
-    <div class="boxview">
-        <template for:each={files} for:item="file">
-            <img class="file-preview" key={file.Id} src={file.downloadUrl} alt={file.Title} onclick={filePreview} />
-            
-            <template if:true={file.isPdf}>
-                <p key={file.Id}>PDF File</p>
-                <iframe src={file.pdfURL} width="100%" height="300px" key={file.Id}></iframe>
+<template>
+   <!-- <lightning-card title="Uploaded Files" icon-name="standard:file">
+       <div class ="boxview">
+     <template for:each={files} for:item="file">
+                                         <img class="file-preview" key ={file.Id} src={file.downloadUrl} alt={file.title} onclick={filePreview} />
+
+                                         <template if:true={file.isPdf} key ={file.Id}>
+                                            <p key ={file.Id}> pdf file wala</p>
+                <iframe src={file.pdfURL} width="100%" height="300px" key ={file.Id}></iframe>
             </template>
-        </template>
-    </div>
-</lightning-card>
-
-import { LightningElement, api, track } from 'lwc';
-import getFileData from '@salesforce/apex/PortalAddExpenseController.getAssignContentDocuments';
-import pdfImage from "@salesforce/resourceUrl/PdfReceiptIcon";
-
-export default class Darsh_FileAdditionalFunctionality extends LightningElement {
-    @api recordId;
-    @track files = [];
-    receiptImage = pdfImage;
-
-    connectedCallback() {
-        this.fetchFileData();
-    }
-
-    fetchFileData() {
-        getFileData({ recordId: this.recordId })
-            .then(result => {
-                this.files = result.map(fileRec => {
-                    let file = {
-                        Id: fileRec.Id,
-                        Title: fileRec.ContentDocument.Title,
-                        Extension: fileRec.ContentDocument.FileExtension,
-                        ContentDocumentId: fileRec.ContentDocumentId,
-                        CreatedDate: fileRec.CreatedDate,
-                        thumbnailFileCard:
-                            "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
-                            fileRec.Id,
-                        downloadUrl:
-                            "/sfc/servlet.shepherd/document/download/" + fileRec.ContentDocumentId,
-                        pdfURL:
-                            "/sfc/servlet.shepherd/version/renditionDownload?rendition=ORIGINAL&versionId=" +
-                            fileRec.Id,
-                        isPdf: fileRec.ContentDocument.FileExtension === 'pdf'
-                    };
-
-                    // Show an icon for PDFs instead of a broken image
-                    file.downloadUrl = file.isPdf ? this.receiptImage : file.downloadUrl;
-
-                    return file;
-                });
-            })
-            .catch(error => {
-                console.error("Error fetching file data:", error);
-            });
-    }
-}
+                                    </template>
+       </div>
+    </lightning-card>-->
+    <lightning-card title="Uploaded Files" icon-name="standard:file">
+        <div class="boxview">
+            <template for:each={files} for:item="file">
+                <img class="file-preview" key={file.Id} src={file.downloadUrl} alt={file.Title} onclick={filePreview} />
+                
+                <template if:true={file.isPdf}>
+                    <p key={file.Id}>PDF File</p>
+                    <iframe src={file.pdfURL} width="100%" height="300px" key={file.Id}></iframe>
+                    <iframe embed={file.pdfURL} type ="application/pdf" width="100%" height="300px" key={file.Id}></iframe>
+                     
+                    <div class="slds-media__body slds-var-p-left_xx-small" key={file.Id}>
+                    <span class="slds-file__text slds-truncate" title={file.Title}>{file.Title}.{file.Extension}</span>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>
