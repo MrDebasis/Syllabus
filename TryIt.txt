@@ -1,170 +1,51 @@
-
 <div style="">
-    <div style="">
-
-    <div style="">
-        <div style="color: rgb(0, 0, 0); font-family: arial; text-align: center;">
-            <font face="Arial, sans-serif" color="#3366ff" style="color: rgb(0, 0, 0);">
-                <b style="">
-                <font style="">
-                    <font face="arial" style="font-size: 12pt; color: rgb(0, 0, 0);">&nbsp; </font>
-                    <font size="7">
-                        <font face="arial" style="color: rgb(0, 0, 0);">&nbsp;</font>
-                        <font style="">&nbsp;</font>
-                    </font>
-                </font>
-                </b>
-            </font>
-            <b style="">
-                <span style="font-family: Arial, sans-serif; color: rgb(16, 69, 115);">
-                    <font size="7">An update about your MyCARVYKTI<sup>®</sup></font>
-                </span>
-            </b>
-        </div>
-
-        <b style="color: rgb(0, 0, 0); font-family: arial;">
-            <div style="text-align: center;">
-                <b style="">
-                    <span style="font-family: Arial, sans-serif; color: rgb(16, 69, 115);">
-                        <font size="7">Patient Support Specialist</font>
-                    </span>
-                </b>
-            </div>
+    <div style="text-align: center;">
+        <b style="font-family: Arial, sans-serif; color: rgb(16, 69, 115); font-size: 32px;">
+            An update about your MyCARVYKTI<sup>&reg;</sup>
         </b>
-        <div style="color: rgb(0, 0, 0); font-family: arial; font-size: 12pt;">
-            <font face="Arial, sans-serif" color="#999999" style="">
-                <font style="" size="6">
-                    <b style="">______________________________________________</b>
-                </font>
-            </font>
-        </div>
-        <div style="color: rgb(0, 0, 0); font-family: arial; font-size: 12pt;">
-            <font face="Arial, sans-serif"><br></font>
-        </div>
-        <div style="">
-            <div style="">
-                <font face="Arial, sans-serif" size="5">Dear [Recipient First Name and Last Name],</font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5">&nbsp;</font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5"><br></font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5">
-                    This is to inform you that your Patient Support Specialist 
-                    <font style="background-color: rgb(255, 255, 255);" color="#cc33cc">[First and Last Name of PSS departing]</font> 
-                    is leaving the MyCARVYKTI® team. We are sad to see 
-                    <font color="#cc33cc">[First Name]</font> go, but we wish them all the best for their future plans.
-                </font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5"><br>
-                </font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5">We want to assure you that you will continue to be in great hands with 
-                    <font color="#cc33cc">[First and Last Name of PSS assigned]</font>,
-                    our Patient Support Specialist who is ready to support you now and throughout your MyCARVYKTI® journey. You can reach 
-                    <font color="#cc33cc">[First Name]</font> 
-                    at 1-800-559-7875, 
-                    <font color="#cc33cc">ext [XX].</font>
-                </font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5"><br></font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5">If you have any questions about this change regarding your Patient Support Specialist, please reach out to us at 1-800-559-7875, Monday through Friday, 8:00 AM to 8:00 PM ET.
-
-                </font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5"><br>
-                </font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5"><br>
-                </font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5"><br></font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5">Warm regards,</font>
-            </div>
-            <div style="">
-                <font face="Arial, sans-serif" size="5">Your Patient Support Specialist&nbsp;
-                </font>
-            </div>
-            <div style="color: rgb(0, 0, 0); font-family: arial; font-size: 12pt;">
-                <br>
-            </div>
-        </div>
-        <div style="color: rgb(0, 0, 0); font-family: arial; font-size: 12pt;">
-            <font face="Arial, sans-serif" size="5"><br></font>
-        </div>
-        <div style="color: rgb(0, 0, 0); font-family: arial; font-size: 12pt;">
-            <font face="Arial, sans-serif" size="5"><br></font>
-        </div>
-        <div style="color: rgb(0, 0, 0); font-family: arial;">
-            <font face="Arial, sans-serif" style="">
-                <div style="color: rgb(0, 0, 0);">
-                    <div style="font-size: 12pt; background-color: rgb(255, 255, 255);">
-                    <font size="5">This is an automated message from the MyCARVYKTI</font>
-                    <span style="font-size: x-large;">®</span>
-                    <font size="5">
-                    &nbsp;Patient Support Program. Please do not reply to this email as it is not set up to process any responses.&nbsp;</font>
-                    </div>
-                    <div style="font-size: x-large; font-family: arial; background-color: rgb(255, 255, 255);"><br>
-                    </div>
-                    <div style="font-size: 12pt; background-color: rgb(255, 255, 255);">
-                        <div style="">
-                            <font size="5">If you want to opt out of the MyCARVYKTI</font>
-                            <span style="font-size: x-large;">®</span>
-                            <font size="5">&nbsp;Patient Support Program, please call 1-800-559-7875, Monday through Friday,</font>
-                            <font style="">
-                                <font size="5"> 8:00 </font>AM
-                            </font>
-                            <font size="5">&nbsp;to 8:00 </font>PM
-                            <font size="5">&nbsp;ET.</font>
-                        </div>
-                    </div>
-                    <div style="font-size: x-large; font-family: arial; background-color: rgb(255, 255, 255);">
-                        <br>
-                    </div>
-                    <div style="font-size: 12pt; background-color: rgb(255, 255, 255);">
-                        <font size="5">Please read our Privacy Policy available at&nbsp;</font>
-                    </div>
-                    <div style="font-size: 12pt; background-color: rgb(255, 255, 255);">
-                        <font size="5">
-                        <a href="http://www.janssenpatientsupportprogram.com/privacypolicy">www.janssenpatientsupportprogram.com/privacypolicy.</a>&nbsp;
-                        </font>
-                    </div>
-                    <div style="font-size: 12pt; background-color: rgb(255, 255, 255);">
-                        <font size="5"><br>
-                        </font>
-                    </div>
-                    <div style="font-size: 12pt; background-color: rgb(255, 255, 255);">
-                        <font size="5"><br>
-                        </font>
-                    </div>
-                    <div style="background-color: rgb(255, 255, 255); text-align: center;">
-                        <font size="4">
-                            <font style="">© Janssen Biotech, Inc. 2022&nbsp; </font>
-                            <font style="">&nbsp;&nbsp;</font>01/23
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cp-361726v1
-                        </font>
-                    </div>
-                    <div style="background-color: rgb(255, 255, 255); text-align: center;">
-                        <font style="" size="4">800 Ridgeview Drive |&nbsp; Horsham, PA 19044</font>
-                    </div>
-                </div>
-            </font>
-        </div>
     </div>
-    <div style="color: rgb(0, 0, 0); font-family: arial; font-size: 12pt;"><br></div>
-
-
-Error saving record: FIELD_INTEGRITY_EXCEPTION: The HTML Email Content contains improperly formatted merge fields. Please check the format of all the merge fields to ensure they start with {! and end with }.: HTML Value [HtmlValue]
+    <div style="text-align: center;">
+        <b style="font-family: Arial, sans-serif; color: rgb(16, 69, 115); font-size: 28px;">
+            Patient Support Specialist
+        </b>
+    </div>
+    <div style="text-align: center; font-family: Arial, sans-serif; font-size: 24px; color: #999;">
+        ______________________________________________
+    </div>
+    <div style="font-family: Arial, sans-serif; font-size: 20px;">
+        <p>Dear {!Recipient_FirstName} {!Recipient_LastName},</p>
+        <p>
+            This is to inform you that your Patient Support Specialist
+            <span style="color:#cc33cc;">{!Departing_PSS_FirstName} {!Departing_PSS_LastName}</span>
+            is leaving the MyCARVYKTI&reg; team. We are sad to see
+            <span style="color:#cc33cc;">{!Departing_PSS_FirstName}</span> go, but we wish them all the best.
+        </p>
+        <p>
+            You will continue to be in great hands with
+            <span style="color:#cc33cc;">{!New_PSS_FirstName} {!New_PSS_LastName}</span>,
+            our Patient Support Specialist who is ready to assist you.
+            You can reach <span style="color:#cc33cc;">{!New_PSS_FirstName}</span> at 1-800-559-7875, ext {!New_PSS_Ext}.
+        </p>
+        <p>
+            If you have any questions about this change, please reach out at 1-800-559-7875,
+            Monday through Friday, 8:00 AM to 8:00 PM ET.
+        </p>
+        <p>Warm regards,<br>Your Patient Support Specialist</p>
+    </div>
+    <div style="font-family: Arial, sans-serif; font-size: 18px;">
+        <p>
+            This is an automated message from the MyCARVYKTI&reg; Patient Support Program.
+            Please do not reply to this email.
+        </p>
+        <p>
+            If you want to opt out, please call 1-800-559-7875, Monday through Friday, 8:00 AM to 8:00 PM ET.
+        </p>
+        <p>
+            Read our Privacy Policy at
+            <a href="http://www.janssenpatientsupportprogram.com/privacypolicy">
+                www.janssenpatientsupportprogram.com/privacypolicy</a>.
+        </p>
+        <p style="text-align: center;">&copy; Janssen Biotech, Inc. 2022 | 01/23 | cp-361726v1</p>
+        <p style="text-align: center;">800 Ridgeview Drive | Horsham, PA 19044</p>
+    </div>
+</div>
