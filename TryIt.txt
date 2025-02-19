@@ -1,51 +1,54 @@
-<div style="">
-    <div style="text-align: center;">
-        <b style="font-family: Arial, sans-serif; color: rgb(16, 69, 115); font-size: 32px;">
-            An update about your MyCARVYKTI<sup>&reg;</sup>
-        </b>
-    </div>
-    <div style="text-align: center;">
-        <b style="font-family: Arial, sans-serif; color: rgb(16, 69, 115); font-size: 28px;">
-            Patient Support Specialist
-        </b>
-    </div>
-    <div style="text-align: center; font-family: Arial, sans-serif; font-size: 24px; color: #999;">
-        ______________________________________________
-    </div>
-    <div style="font-family: Arial, sans-serif; font-size: 20px;">
-        <p>Dear {!Recipient_FirstName} {!Recipient_LastName},</p>
-        <p>
-            This is to inform you that your Patient Support Specialist
-            <span style="color:#cc33cc;">{!Departing_PSS_FirstName} {!Departing_PSS_LastName}</span>
-            is leaving the MyCARVYKTI&reg; team. We are sad to see
-            <span style="color:#cc33cc;">{!Departing_PSS_FirstName}</span> go, but we wish them all the best.
-        </p>
-        <p>
-            You will continue to be in great hands with
-            <span style="color:#cc33cc;">{!New_PSS_FirstName} {!New_PSS_LastName}</span>,
-            our Patient Support Specialist who is ready to assist you.
-            You can reach <span style="color:#cc33cc;">{!New_PSS_FirstName}</span> at 1-800-559-7875, ext {!New_PSS_Ext}.
-        </p>
-        <p>
-            If you have any questions about this change, please reach out at 1-800-559-7875,
-            Monday through Friday, 8:00 AM to 8:00 PM ET.
-        </p>
-        <p>Warm regards,<br>Your Patient Support Specialist</p>
-    </div>
-    <div style="font-family: Arial, sans-serif; font-size: 18px;">
-        <p>
-            This is an automated message from the MyCARVYKTI&reg; Patient Support Program.
-            Please do not reply to this email.
-        </p>
-        <p>
-            If you want to opt out, please call 1-800-559-7875, Monday through Friday, 8:00 AM to 8:00 PM ET.
-        </p>
-        <p>
-            Read our Privacy Policy at
-            <a href="http://www.janssenpatientsupportprogram.com/privacypolicy">
-                www.janssenpatientsupportprogram.com/privacypolicy</a>.
-        </p>
-        <p style="text-align: center;">&copy; Janssen Biotech, Inc. 2022 | 01/23 | cp-361726v1</p>
-        <p style="text-align: center;">800 Ridgeview Drive | Horsham, PA 19044</p>
-    </div>
+<div style="text-align: center;">
+    <b style="color: rgb(16, 69, 115); font-family: Arial, sans-serif; font-size: 24px;">
+        An update about your MyCARVYKTI<sup>&reg;</sup>
+    </b>
 </div>
+
+<div style="text-align: center;">
+    <b style="color: rgb(16, 69, 115); font-family: Arial, sans-serif; font-size: 24px;">
+        Patient Support Specialist
+    </b>
+</div>
+
+<hr style="border: 1px solid #999999;">
+
+<p style="font-family: Arial, sans-serif; font-size: 18px;">Dear {!Recipient_FirstName} {!Recipient_LastName},</p>
+
+<p style="font-family: Arial, sans-serif; font-size: 18px;">
+    This is to inform you that your Patient Support Specialist, 
+    <b>{!PSS_Departing_FirstName} {!PSS_Departing_LastName}</b>, is leaving the MyCARVYKTI<sup>&reg;</sup> team. 
+    We are sad to see {!PSS_Departing_FirstName} go, but we wish them all the best for their future plans.
+</p>
+
+<p style="font-family: Arial, sans-serif; font-size: 18px;">
+    We want to assure you that you will continue to be in great hands with 
+    <b>{!PSS_Assigned_FirstName} {!PSS_Assigned_LastName}</b>, our Patient Support Specialist who is ready to support you now and throughout your MyCARVYKTI<sup>&reg;</sup> journey. 
+    You can reach {!PSS_Assigned_FirstName} at 1-800-559-7875, ext {!PSS_Extension}.
+</p>
+
+<p style="font-family: Arial, sans-serif; font-size: 18px;">
+    If you have any questions regarding this change, please reach out to us at 1-800-559-7875, Monday through Friday, 8:00 AM to 8:00 PM ET.
+</p>
+
+<p style="font-family: Arial, sans-serif; font-size: 18px;">Warm regards,</p>
+<p style="font-family: Arial, sans-serif; font-size: 18px;">Your Patient Support Specialist</p>
+
+<hr>
+
+<p style="font-family: Arial, sans-serif; font-size: 16px; color: #666;">
+    This is an automated message from the MyCARVYKTI<sup>&reg;</sup> Patient Support Program. 
+    Please do not reply to this email as it is not set up to process responses.
+</p>
+
+<p style="font-family: Arial, sans-serif; font-size: 16px; color: #666;">
+    If you want to opt out of the MyCARVYKTI<sup>&reg;</sup> Patient Support Program, please call 1-800-559-7875, Monday through Friday, 8:00 AM to 8:00 PM ET.
+</p>
+
+<p style="font-family: Arial, sans-serif; font-size: 16px; color: #666;">
+    Please read our Privacy Policy available at 
+    <a href="http://www.janssenpatientsupportprogram.com/privacypolicy" target="_blank">www.janssenpatientsupportprogram.com/privacypolicy</a>.
+</p>
+
+<p style="text-align: center; font-family: Arial, sans-serif; font-size: 14px; color: #666;">
+    &copy; Janssen Biotech, Inc. 2022 | 800 Ridgeview Drive | Horsham, PA 19044
+</p>
