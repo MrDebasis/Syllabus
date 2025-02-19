@@ -1,77 +1,58 @@
-
 <lightning-card title="Uploaded Files" icon-name="standard:file">
-       <div class ="boxview">
-     <template for:each={files} for:item="file">
-                                         <img class="file-preview" key ={file.Id} src={file.downloadUrl} alt={file.title} onclick={filePreview} />
-
-                                         <template if:true={file.isPdf} key ={file.Id}>
-                                            <p key ={file.Id}> pdf file wala</p>
-                <iframe src={file.pdfURL} width="100%" height="300px" key ={file.Id}></iframe>
+    <div class="boxview">
+        <template for:each={files} for:item="file">
+            <img class="file-preview" key={file.Id} src={file.downloadUrl} alt={file.Title} onclick={filePreview} />
+            
+            <template if:true={file.isPdf}>
+                <p key={file.Id}>PDF File</p>
+                <iframe src={file.pdfURL} width="100%" height="300px" key={file.Id}></iframe>
             </template>
-                                    </template>
-       </div>
-    </lightning-card>
+        </template>
+    </div>
+</lightning-card>
 
-import { LightningElement , api, wire, track} from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 import getFileData from '@salesforce/apex/PortalAddExpenseController.getAssignContentDocuments';
 import pdfImage from "@salesforce/resourceUrl/PdfReceiptIcon";
 
-
-
-
-
 export default class Darsh_FileAdditionalFunctionality extends LightningElement {
-   //recordId ='a2odp00000085AbAAI';
-   
-   @api expenseLineItemId ='a2odp00000085AbAAI'; // Contact record Id
-   @api recordId;
+    @api recordId;
     @track files = [];
     receiptImage = pdfImage;
-   
-   connectedCallback(){
-    this.fetchFileData();
 
-   }
-
- fetchFileData() {
-            this.fileList = "";
-            getFileData({ recordId: this.recordId })
-                .then(result => {
-                    this.fileList = result;
-                    if (this.fileList.length > 0) {
-                        this.showAlluploadedFile = true;
-                    }
-                    else {
-                        this.showAlluploadedFile = false;
-                    }
-                    for (let i = 0; i < this.fileList.length; i++) {
-                        let file = {
-                            
-                            Id: this.fileList[i].Id,
-                            Title: this.fileList[i].ContentDocument.Title,
-                            Extension: this.fileList[i].ContentDocument.FileExtension,
-                            ContentDocumentId: this.fileList[i].ContentDocumentId,
-                            CreatedDate: this.fileList[i].CreatedDate,
-                            thumbnailFileCard:
-                                "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
-                                this.fileList[i].Id +
-                                "&operationContext=CHATTER&contentId=" +
-                                this.fileList[i].ContentDocumentId,
-                            downloadUrl:
-                                "/sfc/servlet.shepherd/document/download/" +
-                                this.fileList[i].ContentDocumentId,
-                            pdfview:
-                            "/sfc/servlet.shepherd/document/download/" +  this.fileList[i].ContentDocumentId + "#toolbar=0"
-                        };
-                        file.pdfURL = file.pdfview;
-                        file.downloadUrl = file.Extension == 'pdf' ? this.receiptImage : file.downloadUrl;
-                        this.files.push(file);
-
-                    }
-
-                })
-        
+    connectedCallback() {
+        this.fetchFileData();
     }
 
- 
+    fetchFileData() {
+        getFileData({ recordId: this.recordId })
+            .then(result => {
+                this.files = result.map(fileRec => {
+                    let file = {
+                        Id: fileRec.Id,
+                        Title: fileRec.ContentDocument.Title,
+                        Extension: fileRec.ContentDocument.FileExtension,
+                        ContentDocumentId: fileRec.ContentDocumentId,
+                        CreatedDate: fileRec.CreatedDate,
+                        thumbnailFileCard:
+                            "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
+                            fileRec.Id,
+                        downloadUrl:
+                            "/sfc/servlet.shepherd/document/download/" + fileRec.ContentDocumentId,
+                        pdfURL:
+                            "/sfc/servlet.shepherd/version/renditionDownload?rendition=ORIGINAL&versionId=" +
+                            fileRec.Id,
+                        isPdf: fileRec.ContentDocument.FileExtension === 'pdf'
+                    };
+
+                    // Show an icon for PDFs instead of a broken image
+                    file.downloadUrl = file.isPdf ? this.receiptImage : file.downloadUrl;
+
+                    return file;
+                });
+            })
+            .catch(error => {
+                console.error("Error fetching file data:", error);
+            });
+    }
 }
