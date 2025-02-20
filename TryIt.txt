@@ -1,1 +1,1 @@
- this.value = returnValueFromParent.IS_LESSTHEN_TWENTY ? 'LESS_THEN_20' : 'GRETAER_THEN_20';
+<contentsecuritypolicy>img-src 'self' data: blob:;</contentsecuritypolicy>
