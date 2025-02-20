@@ -1,1 +1,3 @@
 
+  let returnVal;
+            returnVal.IS_LESSTHEN_TWENTY = this.value == 'LESS_THEN_20' ? true : false ;
