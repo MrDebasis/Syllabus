@@ -1,1 +1,7 @@
 
+const showReceiptScreenCategories = {
+    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen', width: 'slds-progress-bar__value percentage0', btnName : 'Next'},
+    2: { bool: 'enableTwentyDollerScr' , value: 'valuesFromTwentyDollerScreen', width: 'slds-progress-bar__value percentage25', btnName : 'Next'},
+    3: { bool: 'enableReceiptScreen' , value: 'valuesFromReceiptScreen', width: 'slds-progress-bar__value percentage50', btnName : 'Next'},
+    4: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen', width: 'slds-progress-bar__value percentage75', btnName : 'Add expense' }
+};
