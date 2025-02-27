@@ -5,3 +5,26 @@ const showReceiptScreenCategories = {
     3: { bool: 'enableReceiptScreen' , value: 'valuesFromReceiptScreen', width: 'slds-progress-bar__value percentage50', btnName : 'Next'},
     4: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen', width: 'slds-progress-bar__value percentage75', btnName : 'Add expense' }
 };
+
+
+    @track flowScreens = 
+    {
+        'Airline Fees' : showReceiptScreenCategories,
+        'Car Rental' : showReceiptScreenCategories,
+        'Hotel Fees' : showReceiptScreenCategories,
+        'Internet/Online' : showReceiptScreenCategories,
+        'Long Term Public Transportation (Rail/Bus)' : showReceiptScreenCategories,
+        'Meals and Supplies' : showReceiptScreenCategories,
+        'Miscellaneous' : showReceiptScreenCategories,
+        'Non Reimbursable Expense' : showReceiptScreenCategories,
+        'Parking' : showReceiptScreenCategories,
+        'Personal Car Expenses' : showReceiptScreenCategories,
+        'Public Transport':showReceiptScreenCategories,
+        'Taxi or Ride Share': showReceiptScreenCategories,
+        'Tips/Gratuities': showWithOutReceiptScreenCategories,
+        'Personal Car Mileage' : showWithOutReceiptScreenCategories,
+        'Laundry' : showSubCategoryWithReceiptScreenCategories,
+        'Tolls': showSubCategoryWithReceiptScreenCategories
+    }
+
+ this.flowScreens[this.selectedExpenseCategory] =showReceiptScreenCategories1;
