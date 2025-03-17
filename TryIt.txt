@@ -1,8 +1,1 @@
-const parsedValue = parseFloat(inputValue);
-        
-        if (!isNaN(parsedValue)) {
-            this.numberValue = parsedValue;
-            this.flag = parsedValue >= 0 && parsedValue < 20;
-        } else {
-            this.flag = false; // If input is not a number, set flag to false
-        }
+/^(?:[0-9]|1[0-9])(?:\.\d{1,2})?$/
