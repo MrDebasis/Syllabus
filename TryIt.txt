@@ -1,2 +1,1 @@
-const combinedArray = [...this.unSubmittedArray, ...result];
-            this.unSubmittedArray = [...new Set(combinedArray.map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
+
