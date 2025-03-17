@@ -1,1 +1,7 @@
-this.unSubmittedArray = [...new Set([...this.unSubmittedArray, ...result].map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
+ loadData(){
+        return getTransientRecords({ limitSize: this.rowLimit, offset: this.rowOffSet, caseId: this.caseRecordId, userId:this.userId, totalCount:this.unSubmittedReportCount})
+        .then(result => {
+            if(result){
+                this.unSubmittedArray = [...this.unSubmittedArray, ...result];
+                this.unSubmittedArray = [...new Set([...this.unSubmittedArray, ...result].map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
+                this.unformattedExpense = [...this.unformattedExpense, ...result];
