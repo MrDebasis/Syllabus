@@ -1,7 +1,1 @@
-
-
-                    if(numericValue.toString().substring(numericValue.length-1).contains('.')){
-                        this.isReceiptAmountValid = false;
-                        this.isReceiptAmountValidDynamicClass();
-                        return;
-                    }
+   let parts = (parseFloat(this.expenseAmount)).split('.');
