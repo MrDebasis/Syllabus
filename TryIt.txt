@@ -10,3 +10,38 @@
 
 ^(?:0?[0-9](?:\.[0-9]{1,2})?|1[0-9](?:\.[0-9]{1,2})?)$
 ^(?:0?[0-9]|1[0-9])(?:\.[0-9]{1,2})?$
+
+
+ // Convert to a number to check the range
+        let numericValue = parseFloat(value);
+
+        // Check if it's a valid number
+        if (isNaN(numericValue)) {
+            this.errorMessage = 'Invalid input! Please enter a valid number.';
+            return;
+        }
+
+        // Ensure value is between 0 and 19.99
+        if (numericValue < 0 || numericValue > 19.99) {
+            this.errorMessage = 'Number must be between 0 and 19.99!';
+            return;
+        }
+
+        // Split by decimal to check length constraints
+        let parts = value.split('.');
+
+        // Ensure only up to two digits before the decimal
+        if (parts[0].length > 2) {
+            this.errorMessage = 'Too many digits before the decimal!';
+            return;
+        }
+
+        // Ensure only up to two decimal places
+        if (parts.length === 2 && parts[1].length > 2) {
+            this.errorMessage = 'Only up to two decimal places allowed!';
+            return;
+        }
+
+        // If all conditions pass, clear error
+        this.errorMessage = '';
+    }
