@@ -1,2 +1,8 @@
-
-/^(?:1?\d(?:\.\d{1,2})?|0(?:\.\d{1,2})?)$/
+const parsedValue = parseFloat(inputValue);
+        
+        if (!isNaN(parsedValue)) {
+            this.numberValue = parsedValue;
+            this.flag = parsedValue >= 0 && parsedValue < 20;
+        } else {
+            this.flag = false; // If input is not a number, set flag to false
+        }
