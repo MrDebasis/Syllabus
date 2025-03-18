@@ -54,3 +54,10 @@ export default class DateNormalizer extends LightningElement {
 }
 
  this.expenseAmount = this.expenseAmount !== null && this.expenseAmount !== '' && this.expenseAmount !== undefined ? this.expenseAmount : values.total != '' && values.total != undefined && values.total != null ? values.total.includes('$') ? values.total.replace('$','').trim() : values.total : values.total;
+
+ if (isNaN(this.expenseAmount) || this.expenseAmount === '' || this.expenseAmount === null) {
+        console.error('❌ Invalid input: Expense amount must be a number.');
+        this.expenseAmount = null; // Reset invalid values
+    } else {
+        this.expenseAmount = parseFloat(this.expenseAmount);
+    }
