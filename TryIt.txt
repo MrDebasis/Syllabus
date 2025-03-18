@@ -1,63 +1,24 @@
-  formatDate(dateString) {
-        const date = new Date(dateString);
-        const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-        const year = utcDate.getUTCFullYear();
-        const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(utcDate.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
-
-2024-12-08
-
-11/29/2024
-
-import { LightningElement, track } from 'lwc';
-
-export default class DateNormalizer extends LightningElement {
-    @track normalizedDate = '';
-
-    handleDateChange(event) {
-        const inputDate = event.target.value;
-        try {
-            this.normalizedDate = this.normalizeDate(inputDate);
-        } catch (error) {
-            this.normalizedDate = 'Invalid Date';
-        }
-    }
-
-    normalizeDate(dateStr) {
+ normalizeDate(dateStr) {
         if (!dateStr || typeof dateStr !== 'string') {
             throw new Error("Invalid input");
         }
 
-        // ✅ Step 1: Preprocess the date string to handle various formats
         let cleanedDateStr = dateStr
             .trim()
-            .replace(/[,]/g, '') // Remove commas
-            .replace(/(\d{1,2})[st|nd|rd|th]/gi, '$1') // Remove ordinal suffixes (e.g., 1st → 1)
-            .replace(/(\d+)(?:\s+|-|\/)([A-Za-z]+)(?:\s+|-|\/)(\d+)/, '$2 $1, $3'); // Convert "08-Dec-2024" → "Dec 08, 2024"
+            .replace(/[,]/g, '')  //ex : "December 8, 2024" o/p : December 8 2024 // Removes ","
+            .replace(/(\d{1,2})[st|nd|rd|th]/gi, '$1') //removes  [th/st/nd/rd/th/gi] Ex: 8th December 2024 o/p: 8 December 2024
+            .replace(/(\d+)(?:\s+|-|\/)([A-Za-z]+)(?:\s+|-|\/)(\d+)/, '$2 $1, $3');  // finally Formating to this 2024-12-08
 
-        // ✅ Step 2: Try parsing with Date object
         let date = new Date(cleanedDateStr);
 
         if (isNaN(date.getTime())) {
             throw new Error("Invalid date format");
         }
 
-        // ✅ Step 3: Format the date as YYYY-MM-DD
+       
         let year = date.getFullYear();
         let month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure two-digit month
         let day = String(date.getDate()).padStart(2, '0'); // Ensure two-digit day
 
         return `${year}-${month}-${day}`;
-    }
-}
-
- this.expenseAmount = this.expenseAmount !== null && this.expenseAmount !== '' && this.expenseAmount !== undefined ? this.expenseAmount : values.total != '' && values.total != undefined && values.total != null ? values.total.includes('$') ? values.total.replace('$','').trim() : values.total : values.total;
-
- if (isNaN(this.expenseAmount) || this.expenseAmount === '' || this.expenseAmount === null) {
-        console.error('❌ Invalid input: Expense amount must be a number.');
-        this.expenseAmount = null; // Reset invalid values
-    } else {
-        this.expenseAmount = parseFloat(this.expenseAmount);
     }
