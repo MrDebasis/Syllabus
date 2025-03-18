@@ -10,3 +10,46 @@
 2024-12-08
 
 11/29/2024
+
+import { LightningElement, track } from 'lwc';
+
+export default class DateNormalizer extends LightningElement {
+    @track normalizedDate = '';
+
+    handleDateChange(event) {
+        const inputDate = event.target.value;
+        try {
+            this.normalizedDate = this.normalizeDate(inputDate);
+        } catch (error) {
+            this.normalizedDate = 'Invalid Date';
+        }
+    }
+
+    normalizeDate(dateStr) {
+        if (!dateStr || typeof dateStr !== 'string') {
+            throw new Error("Invalid input");
+        }
+
+        // ✅ Step 1: Preprocess the date string to handle various formats
+        let cleanedDateStr = dateStr
+            .trim()
+            .replace(/[,]/g, '') // Remove commas
+            .replace(/(\d{1,2})[st|nd|rd|th]/gi, '$1') // Remove ordinal suffixes (e.g., 1st → 1)
+            .replace(/(\d+)(?:\s+|-|\/)([A-Za-z]+)(?:\s+|-|\/)(\d+)/, '$2 $1, $3'); // Convert "08-Dec-2024" → "Dec 08, 2024"
+
+        // ✅ Step 2: Try parsing with Date object
+        let date = new Date(cleanedDateStr);
+
+        if (isNaN(date.getTime())) {
+            throw new Error("Invalid date format");
+        }
+
+        // ✅ Step 3: Format the date as YYYY-MM-DD
+        let year = date.getFullYear();
+        let month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure two-digit month
+        let day = String(date.getDate()).padStart(2, '0'); // Ensure two-digit day
+
+        return `${year}-${month}-${day}`;
+    }
+}
+
