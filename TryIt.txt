@@ -1,6 +1,9 @@
-   /* dateFormator(dateString) {
-        if (dateString) {
-            const date = new Date(dateString);
-            return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
-        }
-    }*/
+dateFormator(dateString) {
+    if (dateString) {
+        // Ensure date is parsed as UTC
+        const dateParts = dateString.split('-'); // Expecting "YYYY-MM-DD"
+        const date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2])); 
+        
+        return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+    }
+}
