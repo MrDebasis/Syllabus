@@ -1,1 +1,16 @@
 
+  @track imageIds;
+        updateButtonsAndRenderImage() {
+            try{
+            if (this.imageMap.size > 0) {
+                console.log('imageMapSize', this.imageMap.size);
+                    const firstImageId = this.imageMap.get(this.currentSlNo);
+                    console.log('Rendering Image ID:', firstImageId);
+                    this.imageIds = firstImageId;
+                    this.fetchFileVersions();
+                    this.backButtonDisabled = this.currentSlNo === 1;
+                    this.nextButtonDisabled = !this.imageMap.has(this.currentSlNo + 1);
+            }}catch(error){
+                console.log('error--->'+error);
+            }
+        }
