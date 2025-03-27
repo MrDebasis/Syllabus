@@ -1,13 +1,16 @@
-ContentDocumentId
+set contentDocumentIds(value) {
+    if (Array.isArray(value)) {
+        this._contentDocumentIds = value;
+    } else {
+        this._contentDocumentIds = [value];
+    }
 
- set contentDocumentIds(value) {
-            if(Array.isArray(value)){
-                this._contentDocumentIds = value;
-            }else{
-                this._contentDocumentIds = [value];
-            }
+    this.initializeImageMap();
+    
+    // Filter allFiles to keep only those that have a matching ContentDocumentId
+    this.allFiles = this.allFiles.filter(file => 
+        this._contentDocumentIds.includes(file.ContentDocumentId)
+    );
 
-            this.initializeImageMap();
-            console.debug('this.allFiles',this.allFiles);
-
-        }
+    console.debug('Filtered allFiles:', this.allFiles);
+}
