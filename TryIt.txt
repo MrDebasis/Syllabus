@@ -1,10 +1,20 @@
-  @track fileList = [];
-keep only what ever value is coming here :       set contentDocumentIds(value) {
-            console.log("value from third screen to child file navigation", value);
-            if(Array.isArray(value)){
-                this._contentDocumentIds = value;
-            }else{
-                this._contentDocumentIds = [value];
-            }
-            this.initializeImageMap();
-        } take the id here and check its matching with ContentDocumentId if its matching then keep otherwise remove it
+@track fileList = [];
+
+set contentDocumentIds(value) {
+    console.log("value from third screen to child file navigation", value);
+
+    if (Array.isArray(value)) {
+        this._contentDocumentIds = value;
+    } else {
+        this._contentDocumentIds = [value];
+    }
+
+    this.initializeImageMap();
+    this.filterFileList(); // Call filter function after updating IDs
+}
+
+filterFileList() {
+    this.fileList = this.fileList.filter(file => 
+        this._contentDocumentIds.includes(file.ContentDocumentId)
+    );
+}
