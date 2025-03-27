@@ -1,1 +1,13 @@
+ContentDocumentId
 
+ set contentDocumentIds(value) {
+            if(Array.isArray(value)){
+                this._contentDocumentIds = value;
+            }else{
+                this._contentDocumentIds = [value];
+            }
+
+            this.initializeImageMap();
+            console.debug('this.allFiles',this.allFiles);
+
+        }
