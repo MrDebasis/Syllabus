@@ -1,20 +1,4 @@
-@track fileList = [];
-
-set contentDocumentIds(value) {
-    console.log("value from third screen to child file navigation", value);
-
-    if (Array.isArray(value)) {
-        this._contentDocumentIds = value;
-    } else {
-        this._contentDocumentIds = [value];
-    }
-
-    this.initializeImageMap();
-    this.filterFileList(); // Call filter function after updating IDs
-}
-
-filterFileList() {
-    this.fileList = this.fileList.filter(file => 
-        this._contentDocumentIds.includes(file.ContentDocumentId)
-    );
+isValidSalesforceDate(dateString) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    return dateRegex.test(dateString);
 }
