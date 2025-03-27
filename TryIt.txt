@@ -1,1 +1,9 @@
+    @track _contentDocumentIds = [];
+    @api
+    get contentDocumentIds() {
+        return this._contentDocumentIds;
+    }
+    set contentDocumentIds(value) {
+        this._contentDocumentIds = value;
+    }
 
