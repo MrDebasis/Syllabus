@@ -1,24 +1,9 @@
-1 st this.allFiles [{"Id":"068dp000001SSYfAAO","Title":"test1","Extension":"jpg","ContentDocumentId":"069dp000001WkTlAAK","CreatedDate":"2025-03-27T13:07:50.000Z","thumbnailFileCard":"/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=068dp000001SSYfAAO&operationContext=CHATTER&contentId=069dp000001WkTlAAK","downloadUrl":"/sfc/servlet.shepherd/document/download/069dp000001WkTlAAK","pdfURL":"/sfc/servlet.shepherd/document/download/069dp000001WkTlAAK"},{"Id":"068dp000001SOQEAA4","Title":"Delete1_sucessToastIcon","Extension":"jpeg","ContentDocumentId":"069dp000001WgOYAA0","CreatedDate":"2025-03-27T13:08:11.000Z","thumbnailFileCard":"/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=068dp000001SOQEAA4&operationContext=CHATTER&contentId=069dp000001WgOYAA0","downloadUrl":"/sfc/servlet.shepherd/document/download/069dp000001WgOYAA0","pdfURL":"/sfc/servlet.shepherd/document/download/069dp000001WgOYAA0"}]
+ if (this.mobileView && Array.isArray(this.allFiles)) {
+        // Corrected filter logic
+        this.allFiles = this.allFiles.filter(file => {
+            console.log('Checking ContentDocumentId:', file.ContentDocumentId);
+            return this._contentDocumentIds.includes(file.ContentDocumentId);
+        });
 
-       @api
-        get contentDocumentIds() {
-            return this._contentDocumentIds;
-        }
-        set contentDocumentIds(value) {
-            if(Array.isArray(value)){
-                this._contentDocumentIds = value;
-            }else{
-                this._contentDocumentIds = [value];
-            }
-
-            this.initializeImageMap();
-            console.log('1 st this.allFiles',JSON.stringify(this.allFiles));
-            if(this.mobileView){
-            this.allFiles = this.allFiles.filter(file => 
-                console.log('ContentDocumentId',file.ContentDocumentId),
-                this._contentDocumentIds.includes(file.ContentDocumentId)
-            );
-            console.log('2nd this.allFiles',JSON.stringify(this.allFiles));
-        }
-
-        }
+        console.log('2nd this.allFiles:', JSON.stringify(this.allFiles));
+    }
