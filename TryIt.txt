@@ -1,14 +1,10 @@
-@track _imageIds = new Set();
-
-@api
-get imageIds() {
-    return [...this._imageIds]; // Convert Set to Array for template reactivity
-}
-
-set imageIds(value) {
-    if (Array.isArray(value)) {
-        this._imageIds = new Set(value); // Ensure uniqueness when setting an array
-    } else if (value) {
-        this._imageIds.add(value); // Add a single unique value
-    }
-}
+  @track fileList = [];
+keep only what ever value is coming here :       set contentDocumentIds(value) {
+            console.log("value from third screen to child file navigation", value);
+            if(Array.isArray(value)){
+                this._contentDocumentIds = value;
+            }else{
+                this._contentDocumentIds = [value];
+            }
+            this.initializeImageMap();
+        } take the id here and check its matching with ContentDocumentId if its matching then keep otherwise remove it
