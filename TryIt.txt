@@ -1,5 +1,42 @@
+import { LightningElement , api, track} from 'lwc';
+import pdfImage from "@salesforce/resourceUrl/PdfReceiptIcon";
+import getFileVersions from "@salesforce/apex/FileController.getVersionFilesUsingContentDocumentId";
+import FORM_FACTOR from '@salesforce/client/formFactor';
 
-  @track imageIds;
+export default class PspAddExpenseThirdScreenFileNevigation extends LightningElement {
+        @track nextButtonDisabled = true;
+        @track backButtonDisabled = true;
+        _contentDocumentIds = []; 
+        imageMap = new Map(); 
+        currentSlNo = 1;
+        @api
+        get contentDocumentIds() {
+            return this._contentDocumentIds;
+        }
+        set contentDocumentIds(value) {
+            console.log("value from third screen to child file navigation", value);
+            if(Array.isArray(value)){
+                this._contentDocumentIds = value;
+            }else{
+                this._contentDocumentIds = [value];
+            }
+            this.currentSlNo = 1;
+            this.initializeImageMap();
+        }
+        connectedCallback() {
+            this.mobileView = FORM_FACTOR == 'Small' ? true : false;
+           
+       }
+        initializeImageMap() {
+            this.imageMap.clear();
+            this.contentDocumentIds.forEach((id, index) => {
+                this.imageMap.set(index + 1, id);
+            });
+            console.log('Image Map:', this.imageMap);
+            this.updateButtonsAndRenderImage();
+        }
+    
+        @track imageIds;
         updateButtonsAndRenderImage() {
             try{
             if (this.imageMap.size > 0) {
@@ -14,3 +51,104 @@
                 console.log('error--->'+error);
             }
         }
+        handleNext() {
+            if (this.imageMap.has(this.currentSlNo + 1)) {
+                this.currentSlNo++;
+                this.updateButtonsAndRenderImage();
+            }
+        }
+        handleBack() {
+            if (this.imageMap.has(this.currentSlNo - 1)) {
+                this.currentSlNo--;
+                this.updateButtonsAndRenderImage();
+            }
+        }
+
+
+        @track files = [];
+        @track fileList = [];
+        isFileLoaded = false;
+        receiptImage = pdfImage;
+        @track showWhenImageIsAvailable = false;
+        @track allFiles = [];
+        async fetchFileVersions() {
+            try {
+                this.isFileLoaded = false; // Reset loading state
+    
+                if (!this.imageIds) {
+                    return;
+                }
+                const recordIds = Array.isArray(this.imageIds) ? this.imageIds : [this.imageIds];
+                const data = await getFileVersions({ recordIds: recordIds });
+    
+                if (data) {
+                    this.fileList = data;
+                    this.files = data.map((file) => ({
+                        Id: file.Id, // ContentVersionId
+                        Title: file.Title,
+                        Extension: file.FileExtension,
+                        ContentDocumentId: file.ContentDocumentId,
+                        ContentDocument: file.ContentDocument,
+                        CreatedDate: file.CreatedDate,
+                        thumbnailFileCard:
+                            "/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=" +
+                            file.Id +
+                            "&operationContext=CHATTER&contentId=" +
+                            file.ContentDocumentId,
+                        downloadUrl: 
+                            file.FileExtension === 'pdf' 
+                                ? this.receiptImage
+                                : "/sfc/servlet.shepherd/document/download/" + file.ContentDocumentId,
+                        pdfURL:
+                            file.FileExtension === 'pdf'
+                                ? this.receiptImage
+                                : "/sfc/servlet.shepherd/document/download/" + file.ContentDocumentId
+                    }));
+                    this.showWhenImageIsAvailable = this.files.length > 0;
+                    this.allFiles.push(this.files[0]);
+
+                    if(this.showWhenImageIsAvailable){
+                            this.dispatchEvent(new CustomEvent('contentversionid', { detail:  this.files[0].Id}));
+                    }
+
+                    if(this.showWhenImageIsAvailable && this.mobileView){
+                        if(this.currentSlNo == this.imageMap.size){
+                            this.dispatchEvent(new CustomEvent('contentversionid', { detail:  this.allFiles[0].Id}));
+                        }else{
+                            this.handleNext();
+                        }
+                    }       
+
+                }
+                this.isFileLoaded = true; // Mark loading as complete
+                this.isLoading = false;
+            } catch (error) {
+            }
+        }
+
+    /**getting event from preview lwc comp */
+    @track holdDeleteFileId;
+    deleteAttachment(event) {
+        const fileId = event.detail.fileId;
+        const file = this.mobileView ? this.allFiles.find(f => f.Id === fileId) : this.files.find(f => f.Id === fileId);
+        if (file) {
+            const contentDocumentId = file.ContentDocumentId;
+            this.holdDeleteFileId = contentDocumentId;
+            this.dispatchEvent(new CustomEvent('deleteimage', { detail: contentDocumentId }));
+            console.log('Deleted File:', contentDocumentId);
+        }
+    }
+
+    @api showDeletionPopUpScreen = false;
+     deleteEventFromWarningPopUp(){
+        this.contentDocumentIds = [];
+       // this.strContentDocId = [];
+       // this.showWhenImageIsAvailable = this.contentDocumentIds.length > 0;
+        //this.showDeletionPopUpScreen = false;
+        this.dispatchEvent(new CustomEvent('del' , {detail: this.holdDeleteFileId}));
+    }
+    notDeleteEventFromWarningPopUp(){
+        this.showDeletionPopUpScreen = false;
+        this.dispatchEvent(new CustomEvent('nodel' , {detail:false}));
+    }
+}
