@@ -1,1 +1,147 @@
+<div class="header-box gap">Blackbaud Data Entry Report</div>
+<div class="header-box gap">AMERICAN HEART ASSOCIATION - BEQUEST ADMINISTRATION</div><div class="container">
+    <div class="left-box">For files closed between 1/1/23 and 6/30/23</div>
+    <div class="right-box">Affiliate: *</div>
+</div>
 
+<div id="tables-container"></div>
+
+<script>
+    const dataList = [
+        {
+            last: "Brinkley", first: "Patsy", middle: "A.", trust: "Patsy A. Brinkley Estate (Edward Jones)",
+            account: "19462", address: "705 E Madison Street", city: "Goshen", state: "IN",
+            birthDate: "2/3/1931", deathDate: "3/18/2020", openDate: "7/20/2020", closeDate: "3/1/2023",
+            incomeCode: "4805", instrument: "Will Bequest - Fully Distributing",
+            totalAmount: "$102,001.29", specific: false, residual: true, residualPercent: "25.00%",
+            blackbaudCode: "", pgAmount: "", pgOfficer: "", pgDate: "", enteredInBlackbaud: false
+        }
+    ];
+
+    function generateTable(data) {
+        let html = `<table>
+            <tr>
+                <th>Last</th>
+                <th>First</th>
+                <th>Middle</th>
+                <th colspan='5'>Trust/Estate Name</th>
+                <th colspan='3'>Account #</th>
+            </tr>
+            <tr>
+                <td>${data.last}</td>
+                <td>${data.first}</td>
+                <td>${data.middle}</td>
+                <td colspan='5'>${data.trust}</td>
+                <td colspan='3'>${data.account}</td>
+            </tr>
+            <tr>
+                <th colspan="3">Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th colspan='2'>Birth Date</th>
+                <th >Death Date</th>
+                <th>Open Date</th>
+                <th>close Date</th>
+
+            </tr>
+            <tr>
+                <td colspan="3">${data.address}</td>
+                <td>${data.city}</td>
+                <td>${data.state}</td>
+                <td colspan='2'>${data.birthDate}</td>
+                <td >${data.deathDate}</td>
+                <td>${data.openDate}</td>
+                <td>${data.openDate}</td>
+            </tr>
+      
+            <tr>
+             <th>Income Code</th>
+                <th colspan="2">Instrument Type</th>
+                <th>Total Amount Received</th>
+                 <th>Specific</th>
+                 <th colspan='2'>Residual</th>
+                <th>Residual Percent</th>
+                <th colspan='2'>Entered in Blackbaud</th>
+
+            </tr>
+            <tr>
+             <td>${data.incomeCode}</td>
+                <td colspan="2">${data.instrument}</td>
+                <td>${data.totalAmount}</td>
+                 <td>${data.specific ? "✔" : "✘"}</td>
+                 <td colspan='2'>${data.residual ? "✔" : "✘"}</td>
+                <td>${data.residualPercent}</td>
+                <td colspan='2'>${data.enteredInBlackbaud ? "✔" : "✘"}</td>
+
+            </tr>
+            <tr>
+                <th colspan="3">Blackbaud Code: </th>
+                <th colspan='2'>PG Amount: </th>
+                <th colspan='3'>PG Officer: </th>
+                <th colspan='2'>PG Date:</th>
+               
+            </tr>
+            <tr>
+                <td colspan="3">${data.specific ? "✔" : "✘"}</td>
+                <td colspan='2'>${data.residual ? "✔" : "✘"}</td>
+                <td colspan='3'>${data.enteredInBlackbaud ? "✔" : "✘"}</td>
+                <td colspan='2'>${data.pgAmount}</td>
+            </tr>
+        </table>`;
+
+
+        return html;
+    }
+
+    function renderTables() {
+        let container = document.getElementById("tables-container");
+        container.innerHTML = dataList.map(data => generateTable(data)).join("<br>");
+    }
+
+    renderTables();
+</script>
+
+
+<style>
+    .header-box {
+        width: 100%;
+        background-color: white;
+        color: #004085;
+        padding: 15px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 5px;
+        border: 2px solid black;
+    }
+    .gap{
+      margin-bottom: 5px;
+    }
+     .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+    .left-box, .right-box {
+        padding: 10px;
+        border: 2px solid black;
+        width: 45%; /* Adjust width as needed */
+        text-align: center;
+    }
+    
+    table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+</style>
