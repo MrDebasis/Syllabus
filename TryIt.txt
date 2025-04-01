@@ -1,28 +1,3 @@
-private ReimbursementEmailWrapper prepareSumaryReportEmail(Reimbursement__c reimbursement, EmailTemplate template, Map<Id,ExpenseLineItemsServiceImpl.ExpenseDateWrapper> startAndEndDateMap) 
-    {
-           System.debug('reimbursement-->'+ reimbursement);
-            System.debug('template-->'+template);
-          System.debug('startAndEndDateMap-->'+startAndEndDateMap);
-        ReimbursementEmailWrapper wrap =  new ReimbursementEmailWrapper();
-        PageReference generatePdf =  new PageReference(ATTACHMENTLINK + reimbursement.Id);
-        String[] sendAddress = new String[] {reimbursement.PSPPayeeEmail__c};
-            
-        Messaging.EmailFileAttachment prepareAttachment = new Messaging.EmailFileAttachment();
-        prepareAttachment.setContentType(ATTACHMENTTYPE);
-        prepareAttachment.setFileName(ATTACHMENTNAME);
-        prepareAttachment.body = generatePdf.getContent();
-        
-        Messaging.SingleEmailMessage sendMail = new Messaging.SingleEmailMessage();
-        sendMail.setTemplateId(template.Id);
-        sendMail.setOrgWideEmailAddressId(ORGWIDEDONOTREPLYEMAIL.Id);
-        sendMail.setToAddresses(sendAddress);
-        String emailBody = updateEmailBody(template.HTMLValue, reimbursement, startAndEndDateMap);
-        sendMail.setHtmlBody(emailBody.remove(SPECIALCHARACTOR));
-        sendMail.setSubject(template.Subject);
-        sendMail.setTreatBodiesAsTemplate(true);
-        sendMail.setWhatId(reimbursement.CaseIDNumber__c);
-        sendMail.setFileAttachments(new Messaging.EmailFileAttachment[] {prepareAttachment});       
-        wrap.singleEmail = sendMail;
-        return wrap;
-    }
-
+Test.setCurrentPage(new PageReference(ATTACHMENTLINK + reimbursement.Id));
+Blob pdfContent = Blob.valueOf('Mock PDF Content');
+prepareAttachment.body = pdfContent;
