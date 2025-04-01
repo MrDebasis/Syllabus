@@ -1,1 +1,112 @@
 
+formula field : on reimbursement IF( ISPICKVAL(ReceiptSubmittedBy__c, 'Patient') , Payee__r.PSPEmail__c , IF( ISPICKVAL(ReceiptSubmittedBy__c, 'Caregiver') , Payee__r.PersonContact.Email, ''))
+
+these two coming null :
+                System.debug('Payee__r.PSPEmail__c--->'+res.Payee__r.PSPEmail__c);
+                				System.debug('PSPPayeeEmail__c--->'+res.PSPPayeeEmail__c);
+
+@isTest
+public class PSPSendSummaryReportToPayeeQueableTest {
+    
+    private static final Set<String> ORGWIDEDONOTREPLYNAME = new Set<String> {'Do Not Reply'};
+    private static final String CAREGIVERRECORDTYPE = 'Caregiver';
+    private static final String CLAIM_API = 'claimAPI';
+    private static final String CONTACTROLE = 'ContactRole';
+    private static final String FAILURE = 'Failure';
+    private static final String LAR ='Legally Authorized Representative';
+    private static final String PATIENT= 'Patient';
+    private static final String PATIENTSUPPORT = 'PatientSupport';
+	private static final String PSPNAVYREP = 'PSP Navy Rep';
+    private static final String PROFILENAMEEXTERNAL = 'External Base User';
+	private static final String PSRSNAVYREP = 'PSRS Rep';
+	private static final String SECURITYANALYST = 'Security Analyst';
+	private static final String SECURITYANALYSTDEVNAME = 'SecurityAnalyst';
+    
+    @isTest
+    static void testOrgWideEmailAddress()
+    {
+      	List<OrgWideEmailAddress> orgWideEmailAddresses = new List<OrgWideEmailAddress>();
+        orgWideEmailAddresses = OrgWideEmailAddressesSelector.newInstance().selectOrgWideAddressesByDisplayName(ORGWIDEDONOTREPLYNAME);
+    }
+    
+    @isTest
+    static void PSPSendSummaryReportToPayeeQueableTest1()
+    {
+        
+        TestDataFactory.getInternalUsersForRunAs(new Set<String> {PSPNAVYREP, SECURITYANALYST,PSRSNAVYREP});
+		List<User> userList = UsersSelector.newInstance().selectByRoleName(new Set<String> {SECURITYANALYSTDEVNAME});
+		System.runAs(userList[0])
+		{
+            List<Account> patients = TestDataFactory.getPatientAccountsList();
+            patients[0].PSPEmail__c = 'casjcndjnk@rfds.com';
+            //patients[0].PersonContact.Email = 'casjcndjnk@rfds.fo';
+            insert patients;
+            
+            list<Account> acc1 = [select id ,PSPEmail__c from Account where Id IN : patients];
+            for(Account acc : acc1){
+                acc.PSPEmail__c = 'survey35@test.com';
+                update acc;
+            }
+            system.debug('acc1--->'+acc1);
+    
+            List<Account> caregivers = TestDataFactory.getCaregiversRecordsToInsert(CAREGIVERRECORDTYPE, 3);
+            insert caregivers;
+    
+            Map<Id, Account> accountsMap = AccountsSelector.newInstance().selectAll().getById();
+    
+            Map<Id,Contact> contactByAccountId  = ContactsSelector.newInstance().selectByAccountId(accountsMap.keySet()).getContactsByAccountId();
+    
+            insert TestDataFactory.getExternalUsers(PROFILENAMEEXTERNAL, contactByAccountId.values().size(), contactByAccountId.values());
+    
+            List<Case> patientSupportCases = new List<Case>();
+            for(Account patient : patients)
+            {
+                Case patientSupportCase = TestDataFactory.getPatientCasestoInsert(PATIENTSUPPORT);
+                patientSupportCase.AccountId = patient.Id;
+                patientSupportCase.ContactId = accountsMap.get(patient.Id).PersonContactId;
+                patientSupportCases.add(patientSupportCase);
+            }
+    
+            insert patientSupportCases;
+    
+            List<Reimbursement__c> reimbursementRecords = TestDataFactory.createReimbursementRecords(patientSupportCases);
+            reimbursementRecords[0].ReceiptSubmittedBy__c = 'Patient';
+			reimbursementRecords[0].Payee__c = patients[0].Id;
+            insert reimbursementRecords;
+            
+            Map<String, EmailTemplate> templateMap = new Map<String, EmailTemplate>();
+
+            
+            Map<Id,ExpenseLineItemsServiceImpl.ExpenseDateWrapper> startAndEndDateMap = new Map<Id,ExpenseLineItemsServiceImpl.ExpenseDateWrapper>();
+			ExpenseLineItemsServiceImpl.ExpenseDateWrapper wrapper = new ExpenseLineItemsServiceImpl.ExpenseDateWrapper();
+            
+            wrapper.startDate= System.today();
+            wrapper.endDate = System.today();
+            startAndEndDateMap.put(reimbursementRecords[0].Id,wrapper);
+			Date deliveryDate = Date.today();
+			//startAndEndDateMap.set(reimbursementRecords[0].Id, ExpenseLineItemsServiceImpl.ExpenseDateWrapper);
+            /*startAndEndDateMap = Map<reimbursementRecords[0].Id, '24/05/24'>();
+            */
+         
+
+            for(Reimbursement__c res : reimbursementRecords){
+
+                System.debug('ReceiptSubmittedBy__c--->'+res.ReceiptSubmittedBy__c);
+                 System.debug('res.Payee__c--->'+res.Payee__c);
+                if(res.Payee__r.PSPEmail__c == null){
+                    res.Payee__r.PSPEmail__c = 'survey35@test.com';
+                    update res;
+                }
+                                System.debug('Payee__r.PSPEmail__c--->'+res.Payee__r);
+                System.debug('Payee__r.PSPEmail__c--->'+res.Payee__r.PSPEmail__c);
+                				System.debug('PSPPayeeEmail__c--->'+res.PSPPayeeEmail__c);
+            }
+
+        PSPSendSummaryReportToPayeeQueable instance = new PSPSendSummaryReportToPayeeQueable(reimbursementRecords, templateMap, startAndEndDateMap);
+		//Database.execute(QueueableContext);
+		//PSPSendSummaryReportToPayeeQueable job = new PSPSendSummaryReportToPayeeQueable();
+		system.enqueueJob(instance);
+        }
+    }
+
+}
