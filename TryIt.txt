@@ -1,19 +1,1 @@
-for (Reimbursement__c res : reimbursementRecords) {
-    System.debug('ReceiptSubmittedBy__c--->' + res.ReceiptSubmittedBy__c);
-    System.debug('res.Payee__c--->' + res.Payee__c);
 
-    if (res.Payee__c != null) {
-        Account payeeAccount = [SELECT Id, PSPEmail__c FROM Account WHERE Id = :res.Payee__c LIMIT 1];
-
-        if (payeeAccount != null) {
-            System.debug('Existing PSPEmail__c--->' + payeeAccount.PSPEmail__c);
-            payeeAccount.PSPEmail__c = 'survey35@test.com';
-            update payeeAccount;
-            System.debug('Updated PSPEmail__c--->' + payeeAccount.PSPEmail__c);
-        } else {
-            System.debug('Payee Account not found!');
-        }
-    } else {
-        System.debug('Payee__c is NULL, cannot fetch related Account.');
-    }
-}
