@@ -1,103 +1,67 @@
 @isTest
 public class PSPSendSummaryReportToPayeeQueableTest {
-    
-    private static final Set<String> ORGWIDEDONOTREPLYNAME = new Set<String> {'Do Not Reply'};
-    private static final String CAREGIVERRECORDTYPE = 'Caregiver';
-    private static final String CLAIM_API = 'claimAPI';
-    private static final String CONTACTROLE = 'ContactRole';
-    private static final String FAILURE = 'Failure';
-    private static final String LAR ='Legally Authorized Representative';
-    private static final String PATIENT= 'Patient';
-    private static final String PATIENTSUPPORT = 'PatientSupport';
-	private static final String PSPNAVYREP = 'PSP Navy Rep';
-    private static final String PROFILENAMEEXTERNAL = 'External Base User';
-	private static final String PSRSNAVYREP = 'PSRS Rep';
-	private static final String SECURITYANALYST = 'Security Analyst';
-	private static final String SECURITYANALYSTDEVNAME = 'SecurityAnalyst';
+    private static final String CAREGIVER_RECORD_TYPE = 'Caregiver';
+    private static final String PROFILENAME_EXTERNAL = 'External Base User';
+    private static final String SECURITY_ANALYST_DEV_NAME = 'SecurityAnalyst';
     
     @TestSetup
-    public static void testSetUp(){
-            List<Account> patients = TestDataFactory.getPatientAccountsList();
-            patients[0].PSPEmail__c = 'casjcndjnk@rfds.com';
-            insert patients;
+    public static void testSetUp() {
+        List<Account> patients = TestDataFactory.getPatientAccountsList();
+        patients[0].PSPEmail__c = 'casjcndjnk@rfds.com';
+        insert patients;
         
-                    List<Account> caregivers = TestDataFactory.getCaregiversRecordsToInsert(CAREGIVERRECORDTYPE, 3);
-            insert caregivers;
-    
-            Map<Id, Account> accountsMap = AccountsSelector.newInstance().selectAll().getById();
-    
-            Map<Id,Contact> contactByAccountId  = ContactsSelector.newInstance().selectByAccountId(accountsMap.keySet()).getContactsByAccountId();
-    
-            insert TestDataFactory.getExternalUsers(PROFILENAMEEXTERNAL, contactByAccountId.values().size(), contactByAccountId.values());
-    
-            List<Case> patientSupportCases = new List<Case>();
-            for(Account patient : [select id ,PSPEmail__c from Account])
-            {
-                Case patientSupportCase = TestDataFactory.getPatientCasestoInsert(PATIENTSUPPORT);
-                patientSupportCase.AccountId = patient.Id;
-                patientSupportCase.ContactId = accountsMap.get(patient.Id).PersonContactId;
-                patientSupportCases.add(patientSupportCase);
-            }
-    
-            insert patientSupportCases;
+        insert TestDataFactory.getCaregiversRecordsToInsert(CAREGIVER_RECORD_TYPE, 3);
+        Map<Id, Contact> contactByAccountId = ContactsSelector.newInstance()
+            .selectByAccountId(AccountsSelector.newInstance().selectAll().keySet()).getContactsByAccountId();
+        insert TestDataFactory.getExternalUsers(PROFILENAME_EXTERNAL, contactByAccountId.size(), contactByAccountId.values());
+        
+        List<Case> patientSupportCases = new List<Case>();
+        for (Account patient : patients) {
+            Case patientSupportCase = TestDataFactory.getPatientCasestoInsert('PatientSupport');
+            patientSupportCase.AccountId = patient.Id;
+            patientSupportCase.ContactId = patient.PersonContactId;
+            patientSupportCases.add(patientSupportCase);
+        }
+        insert patientSupportCases;
         
         List<Reimbursement__c> reimbursementRecords = TestDataFactory.createReimbursementRecords(patientSupportCases);
-            reimbursementRecords[0].ReceiptSubmittedBy__c = 'Patient';
-			reimbursementRecords[0].Payee__c = [select id ,PSPEmail__c from Account][0].Id;
-            reimbursementRecords[0].ProgramType__c ='MYCARVKTI';
-            insert reimbursementRecords;
+        reimbursementRecords[0].ReceiptSubmittedBy__c = 'Patient';
+        reimbursementRecords[0].Payee__c = patients[0].Id;
+        reimbursementRecords[0].ProgramType__c = 'MYCARVKTI';
+        insert reimbursementRecords;
         
-
-        
-        for (Reimbursement__c res : reimbursementRecords) {
-    if (res.Payee__c != null) {
-        Account payeeAccount = [SELECT Id,FirstName, LastName, PSPEmail__c FROM Account WHERE Id = :res.Payee__c LIMIT 1];
-        if (payeeAccount != null) {
-            payeeAccount.FirstName ='test';
-            payeeAccount.LastName ='test LastName';
-            payeeAccount.PSPEmail__c = 'survey35@test.com';
-            update payeeAccount;
-        } 
-    } 
-}
-        
+        Account payeeAccount = [SELECT Id, PSPEmail__c FROM Account WHERE Id = :reimbursementRecords[0].Payee__c LIMIT 1];
+        payeeAccount.PSPEmail__c = 'survey35@test.com';
+        update payeeAccount;
     }
     
     @isTest
-    static void testOrgWideEmailAddress()
-    {
-      	List<OrgWideEmailAddress> orgWideEmailAddresses = new List<OrgWideEmailAddress>();
-        orgWideEmailAddresses = OrgWideEmailAddressesSelector.newInstance().selectOrgWideAddressesByDisplayName(ORGWIDEDONOTREPLYNAME);
-    }
-    
-    @isTest
-    static void PSPSendSummaryReportToPayeeQueableTest1()
-    {
+    static void PSPSendSummaryReportToPayeeQueableTest1() {
+        TestDataFactory.getInternalUsersForRunAs(new Set<String>{'PSP Navy Rep', 'Security Analyst', 'PSRS Rep'});
+        User testUser = UsersSelector.newInstance().selectByRoleName(new Set<String>{SECURITY_ANALYST_DEV_NAME})[0];
         
-        TestDataFactory.getInternalUsersForRunAs(new Set<String> {PSPNAVYREP, SECURITYANALYST,PSRSNAVYREP});
-		List<User> userList = UsersSelector.newInstance().selectByRoleName(new Set<String> {SECURITYANALYSTDEVNAME});
-		System.runAs(userList[0])
-		{
-           
-
-        PSPSendSummaryReportToPayeeQueable instance = new PSPSendSummaryReportToPayeeQueable([SELECT Id, PSPPayeeEmail__c,CaseIDNumber__c,PayeeName__c,TotalAmountReimbursable__c,ProgramType__c FROM Reimbursement__c WHERE PSPPayeeEmail__c !=null LIMIT 1], getTemplateMap(), getWrapper());
-		system.enqueueJob(instance);
+        System.runAs(testUser) {
+            PSPSendSummaryReportToPayeeQueable instance = new PSPSendSummaryReportToPayeeQueable(
+                [SELECT Id, PSPPayeeEmail__c, CaseIDNumber__c, PayeeName__c, TotalAmountReimbursable__c, ProgramType__c 
+                 FROM Reimbursement__c WHERE PSPPayeeEmail__c != NULL LIMIT 1],
+                getTemplateMap(), getWrapper()
+            );
+            System.enqueueJob(instance);
         }
     }
     
     private static Map<String, EmailTemplate> getTemplateMap() {
         EmailTemplate template = TestDataFactory.createEmailtemplate();
-        template.HTMLValue = 'its  [Payee Name] ';
+        template.HTMLValue = 'its  [Payee Name]';
         update template;
-        return new Map<String, EmailTemplate>{ 'MYCARVKTI' => template, 'CiltaCel' => template };
+        return new Map<String, EmailTemplate>{'MYCARVKTI' => template, 'CiltaCel' => template};
     }
     
     private static Map<Id, ExpenseLineItemsServiceImpl.ExpenseDateWrapper> getWrapper() {
+        Id reimbursementId = [SELECT Id FROM Reimbursement__c WHERE PSPPayeeEmail__c != NULL LIMIT 1].Id;
         ExpenseLineItemsServiceImpl.ExpenseDateWrapper wrapper = new ExpenseLineItemsServiceImpl.ExpenseDateWrapper();
         wrapper.startDate = System.today();
         wrapper.endDate = System.today();
-        return new Map<Id, ExpenseLineItemsServiceImpl.ExpenseDateWrapper>{
-            [SELECT Id FROM Reimbursement__c WHERE PSPPayeeEmail__c != null LIMIT 1].Id => wrapper
-        };
+        return new Map<Id, ExpenseLineItemsServiceImpl.ExpenseDateWrapper>{ reimbursementId => wrapper };
     }
 }
