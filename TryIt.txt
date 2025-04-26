@@ -1,1 +1,1 @@
-select id,Account.Name,CaseNumber, NextAction__c, NextActionNotes__c, NextActionDueDate__c,CartCoordinatorName__c,TreatmentSite__c,TreatmentCenterName__c,ApheresisPickupdate__c, InfusionAppointmentDate__c,EnrollmentStatus__c,EligibilityStatus__c,ConsentStatusRollUp__c,CasesNotes__c,CaseOwnerName__c from case where id ='50023000003stYaAAI'
+
