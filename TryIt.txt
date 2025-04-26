@@ -1,1 +1,7 @@
 
+	We need dynamic Apex method to get case records:
+1.	CASE_OWNER
+2.	MY_CASES
+3.	ALL_CASES
+4.	INBOUND_CASES
+5.	PSS_CASES
