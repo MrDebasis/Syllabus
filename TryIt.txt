@@ -1,1 +1,68 @@
 
+public with sharing class CaseController {
+    @AuraEnabled(cacheable=true)
+    public static List<Case> getFilteredCases(String filterType, List<Id> caseOwnerIds) {
+        String baseQuery = 'SELECT Id, Account.Name, CaseNumber, NextAction__c, NextActionNotes__c, NextActionDueDate__c, ' +
+                           'CartCoordinatorName__c, TreatmentSite__c, TreatmentCenterName__c, ApheresisPickupdate__c, ' +
+                           'InfusionAppointmentDate__c, EnrollmentStatus__c, EligibilityStatus__c, ConsentStatusRollUp__c, ' +
+                           'CasesNotes__c, CaseOwnerName__c FROM Case';
+        
+        List<String> whereClauses = new List<String>();
+        
+        switch on filterType {
+            when 'MY_CASES' {
+                whereClauses.add('OwnerId = :UserInfo.getUserId()');
+            }
+            when 'CASE_OWNER' {
+                if (caseOwnerIds != null && !caseOwnerIds.isEmpty()) {
+                    whereClauses.add('OwnerId IN :caseOwnerIds');
+                }
+            }
+            when 'ALL_CASES' {
+                // No owner restriction
+            }
+            when 'INBOUND_CASES' {
+                whereClauses.add('RecordType.DeveloperName = \'Inbound_Case\'');
+            }
+            when 'PSS_CASES' {
+                whereClauses.add('RecordType.DeveloperName = \'PSS_Case\'');
+            }
+            when else {
+                // Optionally handle unknown filters
+                throw new AuraHandledException('Invalid filter type provided: ' + filterType);
+            }
+        }
+        
+        // Add WHERE clause if needed
+        if (!whereClauses.isEmpty()) {
+            baseQuery += ' WHERE ' + String.join(whereClauses, ' AND ');
+        }
+        
+        baseQuery += ' ORDER BY CreatedDate DESC LIMIT 200'; // Adjust limit if needed
+
+        System.debug('Dynamic Query: ' + baseQuery);
+
+        return Database.query(baseQuery);
+    }
+}
+
+
+import getFilteredCases from '@salesforce/apex/CaseController.getFilteredCases';
+
+// Example: Fetch My Cases
+getFilteredCases({ filterType: 'MY_CASES', caseOwnerIds: [] })
+.then(result => {
+    this.caseData = result;
+})
+.catch(error => {
+    console.error('Error fetching cases:', error);
+});
+
+// Example: Fetch Cases for specific Owners
+getFilteredCases({ filterType: 'CASE_OWNER', caseOwnerIds: ['005xx000001abcd', '005xx000001efgh'] })
+.then(result => {
+    this.caseData = result;
+})
+.catch(error => {
+    console.error('Error fetching cases:', error);
+});
