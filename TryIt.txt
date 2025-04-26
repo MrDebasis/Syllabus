@@ -1,7 +1,1 @@
-
-	We need dynamic Apex method to get case records:
-1.	CASE_OWNER
-2.	MY_CASES
-3.	ALL_CASES
-4.	INBOUND_CASES
-5.	PSS_CASES
+select id,Account.Name,CaseNumber, NextAction__c, NextActionNotes__c, NextActionDueDate__c,CartCoordinatorName__c,TreatmentSite__c,TreatmentCenterName__c,ApheresisPickupdate__c, InfusionAppointmentDate__c,EnrollmentStatus__c,EligibilityStatus__c,ConsentStatusRollUp__c,CasesNotes__c,CaseOwnerName__c from case where id ='50023000003stYaAAI'
