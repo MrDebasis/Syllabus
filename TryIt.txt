@@ -1,262 +1,152 @@
-RecordDate : {"Id":"5005500000GIndZAAT","AccountId":"0012300000bk6CxAAI","CaseNumber":"00002394","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-17","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Information and Authorization Pending","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F23000000Tfe8EAC","Account":{"Name":"Kyle Mills","Id":"0012300000bk6CxAAI"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F23000000Tfe8EAC","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}},{"Id":"5005500000GInckAAD","AccountId":"0012300000bk6CxAAI","CaseNumber":"00002393","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-16","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Information and Authorization Pending","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F23000000Tfe8EAC","Account":{"Name":"Kyle Mills","Id":"0012300000bk6CxAAI"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F23000000Tfe8EAC","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}},{"Id":"5005500000GImC0AAL","AccountId":"0012300000bjdyGAAQ","CaseNumber":"00002391","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-14","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Process Cancelled","EligibilityStatus__c":"Eligible","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F5500000QhKOpEAN","Account":{"Name":"Jhons Smith","Id":"0012300000bjdyGAAQ"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F5500000QhKOpEAN","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}},{"Id":"5005500000GIm5rAAD","AccountId":"0012300000bjdyGAAQ","CaseNumber":"00002389","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-13","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Information and Authorization Pending","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F5500000QhKOpEAN","Account":{"Name":"Jhons Smith","Id":"0012300000bjdyGAAQ"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F5500000QhKOpEAN","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}},{"Id":"5005500000GIlt5AAD","AccountId":"0012300000bjdyGAAQ","CaseNumber":"00002388","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-11","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Information and Authorization Pending","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F5500000QhKOpEAN","Account":{"Name":"Jhons Smith","Id":"0012300000bjdyGAAQ"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F5500000QhKOpEAN","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}},{"Id":"5005500000GIlisAAD","AccountId":"0012300000bjdyGAAQ","CaseNumber":"00002387","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-10","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Information and Authorization Pending","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F5500000QhKOpEAN","Account":{"Name":"Jhons Smith","Id":"0012300000bjdyGAAQ"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F5500000QhKOpEAN","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}},{"Id":"5005500000GIfnXAAT","AccountId":"0012300000bjdyGAAQ","CaseNumber":"00002385","NextAction__c":"Begin Enrollment","NextActionDueDate__c":"2026-03-09","CartCoordinatorName__c":"<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>","TreatmentSite__c":"0012300000bjcdeAAA","TreatmentCenterName__c":"Emoryy University Hospital","EnrollmentStatus__c":"Enrollment Process on Hold","CaseOwnerName__c":"Ananya Maiti","OrderID__c":"a2F5500000QhKOpEAN","Account":{"Name":"Jhons Smith","Id":"0012300000bjdyGAAQ"},"OrderID__r":{"Coordinator__c":"0032300000SylAFAAZ","Id":"a2F5500000QhKOpEAN","Coordinator__r":{"Id":"0032300000SylAFAAZ"}}}
-
-Filter Logic: {
-  "logic": "AND",
-  "filters": [
-    {
-      "field": "NextActionDueDate__c",
-      "operator": "Between",
-      "value": [
-        "2026-03-09",
-        "2026-03-13"
-      ]
-    }
-  ]
-}
-
-Js cide
 applyFilters() {
-        const filters = [];
-    
-        // Add Next Action filter
-        if (this.includeAllNextAction) {
-            this.includeAllNextAction = false;
-           /* filters.push({
-                field: "NextAction__c",
-                operator: "in",
-                value: this.nextActionOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedNextAction.length > 0) {
-            filters.push({
-                field: "NextAction__c",
-                operator: "in",
-                value: this.selectedNextAction
-            });
-        }
-    
-        // Add Next Action Due Date filter
-        if (this.includeAllNextActionDueDate) {
-           /* filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Date",
-                value: this.selectedNextActionDueDate // Include all dates (no specific filter)
-            });*/
-        } else if (this.selectedNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Date",
-                value: this.selectedNextActionDueDate
-            });
-        }else if (this.isThisWeekClickedForNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Between",
-                value: this.weekDaysArrayForNextActionDueDate
-            });
-        }else if (this.isUnassignedClickedForNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "includes",
-                value: [null, '', undefined]
-            });
-        }
-    
-        // Add Treatment Center filter
-        if (this.includeAllTreatmentCenter) {
-            this.includeAllTreatmentCenter = false;
-           /* filters.push({
-                field: "TreatmentSite__c",
-                operator: "in",
-                value: this.treatmentCenterOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedTreatmentCenterIds.length > 0) {
-            filters.push({
-                field: "TreatmentSite__c",
-                operator: "in",
-                value: this.selectedTreatmentCenterIds
-            });
-        }
-    
-        // Add Enrollment Status filter
-        if (this.includeAllEnrollmentStatus) {
-            this.includeAllEnrollmentStatus = false;
-           /* filters.push({
-                field: "EnrollmentStatus__c",
-                operator: "in",
-                value: this.enrollmentStatusOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedEnrollmentStatus.length > 0) {
-            filters.push({
-                field: "EnrollmentStatus__c",
-                operator: "includes",
-                value: this.selectedEnrollmentStatus
-            });
-        }
-    
-        // Add Trip Dates filter
-        if (this.includeAllTripDates) {
-           /* filters.push({
-                field: "tripDates",
-                operator: "Date",
-                value: this.selectedTripDates // Include all dates (no specific filter)
-            });*/
-        } //else if (this.selectedTripDates) {
-          //  filters.push({
-          //      field: "tripDates",
-          //      operator: "Date",
-           //     value: this.selectedTripDates
-          //  });
-       // }
+    const filters = [];
 
-        if (this.arrivalDate && this.departureDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Between",
-                value: [this.arrivalDate, this.departureDate]
-            });
-            filters.push({
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Between",
-                value: [this.arrivalDate, this.departureDate]
-            });
-        } else if (this.arrivalDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Date",
-                value: this.arrivalDate
-            });
-        } else if (this.departureDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Date",
-                value: this.departureDate
-            });
-        }
-    
-        // Add Coordinator filter
-        if (this.includeAllCoordinator) {
-            this.includeAllCoordinator = false;
-           /* filters.push({
-                field: "OrderID__r.Coordinator__c",
-                operator: "in",
-                value: this.coordinatorOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedCoordinatorIds.length > 0) {
-            filters.push({
-                field: "OrderID__r.Coordinator__c",
-                operator: "in",
-                value: this.selectedCoordinatorIds
-            });
-        }
-    
-        filterLogic = {
-            logic: "AND",
-            filters: filters
-        };
-        this.filtersLength = filterLogic.filters ? filterLogic.filters.length + (this.isShowAllSelected ? 1 : 0) : (this.isShowAllSelected ? 1 : 0);
+    // Add Next Action filter
+    if (!this.includeAllNextAction && this.selectedNextAction.length > 0) {
+        filters.push({
+            field: "NextAction__c",
+            operator: "in",
+            value: this.selectedNextAction
+        });
+    }
 
-        console.log('Filter Logic:', JSON.stringify(filterLogic, null, 2)); 
-    
-         // Apply the filter logic to the cases
-         const filteredCases = this.cases.filter(caseItem => {
-            return filters.every(filter => {
-                switch (filter.operator) {
-                    case "in":
-                        const fieldParts = filter.field.split('.'); // Split the field by '.'
-                        let fieldValue = caseItem;
-                        for (const part of fieldParts) {
-                            fieldValue = fieldValue ? fieldValue[part] : undefined; // Traverse the nested object
-                        }
+    // Add Next Action Due Date filters
+    if (this.selectedNextActionDueDate) {
+        filters.push({
+            field: "NextActionDueDate__c",
+            operator: "Date",
+            value: this.selectedNextActionDueDate
+        });
+    } else if (this.isThisWeekClickedForNextActionDueDate) {
+        filters.push({
+            field: "NextActionDueDate__c",
+            operator: "Between",
+            value: this.weekDaysArrayForNextActionDueDate
+        });
+    } else if (this.isUnassignedClickedForNextActionDueDate) {
+        filters.push({
+            field: "NextActionDueDate__c",
+            operator: "includes",
+            value: [null, '', undefined]
+        });
+    }
 
-                        console.log('Resolved Field Value:', fieldValue); // Log the resolved field value
-                        const filterValues = Array.isArray(filter.value) ? filter.value : [filter.value];
-                        return filterValues.some(value => value === fieldValue);
+    // Treatment Center
+    if (!this.includeAllTreatmentCenter && this.selectedTreatmentCenterIds.length > 0) {
+        filters.push({
+            field: "TreatmentSite__c",
+            operator: "in",
+            value: this.selectedTreatmentCenterIds
+        });
+    }
 
-        
-                    case "Date":
-                        // Compare dates
-                        const dateFieldParts = filter.field.split('.');
-                        let dateFieldValue = caseItem;
-                        for (const part of dateFieldParts) {
-                            dateFieldValue = dateFieldValue ? dateFieldValue[part] : undefined;
-                        }
-                    
-                        if (dateFieldValue) {
-                            const caseDate = new Date(dateFieldValue).toISOString().split('T')[0]; // Convert to "YYYY-MM-DD"
-                            const filterDate = new Date(filter.value).toISOString().split('T')[0]; // Convert to "YYYY-MM-DD"
-                            return caseDate === filterDate; // Compare dates as strings
-                        }
-                        return false; // If no date value, return false
-        
-                    case "equals":
+    // Enrollment Status
+    if (!this.includeAllEnrollmentStatus && this.selectedEnrollmentStatus.length > 0) {
+        filters.push({
+            field: "EnrollmentStatus__c",
+            operator: "includes",
+            value: this.selectedEnrollmentStatus
+        });
+    }
 
-                       // return caseItem[filter.field] === filter.value;
-                    const equalsFieldParts = filter.field.split('.');
-                    let equalsFieldValue = caseItem;
-                    for (const part of equalsFieldParts) {
-                    equalsFieldValue = equalsFieldValue ? equalsFieldValue[part] : undefined;
-                    }
+    // Trip Dates
+    if (this.arrivalDate && this.departureDate) {
+        filters.push({
+            field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
+            operator: "Between",
+            value: [this.arrivalDate, this.departureDate]
+        });
+        filters.push({
+            field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
+            operator: "Between",
+            value: [this.arrivalDate, this.departureDate]
+        });
+    } else if (this.arrivalDate) {
+        filters.push({
+            field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
+            operator: "Date",
+            value: this.arrivalDate
+        });
+    } else if (this.departureDate) {
+        filters.push({
+            field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
+            operator: "Date",
+            value: this.departureDate
+        });
+    }
 
-                    console.log('Resolved Equals Field Value:', equalsFieldValue); // Log the resolved field value
-                    return equalsFieldValue === filter.value;
+    // Coordinator
+    if (!this.includeAllCoordinator && this.selectedCoordinatorIds.length > 0) {
+        filters.push({
+            field: "OrderID__r.Coordinator__c",
+            operator: "in",
+            value: this.selectedCoordinatorIds
+        });
+    }
 
-                   /* case "Between":
-                        // Logic for "Between" operator
-                        const betweenFieldParts = filter.field.split('.');
-                        let betweenFieldValue = caseItem;
-                        for (const part of betweenFieldParts) {
-                            betweenFieldValue = betweenFieldValue ? betweenFieldValue[part] : undefined;
-                        }
+    const filterLogic = {
+        logic: "AND",
+        filters: filters
+    };
 
-                        const [startDate, endDate] = filter.value.map(date => new Date(date));
-                        const currentDate = new Date(betweenFieldValue);
-                        return currentDate >= startDate && currentDate <= endDate;*/
+    this.filtersLength = filterLogic.filters.length + (this.isShowAllSelected ? 1 : 0);
+    console.log('Filter Logic:', JSON.stringify(filterLogic, null, 2));
 
-                       
-                        case "Between":
-                            const betweenParts = filter.field.split('.');
-                            let foundBetweenMatch = false;
-                            if (Array.isArray(data[betweenParts[0]])) {
-                                const arrayField = betweenParts[0];
-                                const nestedField = betweenParts.slice(1);
-                                for (const item of data[arrayField]) {
-                                    let val = item;
-                                    for (const part of nestedField) {
-                                        val = val ? val[part] : undefined;
-                                    }
-                                    if (val) {
-                                        const [start, end] = filter.value.map(d => new Date(d));
-                                        const valDate = new Date(val);
-                                        if (valDate >= start && valDate <= end) {
-                                            foundBetweenMatch = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            return foundBetweenMatch;
-            
+    this.casesFiltered = this.cases.filter(caseItem => {
+        return filters.every(filter => {
+            const fieldParts = filter.field.split('.');
+            let value = caseItem;
 
-                                    case "includes":
-                                        // Logic for "includes" operator
-                                        const includesFieldParts = filter.field.split('.');
-                                        let includesFieldValue = caseItem;
-                                        for (const part of includesFieldParts) {
-                                            includesFieldValue = includesFieldValue ? includesFieldValue[part] : undefined;
-                                        }
+            for (let i = 0; i < fieldParts.length; i++) {
+                const part = fieldParts[i];
 
-                                        return filter.value.includes(includesFieldValue);        
-                                    default:
-                                        // Return true for unsupported operators
-                                        return true;
-                                }
-                            });
-                        });
+                if (Array.isArray(value)) {
+                    // Nested array handling (e.g., Trips__r)
+                    const arrayField = fieldParts.slice(i).join('.');
+                    return value.some(item => this.matchFilter(item, arrayField, filter));
+                }
 
+                value = value ? value[part] : undefined;
+            }
 
-                        // this.casesFiltered =[];
-                        this.casesFiltered = filteredCases;
-                        // console.log('Filtered Cases:',  JSON.stringify(this.casesFiltered)); // Log the filtered cases
-                        //this.casesFiltered = filteredCases;
-                        // console.log('Filtered Cases:', JSON.stringify(this.cases)); // Log the filtered cases
-                    }
+            return this.matchFilter(caseItem, filter.field, filter);
+        });
+    });
+},
+
+matchFilter(data, field, filter) {
+    const fieldParts = field.split('.');
+    let value = data;
+
+    for (const part of fieldParts) {
+        value = value ? value[part] : undefined;
+    }
+
+    switch (filter.operator) {
+        case "in":
+        case "includes":
+            return filter.value.includes(value);
+
+        case "equals":
+            return value === filter.value;
+
+        case "Date":
+            if (!value) return false;
+            const caseDate = new Date(value).toISOString().split('T')[0];
+            const filterDate = new Date(filter.value).toISOString().split('T')[0];
+            return caseDate === filterDate;
+
+        case "Between":
+            if (Array.isArray(value)) {
+                return value.some(val => {
+                    const valDate = new Date(val);
+                    return valDate >= new Date(filter.value[0]) && valDate <= new Date(filter.value[1]);
+                });
+            }
+            const currentDate = new Date(value);
+            return currentDate >= new Date(filter.value[0]) && currentDate <= new Date(filter.value[1]);
+
+        default:
+            return true;
+    }
+}
