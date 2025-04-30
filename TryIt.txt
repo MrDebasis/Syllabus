@@ -1,5 +1,179 @@
- {
-      "field": "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-      "operator": "Date",
-      "value": "2025-03-04"
+import { LightningElement, track } from 'lwc';
+
+export default class CaseFilter extends LightningElement {
+    @track cases = [];
+    @track casesFiltered = [];
+    @track filtersLength = 0;
+
+    connectedCallback() {
+        this.cases = this.mockCases();
+        this.applyFilters();
     }
+
+    applyFilters() {
+        const filters = [
+            {
+                field: "EnrollmentStatus__c",
+                operator: "in",
+                value: ["Enrolled", "Pending"]
+            },
+            {
+                field: "TreatmentSite__c",
+                operator: "equals",
+                value: "TS001"
+            },
+            {
+                field: "InfusionAppointmentDate__c",
+                operator: "Date",
+                value: "2025-04-15"
+            },
+            {
+                field: "Trips__r",
+                operator: "nestedBetween",
+                startField: "InfusionMonitoringArrivalTravelDate__c",
+                endField: "InfusionMonitoringReturnTravelDate__c",
+                value: ["2025-04-01", "2025-04-30"]
+            },
+            {
+                field: "Trips__r",
+                operator: "NestedDateEquals",
+                startField: "InfusionMonitoringArrivalTravelDate__c",
+                value: "2025-04-10"
+            }
+        ];
+
+        this.filtersLength = filters.length;
+
+        this.casesFiltered = this.cases.filter(record => {
+            return filters.every(filter => this.evaluateField(record, filter));
+        });
+
+        console.log("✅ Filtered Output:", this.casesFiltered);
+    }
+
+    evaluateField(record, filter) {
+        const path = filter.field.split('.');
+        return this.resolvePath(record, path, filter);
+    }
+
+    resolvePath(obj, pathArr, filter) {
+        const key = pathArr[0];
+        const next = obj?.[key];
+
+        // Array (e.g., Trips__r)
+        if (Array.isArray(next)) {
+            if (filter.operator === "nestedBetween" || filter.operator === "NestedDateEquals") {
+                return this.matchNestedBetween(next, filter);
+            }
+
+            return next.some(item => this.resolvePath(item, pathArr.slice(1), filter));
+        }
+
+        // Nested object
+        if (typeof next === 'object' && next !== null && pathArr.length > 1) {
+            return this.resolvePath(next, pathArr.slice(1), filter);
+        }
+
+        // Direct value
+        return this.matchFilter(next, filter);
+    }
+
+    matchNestedBetween(array, filter) {
+        const [start, end] = filter.value.map(v => this.stripTime(new Date(v)));
+
+        let isDateCheckedRangeBetween = false;
+
+        for (const item of array) {
+            const startDate = item[filter.startField];
+            const endDate = filter.endField ? item[filter.endField] : null;
+
+            const date1 = startDate ? this.stripTime(new Date(startDate)) : null;
+            const date2 = endDate ? this.stripTime(new Date(endDate)) : null;
+
+            if (date1 && date1 >= start && date1 <= end) {
+                isDateCheckedRangeBetween = true;
+                break;
+            }
+
+            if (date2 && date2 >= start && date2 <= end) {
+                isDateCheckedRangeBetween = true;
+                break;
+            }
+        }
+
+        return isDateCheckedRangeBetween;
+    }
+
+    matchFilter(value, filter) {
+        switch (filter.operator) {
+            case "in":
+            case "includes":
+                return filter.value.includes(value);
+
+            case "equals":
+                return value === filter.value;
+
+            case "Date":
+                if (!value) return false;
+                return this.stripTime(new Date(value)).getTime() === this.stripTime(new Date(filter.value)).getTime();
+
+            case "Between":
+                if (!value) return false;
+                const valDate = this.stripTime(new Date(value));
+                const [start, end] = filter.value.map(v => this.stripTime(new Date(v)));
+                return valDate >= start && valDate <= end;
+
+            case "NestedDateEquals":
+                return this.matchNestedDateEquals(value, filter);
+
+            default:
+                return true;
+        }
+    }
+
+    matchNestedDateEquals(array, filter) {
+        const compareDate = this.stripTime(new Date(filter.value));
+        for (const item of array) {
+            const dateField = item[filter.startField];
+            if (dateField) {
+                const date = this.stripTime(new Date(dateField));
+                if (date.getTime() === compareDate.getTime()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    stripTime(date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    // Sample Data
+    mockCases() {
+        return [
+            {
+                EnrollmentStatus__c: "Enrolled",
+                TreatmentSite__c: "TS001",
+                InfusionAppointmentDate__c: "2025-04-15",
+                Trips__r: [
+                    {
+                        InfusionMonitoringArrivalTravelDate__c: "2025-04-10",
+                        InfusionMonitoringReturnTravelDate__c: "2025-04-20"
+                    }
+                ]
+            },
+            {
+                EnrollmentStatus__c: "Declined",
+                TreatmentSite__c: "TS002",
+                InfusionAppointmentDate__c: "2025-05-01",
+                Trips__r: [
+                    {
+                        InfusionMonitoringArrivalTravelDate__c: "2026-01-01",
+                        InfusionMonitoringReturnTravelDate__c: "2026-01-05"
+                    }
+                ]
+            }
+        ];
+    }
+}
