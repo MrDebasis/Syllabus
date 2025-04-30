@@ -1,219 +1,35 @@
-
-applyFilters() {
-        const filters = [];
-    
-        // Add Next Action filter
-        if (this.includeAllNextAction) {
-            this.includeAllNextAction = false;
-           /* filters.push({
-                field: "NextAction__c",
-                operator: "in",
-                value: this.nextActionOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedNextAction.length > 0) {
-            filters.push({
-                field: "NextAction__c",
-                operator: "in",
-                value: this.selectedNextAction
-            });
-        }
-    
-        // Add Next Action Due Date filter
-        if (this.includeAllNextActionDueDate) {
-           /* filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Date",
-                value: this.selectedNextActionDueDate // Include all dates (no specific filter)
-            });*/
-        } else if (this.selectedNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Date",
-                value: this.selectedNextActionDueDate
-            });
-        }else if (this.isThisWeekClickedForNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Between",
-                value: this.weekDaysArrayForNextActionDueDate
-            });
-        }else if (this.isUnassignedClickedForNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "includes",
-                value: [null, '', undefined]
-            });
-        }
-    
-        // Add Treatment Center filter
-        if (this.includeAllTreatmentCenter) {
-            this.includeAllTreatmentCenter = false;
-           /* filters.push({
-                field: "TreatmentSite__c",
-                operator: "in",
-                value: this.treatmentCenterOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedTreatmentCenterIds.length > 0) {
-            filters.push({
-                field: "TreatmentSite__c",
-                operator: "in",
-                value: this.selectedTreatmentCenterIds
-            });
-        }
-    
-        // Add Enrollment Status filter
-        if (this.includeAllEnrollmentStatus) {
-            this.includeAllEnrollmentStatus = false;
-            console.log('EnrollmentStatus is false--->');
-           /* filters.push({
-                field: "EnrollmentStatus__c",
-                operator: "in",
-                value: this.enrollmentStatusOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedEnrollmentStatus.length > 0) {
-            filters.push({
-                field: "EnrollmentStatus__c",
-                operator: "includes",
-                value: this.selectedEnrollmentStatus
-            });
-        }
-    
-        // Add Trip Dates filter
-        if (this.includeAllTripDates) {
-           /* filters.push({
-                field: "tripDates",
-                operator: "Date",
-                value: this.selectedTripDates // Include all dates (no specific filter)
-            });*/
-        } //else if (this.selectedTripDates) {
-          //  filters.push({
-          //      field: "tripDates",
-          //      operator: "Date",
-           //     value: this.selectedTripDates
-          //  });
-       // }
-
-      
-        if (this.arrivalDate && this.departureDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Between",
-                value: [this.arrivalDate, this.departureDate]
-            });
-            filters.push({
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Between",
-                value: [this.arrivalDate, this.departureDate]
-            });
-            console.log('Filtering trips between:', this.arrivalDate, 'and', this.departureDate);
-        } else if (this.arrivalDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Date",
-                value: this.arrivalDate
-            });
-            console.log('Filtering trips with Arrival Date:', this.arrivalDate);
-        } else if (this.departureDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Date",
-                value: this.departureDate
-            });
-            console.log('Filtering trips with Departure Date:', this.departureDate);
-        }
-
-    
-        // Add Coordinator filter
-        if (this.includeAllCoordinator) {
-            this.includeAllCoordinator = false;
-           /* filters.push({
-                field: "OrderID__r.Coordinator__c",
-                operator: "in",
-                value: this.coordinatorOptions.map(option => option.value) // Include all values
-            });*/
-        } else if (this.selectedCoordinatorIds.length > 0) {
-            filters.push({
-                field: "OrderID__r.Coordinator__c",
-                operator: "in",
-                value: this.selectedCoordinatorIds
-            });
-        }
-    
-        filterLogic = {
-            logic: "AND",
-            filters: filters
-        };
-        this.filtersLength = filterLogic.filters ? filterLogic.filters.length + (this.isShowAllSelected ? 1 : 0) : (this.isShowAllSelected ? 1 : 0);
-
-        console.log('Filter Logic:', JSON.stringify(filterLogic, null, 2)); 
-    
-         // Apply the filter logic to the cases
-         const filteredCases = this.cases.filter(caseItem => {
-            return filters.every(filter => {
-                switch (filter.operator) {
-                    case "in":
-                        const fieldParts = filter.field.split('.'); // Split the field by '.'
-                        let fieldValue = caseItem;
-                        for (const part of fieldParts) {
-                            fieldValue = fieldValue ? fieldValue[part] : undefined; // Traverse the nested object
-                        }
-
-                        console.log('Resolved Field Value:', fieldValue); // Log the resolved field value
-                        const filterValues = Array.isArray(filter.value) ? filter.value : [filter.value];
-                        return filterValues.some(value => value === fieldValue);
-
-        
-                    case "Date":
-                        // Compare dates
-                        const dateFieldParts = filter.field.split('.');
-                        let dateFieldValue = caseItem;
-                        for (const part of dateFieldParts) {
-                            dateFieldValue = dateFieldValue ? dateFieldValue[part] : undefined;
-                        }
-                    
-                        if (dateFieldValue) {
-                            const caseDate = new Date(dateFieldValue).toISOString().split('T')[0]; // Convert to "YYYY-MM-DD"
-                            const filterDate = new Date(filter.value).toISOString().split('T')[0]; // Convert to "YYYY-MM-DD"
-                            return caseDate === filterDate; // Compare dates as strings
-                        }
-                        return false; // If no date value, return false
-        
-                    case "equals":
-
-                       // return caseItem[filter.field] === filter.value;
-                    const equalsFieldParts = filter.field.split('.');
-                    let equalsFieldValue = caseItem;
-                    for (const part of equalsFieldParts) {
-                    equalsFieldValue = equalsFieldValue ? equalsFieldValue[part] : undefined;
-                    }
-
-                    console.log('Resolved Equals Field Value:', equalsFieldValue); // Log the resolved field value
-                    return equalsFieldValue === filter.value;
-
-                    case "Between":
-                        // Logic for "Between" operator
-                        const betweenFieldParts = filter.field.split('.');
-                        let betweenFieldValue = caseItem;
-                        for (const part of betweenFieldParts) {
-                            betweenFieldValue = betweenFieldValue ? betweenFieldValue[part] : undefined;
-                        }
-
-                        const [startDate, endDate] = filter.value.map(date => new Date(date));
-                        const currentDate = new Date(betweenFieldValue);
-                        return currentDate >= startDate && currentDate <= endDate;
-
-                    case "includes":
-                        // Logic for "includes" operator
-                        const includesFieldParts = filter.field.split('.');
-                        let includesFieldValue = caseItem;
-                        for (const part of includesFieldParts) {
-                            includesFieldValue = includesFieldValue ? includesFieldValue[part] : undefined;
-                        }
-
-                        return filter.value.includes(includesFieldValue);        
-                    default:
-                        // Return true for unsupported operators
-                        return true;
-                }
-            });
-        });
+{
+  "Id": "500dp000008RY2iAAG",
+  "AccountId": "001dp00000CTC8YAAX",
+  "CaseNumber": "00002906",
+  "CartCoordinatorName__c": "<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>",
+  "TreatmentSite__c": "0012300000bjcdeAAA",
+  "TreatmentCenterName__c": "Emoryy University Hospital",
+  "EnrollmentStatus__c": "Enrollment Information and Authorization Complete",
+  "EligibilityStatus__c": "Eligible",
+  "ConsentStatusRollUp__c": "Consent - Complete",
+  "CaseOwnerName__c": "Alison Anne Martin",
+  "OrderID__c": "a2Fdp000000H1nhEAC",
+  "Trips__r": [
+    {
+      "RelatedCase__c": "500dp000008RY2iAAG",a
+      "Id": "a2ldp0000005QLFAA2",
+      "Name": "Trip-0358",
+      "TripState__c": "In Progress",
+      "InfusionMonitoringArrivalTravelDate__c": "2025-03-04",
+      "InfusionMonitoringReturnTravelDate__c": "2025-05-09",
+      "TravelType__c": "Apheresis"
+    }
+  ],
+  "Account": {
+    "Name": "Nick Thomas",
+    "Id": "001dp00000CTC8YAAX"
+  },
+  "OrderID__r": {
+    "Coordinator__c": "0032300000SylAFAAZ",
+    "Id": "a2Fdp000000H1nhEAC",
+    "Coordinator__r": {
+      "Id": "0032300000SylAFAAZ"
+    }
+  }
+}
