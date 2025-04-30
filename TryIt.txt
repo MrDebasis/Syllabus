@@ -1,7 +1,12 @@
 case "nestedBetween":
-            if (!value) return false;
-            return value.some(item => {
-                const valDate = new Date(item);
-                const [start, end] = filter.value.map(v => new Date(v));
-                return valDate >= start && valDate <= end;
-            });
+    if (!value) return false;
+    
+    // Ensure value is an array
+    const valueArray = Array.isArray(value) ? value : [value];
+    
+    // Iterate over the valueArray and check the dates for each item
+    return valueArray.some(item => {
+        const valDate = new Date(item);  // Convert the item to a Date
+        const [start, end] = filter.value.map(v => new Date(v));  // Convert the range to Date
+        return valDate >= start && valDate <= end;
+    });
