@@ -1,8 +1,14 @@
-case "Between":
-                if (!value) return false;
-                const dateValue = new Date(value);
-                const startDate = new Date(filter.value[0]);
-                const endDate = new Date(filter.value[1]);
-
-                // Check if the value is between the date range
-                return dateValue >= startDate && dateValue <= endDate;
+SELECT CartCoordinatorName__c, TreatmentSite__c, TreatmentCenterName__c, ApheresisPickupdate__c, 
+       InfusionAppointmentDate__c, EnrollmentStatus__c, EligibilityStatus__c, ConsentStatusRollUp__c, 
+       CasesNotes__c, CaseOwnerName__c, OrderID__r.Coordinator__r.Id, 
+       (SELECT Id, Name, TripState__c, InfusionMonitoringArrivalTravelDate__c, InfusionMonitoringReturnTravelDate__c, TravelType__c 
+        FROM Trips__r 
+        WHERE TripState__c = 'In Progress' 
+          AND PatientOrCaregiverTrip__c = 'Patient' 
+          AND InfusionMonitoringArrivalTravelDate__c >= 2008-04-02 
+          AND InfusionMonitoringArrivalTravelDate__c <= 2062-04-06
+          AND InfusionMonitoringReturnTravelDate__c >= 2008-04-02 
+          AND InfusionMonitoringReturnTravelDate__c <= 2062-04-06
+        ORDER BY CreatedDate DESC 
+        LIMIT 1) 
+FROM Case
