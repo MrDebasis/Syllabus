@@ -1,20 +1,8 @@
-  "logic": "AND",
-  "filters": [
-    {
-      "field": "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-      "operator": "Between",
-      "value": [
-        "1982-02-02",
-        "2025-04-30"
-      ]
-    },
-    {
-      "field": "Trips__r.InfusionMonitoringReturnTravelDate__c",
-      "operator": "Between",
-      "value": [
-        "1982-02-02",
-        "2025-04-30"
-      ]
-    }
-  ]
-}
+case "Between":
+                if (!value) return false;
+                const dateValue = new Date(value);
+                const startDate = new Date(filter.value[0]);
+                const endDate = new Date(filter.value[1]);
+
+                // Check if the value is between the date range
+                return dateValue >= startDate && dateValue <= endDate;
