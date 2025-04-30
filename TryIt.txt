@@ -1,14 +1,85 @@
-SELECT CartCoordinatorName__c, TreatmentSite__c, TreatmentCenterName__c, ApheresisPickupdate__c, 
-       InfusionAppointmentDate__c, EnrollmentStatus__c, EligibilityStatus__c, ConsentStatusRollUp__c, 
-       CasesNotes__c, CaseOwnerName__c, OrderID__r.Coordinator__r.Id, 
-       (SELECT Id, Name, TripState__c, InfusionMonitoringArrivalTravelDate__c, InfusionMonitoringReturnTravelDate__c, TravelType__c 
-        FROM Trips__r 
-        WHERE TripState__c = 'In Progress' 
-          AND PatientOrCaregiverTrip__c = 'Patient' 
-          AND InfusionMonitoringArrivalTravelDate__c >= 2008-04-02 
-          AND InfusionMonitoringArrivalTravelDate__c <= 2062-04-06
-          AND InfusionMonitoringReturnTravelDate__c >= 2008-04-02 
-          AND InfusionMonitoringReturnTravelDate__c <= 2062-04-06
-        ORDER BY CreatedDate DESC 
-        LIMIT 1) 
-FROM Case
+import { LightningElement, track } from 'lwc';
+
+export default class CaseFilter extends LightningElement {
+    @track cases = [];
+    @track casesFiltered = [];
+
+    @track filtersLength = 0;
+
+    applyFilters() {
+        const filters = [
+            {
+                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
+                operator: "Between",
+                value: ["2008-04-02", "2062-04-06"]
+            },
+            {
+                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
+                operator: "Between",
+                value: ["2008-04-02", "2062-04-06"]
+            }
+            // Add more dynamic filters here...
+        ];
+
+        this.filtersLength = filters.length;
+
+        this.casesFiltered = this.cases.filter(caseItem => {
+            return filters.every(filter => this.evaluateField(caseItem, filter));
+        });
+
+        console.log('Filtered Results:', this.casesFiltered);
+    }
+
+    evaluateField(record, filter) {
+        const fieldPath = filter.field.split('.');
+        return this.resolvePath(record, fieldPath, filter);
+    }
+
+    resolvePath(obj, pathArr, filter) {
+        const key = pathArr[0];
+
+        if (Array.isArray(obj)) {
+            // Array case (e.g., Trips__r)
+            return obj.some(item => this.resolvePath(item, pathArr, filter));
+        }
+
+        if (pathArr.length === 1) {
+            const fieldValue = obj?.[key];
+            return this.matchFilter(fieldValue, filter);
+        }
+
+        const nextObj = obj?.[key];
+
+        if (Array.isArray(nextObj)) {
+            const nextPath = pathArr.slice(1);
+            return nextObj.some(item => this.resolvePath(item, nextPath, filter));
+        }
+
+        return this.resolvePath(nextObj, pathArr.slice(1), filter);
+    }
+
+    matchFilter(value, filter) {
+        switch (filter.operator) {
+            case "in":
+            case "includes":
+                return filter.value.includes(value);
+
+            case "equals":
+                return value === filter.value;
+
+            case "Date":
+                if (!value) return false;
+                return new Date(value).toISOString().split('T')[0] ===
+                       new Date(filter.value).toISOString().split('T')[0];
+
+            case "Between":
+                if (!value) return false;
+                const dateValue = new Date(value);
+                const [start, end] = filter.value.map(v => new Date(v));
+                return dateValue >= start && dateValue <= end;
+
+            default:
+                return true; // fallback for unknown operator
+        }
+    }
+}
