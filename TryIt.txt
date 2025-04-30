@@ -13,26 +13,11 @@ export default class CaseFilter extends LightningElement {
     applyFilters() {
         const filters = [
             {
-                field: "EnrollmentStatus__c",
-                operator: "in",
-                value: ["Enrolled", "Pending"]
-            },
-            {
-                field: "TreatmentSite__c",
-                operator: "equals",
-                value: "TS001"
-            },
-            {
-                field: "InfusionAppointmentDate__c",
-                operator: "Date",
-                value: "2025-04-15"
-            },
-            {
-                field: "Trips__r", // Dynamic object
-                operator: "nestedBetween",
+                field: "Trips__r",
+                operator: "NestedBetween",
                 startField: "InfusionMonitoringArrivalTravelDate__c",
                 endField: "InfusionMonitoringReturnTravelDate__c",
-                value: ["2025-04-02", "2025-04-25"]
+                value: ["2025-04-01", "2025-04-30"]
             }
         ];
 
@@ -60,9 +45,8 @@ export default class CaseFilter extends LightningElement {
         if (pathArr.length === 1) {
             const value = obj?.[key];
 
-            // Handle dynamic nested fields for specific operators
-            if (key === filter.field && filter.operator === 'nestedBetween') {
-                return this.matchNestedBetween(obj, filter);
+            if (filter.operator === "NestedBetween") {
+                return this.matchNestedBetween(value, filter);
             }
 
             return this.matchFilter(value, filter);
@@ -88,82 +72,84 @@ export default class CaseFilter extends LightningElement {
 
             case "Date":
                 if (!value) return false;
-                return this.isDateEqual(value, filter.value);
+                return this.stripTime(new Date(value)).getTime() === this.stripTime(new Date(filter.value)).getTime();
 
             case "Between":
                 if (!value) return false;
-                return this.isDateBetween(value, filter.value);
+                const valDate = this.stripTime(new Date(value));
+                const [start, end] = filter.value.map(v => this.stripTime(new Date(v)));
+                return valDate >= start && valDate <= end;
 
             default:
                 return true;
         }
     }
 
-    isDateEqual(value, filterValue) {
-        const valDate = this.stripTime(new Date(value));
-        const filterDate = this.stripTime(new Date(filterValue));
-        return valDate.getTime() === filterDate.getTime();
-    }
-
-    isDateBetween(value, filterValue) {
-        const valDate = this.stripTime(new Date(value));
-        const [startDate, endDate] = filterValue.map(v => this.stripTime(new Date(v)));
-        return valDate >= startDate && valDate <= endDate;
-    }
-
-    stripTime(date) {
-        // Strips the time from the date, leaving just the year, month, and day
-        const strippedDate = new Date(date);
-        strippedDate.setHours(0, 0, 0, 0); // Set time to midnight
-        return strippedDate;
-    }
-
     matchNestedBetween(value, filter) {
         if (!value || !Array.isArray(value)) return false;
 
-        // Get the date range from the filter
         const [startDate, endDate] = filter.value.map(date => this.stripTime(new Date(date)));
+        let isDateCheckedRangeBetween = false;
 
-        // Check if either startField or endField falls within the range or equals the range dates
-        return value.some(item => {
+        for (const item of value) {
             const startFieldValue = item[filter.startField];
             const endFieldValue = item[filter.endField];
 
-            const startDateValue = this.stripTime(new Date(startFieldValue));
-            const endDateValue = this.stripTime(new Date(endFieldValue));
+            const startDateValue = startFieldValue ? this.stripTime(new Date(startFieldValue)) : null;
+            const endDateValue = endFieldValue ? this.stripTime(new Date(endFieldValue)) : null;
 
-            const isStartInRange = (startDateValue >= startDate && startDateValue <= endDate) ||
-                startDateValue.getTime() === startDate.getTime() || startDateValue.getTime() === endDate.getTime();
+            if (startDateValue === null && endDateValue === null) continue;
 
-            const isEndInRange = (endDateValue >= startDate && endDateValue <= endDate) ||
-                endDateValue.getTime() === startDate.getTime() || endDateValue.getTime() === endDate.getTime();
+            const isStartInRange =
+                startDateValue &&
+                startDateValue >= startDate &&
+                startDateValue <= endDate;
 
-            return isStartInRange || isEndInRange;
-        });
+            const isEndInRange =
+                endDateValue &&
+                endDateValue >= startDate &&
+                endDateValue <= endDate;
+
+            if (isStartInRange || isEndInRange) {
+                isDateCheckedRangeBetween = true;
+                break;
+            }
+        }
+
+        return isDateCheckedRangeBetween;
+    }
+
+    stripTime(date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
     }
 
     // Sample Data
     mockCases() {
         return [
             {
-                EnrollmentStatus__c: "Enrolled",
-                TreatmentSite__c: "TS001",
-                InfusionAppointmentDate__c: "2025-04-15",
+                CaseNumber: "0001",
                 Trips__r: [
                     {
-                        InfusionMonitoringArrivalTravelDate__c: "2025-04-10",
-                        InfusionMonitoringReturnTravelDate__c: "2025-04-20"
+                        InfusionMonitoringArrivalTravelDate__c: "2025-04-05",
+                        InfusionMonitoringReturnTravelDate__c: "2025-04-07"
                     }
                 ]
             },
             {
-                EnrollmentStatus__c: "Declined",
-                TreatmentSite__c: "TS002",
-                InfusionAppointmentDate__c: "2025-05-01",
+                CaseNumber: "0002",
                 Trips__r: [
                     {
-                        InfusionMonitoringArrivalTravelDate__c: "2026-01-01",
-                        InfusionMonitoringReturnTravelDate__c: "2026-01-05"
+                        InfusionMonitoringArrivalTravelDate__c: "2025-03-01",
+                        InfusionMonitoringReturnTravelDate__c: "2025-05-10"
+                    }
+                ]
+            },
+            {
+                CaseNumber: "0003",
+                Trips__r: [
+                    {
+                        InfusionMonitoringArrivalTravelDate__c: null,
+                        InfusionMonitoringReturnTravelDate__c: null
                     }
                 ]
             }
