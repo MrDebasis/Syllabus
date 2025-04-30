@@ -1,54 +1,21 @@
-case "Date":
-case "Between":
-    const isBetween = filter.operator === "Between";
-    const dateFieldParts = filter.field.split('.');
-    let isMatch = false;
-
-    // Check if we're traversing an array (e.g., Trips__r)
-    if (Array.isArray(caseItem[dateFieldParts[0]])) {
-        const arrayField = caseItem[dateFieldParts[0]];
-        for (const item of arrayField) {
-            let fieldValue = item;
-            for (let i = 1; i < dateFieldParts.length; i++) {
-                fieldValue = fieldValue ? fieldValue[dateFieldParts[i]] : undefined;
-            }
-
-            if (fieldValue) {
-                const targetDate = new Date(fieldValue).toISOString().split('T')[0];
-
-                if (isBetween) {
-                    const [startDate, endDate] = filter.value.map(d => new Date(d).toISOString().split('T')[0]);
-                    if (targetDate >= startDate && targetDate <= endDate) {
-                        isMatch = true;
-                        break;
-                    }
-                } else {
-                    const filterDate = new Date(filter.value).toISOString().split('T')[0];
-                    if (targetDate === filterDate) {
-                        isMatch = true;
-                        break;
-                    }
-                }
-            }
-        }
-    } else {
-        // Handle non-array case (just in case)
-        let fieldValue = caseItem;
-        for (const part of dateFieldParts) {
-            fieldValue = fieldValue ? fieldValue[part] : undefined;
-        }
-
-        if (fieldValue) {
-            const targetDate = new Date(fieldValue).toISOString().split('T')[0];
-
-            if (isBetween) {
-                const [startDate, endDate] = filter.value.map(d => new Date(d).toISOString().split('T')[0]);
-                isMatch = targetDate >= startDate && targetDate <= endDate;
-            } else {
-                const filterDate = new Date(filter.value).toISOString().split('T')[0];
-                isMatch = targetDate === filterDate;
-            }
-        }
+Filter Logic: {
+  "logic": "AND",
+  "filters": [
+    {
+      "field": "Trips__r.InfusionMonitoringArrivalTravelDate__c",
+      "operator": "Between",
+      "value": [
+        "2025-03-04",
+        "2025-04-18"
+      ]
+    },
+    {
+      "field": "Trips__r.InfusionMonitoringReturnTravelDate__c",
+      "operator": "Between",
+      "value": [
+        "2025-03-04",
+        "2025-04-18"
+      ]
     }
-
-    return isMatch;
+  ]
+}
