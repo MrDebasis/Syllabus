@@ -1,85 +1,35 @@
-import { LightningElement, track } from 'lwc';
-
-export default class CaseFilter extends LightningElement {
-    @track cases = [];
-    @track casesFiltered = [];
-
-    @track filtersLength = 0;
-
-    applyFilters() {
-        const filters = [
-            {
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Between",
-                value: ["2008-04-02", "2062-04-06"]
-            },
-            {
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Between",
-                value: ["2008-04-02", "2062-04-06"]
-            }
-            // Add more dynamic filters here...
-        ];
-
-        this.filtersLength = filters.length;
-
-        this.casesFiltered = this.cases.filter(caseItem => {
-            return filters.every(filter => this.evaluateField(caseItem, filter));
-        });
-
-        console.log('Filtered Results:', this.casesFiltered);
+{
+  "Id": "500dp000008RY2iAAG",
+  "AccountId": "001dp00000CTC8YAAX",
+  "CaseNumber": "00002906",
+  "CartCoordinatorName__c": "<a href=\"/0032300000SylAF\" target=\"_self\">Adam Garner</a>",
+  "TreatmentSite__c": "0012300000bjcdeAAA",
+  "TreatmentCenterName__c": "Emoryy University Hospital",
+  "EnrollmentStatus__c": "Enrollment Information and Authorization Complete",
+  "EligibilityStatus__c": "Eligible",
+  "ConsentStatusRollUp__c": "Consent - Complete",
+  "CaseOwnerName__c": "Alison Anne Martin",
+  "OrderID__c": "a2Fdp000000H1nhEAC",
+  "Trips__r": [
+    {
+      "RelatedCase__c": "500dp000008RY2iAAG",
+      "Id": "a2ldp0000005QLFAA2",
+      "Name": "Trip-0358",
+      "TripState__c": "In Progress",
+      "InfusionMonitoringArrivalTravelDate__c": "2025-03-04",
+      "InfusionMonitoringReturnTravelDate__c": "2025-05-09",
+      "TravelType__c": "Apheresis"
     }
-
-    evaluateField(record, filter) {
-        const fieldPath = filter.field.split('.');
-        return this.resolvePath(record, fieldPath, filter);
+  ],
+  "Account": {
+    "Name": "Nick Thomas",
+    "Id": "001dp00000CTC8YAAX"
+  },
+  "OrderID__r": {
+    "Coordinator__c": "0032300000SylAFAAZ",
+    "Id": "a2Fdp000000H1nhEAC",
+    "Coordinator__r": {
+      "Id": "0032300000SylAFAAZ"
     }
-
-    resolvePath(obj, pathArr, filter) {
-        const key = pathArr[0];
-
-        if (Array.isArray(obj)) {
-            // Array case (e.g., Trips__r)
-            return obj.some(item => this.resolvePath(item, pathArr, filter));
-        }
-
-        if (pathArr.length === 1) {
-            const fieldValue = obj?.[key];
-            return this.matchFilter(fieldValue, filter);
-        }
-
-        const nextObj = obj?.[key];
-
-        if (Array.isArray(nextObj)) {
-            const nextPath = pathArr.slice(1);
-            return nextObj.some(item => this.resolvePath(item, nextPath, filter));
-        }
-
-        return this.resolvePath(nextObj, pathArr.slice(1), filter);
-    }
-
-    matchFilter(value, filter) {
-        switch (filter.operator) {
-            case "in":
-            case "includes":
-                return filter.value.includes(value);
-
-            case "equals":
-                return value === filter.value;
-
-            case "Date":
-                if (!value) return false;
-                return new Date(value).toISOString().split('T')[0] ===
-                       new Date(filter.value).toISOString().split('T')[0];
-
-            case "Between":
-                if (!value) return false;
-                const dateValue = new Date(value);
-                const [start, end] = filter.value.map(v => new Date(v));
-                return dateValue >= start && dateValue <= end;
-
-            default:
-                return true; // fallback for unknown operator
-        }
-    }
+  }
 }
