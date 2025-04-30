@@ -1,180 +1,20 @@
-import { LightningElement, track } from 'lwc';
-
-export default class CaseFilter extends LightningElement {
-    @track cases = []; // Full list of cases
-    @track casesFiltered = []; // Result after filtering
-    @track filtersLength = 0;
-
-    // Sample tracked filter fields (you will replace with actual bindings)
-    @track selectedNextAction = [];
-    @track includeAllNextAction = false;
-
-    @track selectedNextActionDueDate;
-    @track weekDaysArrayForNextActionDueDate = [];
-    @track isThisWeekClickedForNextActionDueDate = false;
-    @track isUnassignedClickedForNextActionDueDate = false;
-
-    @track selectedTreatmentCenterIds = [];
-    @track includeAllTreatmentCenter = false;
-
-    @track selectedEnrollmentStatus = [];
-    @track includeAllEnrollmentStatus = false;
-
-    @track arrivalDate;
-    @track departureDate;
-    @track includeAllTripDates = false;
-
-    @track selectedCoordinatorIds = [];
-    @track includeAllCoordinator = false;
-
-    @track isShowAllSelected = false;
-
-    applyFilters() {
-        const filters = [];
-
-        // Next Action
-        if (!this.includeAllNextAction && this.selectedNextAction.length > 0) {
-            filters.push({
-                field: "NextAction__c",
-                operator: "in",
-                value: this.selectedNextAction
-            });
-        }
-
-        // Next Action Due Date
-        if (this.selectedNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Date",
-                value: this.selectedNextActionDueDate
-            });
-        } else if (this.isThisWeekClickedForNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "Between",
-                value: this.weekDaysArrayForNextActionDueDate
-            });
-        } else if (this.isUnassignedClickedForNextActionDueDate) {
-            filters.push({
-                field: "NextActionDueDate__c",
-                operator: "includes",
-                value: [null, '', undefined]
-            });
-        }
-
-        // Treatment Center
-        if (!this.includeAllTreatmentCenter && this.selectedTreatmentCenterIds.length > 0) {
-            filters.push({
-                field: "TreatmentSite__c",
-                operator: "in",
-                value: this.selectedTreatmentCenterIds
-            });
-        }
-
-        // Enrollment Status
-        if (!this.includeAllEnrollmentStatus && this.selectedEnrollmentStatus.length > 0) {
-            filters.push({
-                field: "EnrollmentStatus__c",
-                operator: "includes",
-                value: this.selectedEnrollmentStatus
-            });
-        }
-
-        // Trip Dates
-        if (this.arrivalDate && this.departureDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Between",
-                value: [this.arrivalDate, this.departureDate]
-            });
-            filters.push({
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Between",
-                value: [this.arrivalDate, this.departureDate]
-            });
-        } else if (this.arrivalDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-                operator: "Date",
-                value: this.arrivalDate
-            });
-        } else if (this.departureDate) {
-            filters.push({
-                field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-                operator: "Date",
-                value: this.departureDate
-            });
-        }
-
-        // Coordinator
-        if (!this.includeAllCoordinator && this.selectedCoordinatorIds.length > 0) {
-            filters.push({
-                field: "OrderID__r.Coordinator__c",
-                operator: "in",
-                value: this.selectedCoordinatorIds
-            });
-        }
-
-        // Main Filtering Logic
-        this.filtersLength = filters.length + (this.isShowAllSelected ? 1 : 0);
-
-        this.casesFiltered = this.cases.filter(caseItem => {
-            return filters.every(filter => {
-                const fieldParts = filter.field.split('.');
-                let value = caseItem;
-
-                for (let i = 0; i < fieldParts.length; i++) {
-                    const part = fieldParts[i];
-
-                    if (Array.isArray(value)) {
-                        const arrayField = fieldParts.slice(i).join('.');
-                        return value.some(item => this.matchFilter(item, arrayField, filter));
-                    }
-
-                    value = value ? value[part] : undefined;
-                }
-
-                return this.matchFilter(caseItem, filter.field, filter);
-            });
-        });
-
-        console.log('Filtered Cases:', JSON.stringify(this.casesFiltered, null, 2));
+  "logic": "AND",
+  "filters": [
+    {
+      "field": "Trips__r.InfusionMonitoringArrivalTravelDate__c",
+      "operator": "Between",
+      "value": [
+        "1982-02-02",
+        "2025-04-30"
+      ]
+    },
+    {
+      "field": "Trips__r.InfusionMonitoringReturnTravelDate__c",
+      "operator": "Between",
+      "value": [
+        "1982-02-02",
+        "2025-04-30"
+      ]
     }
-
-    matchFilter(data, field, filter) {
-        const fieldParts = field.split('.');
-        let value = data;
-
-        for (const part of fieldParts) {
-            value = value ? value[part] : undefined;
-        }
-
-        switch (filter.operator) {
-            case "in":
-            case "includes":
-                return filter.value.includes(value);
-
-            case "equals":
-                return value === filter.value;
-
-            case "Date":
-                if (!value) return false;
-                const caseDate = new Date(value).toISOString().split('T')[0];
-                const filterDate = new Date(filter.value).toISOString().split('T')[0];
-                return caseDate === filterDate;
-
-            case "Between":
-                if (Array.isArray(data)) {
-                    return data.some(val => {
-                        const valDate = new Date(val);
-                        return valDate >= new Date(filter.value[0]) && valDate <= new Date(filter.value[1]);
-                    });
-                }
-                const dateValue = new Date(value);
-                return dateValue >= new Date(filter.value[0]) && dateValue <= new Date(filter.value[1]);
-
-            default:
-                return true;
-        }
-    }
+  ]
 }
