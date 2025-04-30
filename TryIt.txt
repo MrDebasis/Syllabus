@@ -1,77 +1,15 @@
-if (this.arrivalDate && this.departureDate) {
-    filters.push({
-        field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-        operator: "Between",
-        value: [this.arrivalDate, this.departureDate]
-    });
-    filters.push({
-        field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-        operator: "Between",
-        value: [this.arrivalDate, this.departureDate]
-    });
-} else if (this.arrivalDate) {
-    filters.push({
-        field: "Trips__r.InfusionMonitoringArrivalTravelDate__c",
-        operator: "Date",
-        value: this.arrivalDate
-    });
-} else if (this.departureDate) {
-    filters.push({
-        field: "Trips__r.InfusionMonitoringReturnTravelDate__c",
-        operator: "Date",
-        value: this.departureDate
-    });
+Filter Logic: {
+  "logic": "AND",
+  "filters": [
+    {
+      "field": "NextActionDueDate__c",
+      "operator": "Date",
+      "value": "2025-05-08"
+    },
+    {
+      "field": "tripDates",
+      "operator": "Date",
+      "value": "2025-05-16"
+    }
+  ]
 }
-
-
-
-case "Date":
-    const dateParts = filter.field.split('.');
-    let foundDateMatch = false;
-
-    if (Array.isArray(caseItem[dateParts[0]])) {
-        const arrayField = dateParts[0];
-        const nestedField = dateParts.slice(1); // e.g., ["InfusionMonitoringArrivalTravelDate__c"]
-
-        for (const item of caseItem[arrayField]) {
-            let val = item;
-            for (const part of nestedField) {
-                val = val ? val[part] : undefined;
-            }
-            if (val) {
-                const valDate = new Date(val).toISOString().split('T')[0];
-                const targetDate = new Date(filter.value).toISOString().split('T')[0];
-                if (valDate === targetDate) {
-                    foundDateMatch = true;
-                    break;
-                }
-            }
-        }
-    }
-    return foundDateMatch;
-
-
-case "Between":
-    const betweenParts = filter.field.split('.');
-    let foundBetweenMatch = false;
-
-    if (Array.isArray(caseItem[betweenParts[0]])) {
-        const arrayField = betweenParts[0];
-        const nestedField = betweenParts.slice(1); // e.g., ["InfusionMonitoringReturnTravelDate__c"]
-
-        for (const item of caseItem[arrayField]) {
-            let val = item;
-            for (const part of nestedField) {
-                val = val ? val[part] : undefined;
-            }
-            if (val) {
-                const [start, end] = filter.value.map(d => new Date(d));
-                const valDate = new Date(val);
-                if (valDate >= start && valDate <= end) {
-                    foundBetweenMatch = true;
-                    break;
-                }
-            }
-        }
-    }
-    return foundBetweenMatch;
