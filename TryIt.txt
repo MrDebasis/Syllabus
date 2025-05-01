@@ -1,157 +1,282 @@
-import { LightningElement, track } from 'lwc';
-
-export default class CaseFilter extends LightningElement {
-    @track cases = [];
-    @track casesFiltered = [];
-    @track filtersLength = 0;
-
-    connectedCallback() {
-        this.cases = this.mockCases();
-        this.applyFilters();
-    }
-
-    applyFilters() {
-        const filters = [
-            {
-                field: "Trips__r",
-                operator: "NestedDateEquals",
-                startField: "InfusionMonitoringArrivalTravelDate__c",
-                value: "2025-04-10"
-            },
-            {
-                field: "Trips__r",
-                operator: "NestedBetween",
-                startField: "InfusionMonitoringArrivalTravelDate__c",
-                endField: "InfusionMonitoringReturnTravelDate__c",
-                value: ["2024-01-01", "2025-12-31"]
+ <!-- Tble structure -->
+    <lightning-card title="Editable Table POC" class="cardFlex" icon-name="custom:custom63">
+        <div class="slds-table_edit_container">
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                <thead>
+                    <tr>
+                        <th scope="col"></th> <!-- Column for the toggle icon -->
+                        <template for:each={columnConfig} for:item="column">
+                            <template if:true={column.visible}>
+                                <th key={column.column_id} scope="col">
+                                    <div class="slds-grid slds-grid_align-spread">
+                                        <span>{column.label}</span>
+                                        <template if:true={column.isSortingApplied}>
+                                            <template if:true={column.IsAscsortDirection}>
+                                                <lightning-button-icon
+                                                    icon-name="utility:arrowup"
+                                                    alternative-text="Sort Ascending"
+                                                    data-column-id={column.column_id}
+                                                    onclick={handleSort}>
+                                                </lightning-button-icon>
+                                            </template>
+                                            <template if:true={column.IsDescsortDirection}>
+                                                <lightning-button-icon
+                                                    icon-name="utility:arrowdown"
+                                                    alternative-text="Sort Descending"
+                                                    data-column-id={column.column_id}
+                                                    onclick={handleSort}>
+                                                </lightning-button-icon>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </th>
+                            </template>
+                        </template>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={processedCases} for:item="row">
+                        <tr key={row.Id}>
+                            <!-- Toggle icon for expanding/collapsing details -->
+                            <td>
+                                <template if:true={row.isExpanded}>
+                                    <lightning-button-icon
+                                        icon-name="utility:dash"
+                                        alternative-text="Collapse Details"
+                                        data-id={row.Id}
+                                        onclick={handleRowAction}>
+                                    </lightning-button-icon>
+                                </template>
+                                <template if:false={row.isExpanded}>
+                                    <lightning-button-icon
+                                        icon-name="utility:add"
+                                        alternative-text="Expand Details"
+                                        data-id={row.Id}
+                                        onclick={handleRowAction}>
+                                    </lightning-button-icon>
+                                </template>
+                            </td>
+                            <template for:each={row.columns} for:item="column">
+                                <td key={column.field}>
+                                    <template if:true={column.isEditable}>
+                                        <template if:true={column.isEditing}>
+                                            <template if:true={column.isString}>
+                                                <lightning-textarea
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onchange={handleInputChange}
+                                                    onblur={handleBlur}>
+                                                </lightning-textarea>
+                                            </template>
+                                            <template if:true={column.isNumber}>
+                                                <lightning-input
+                                                    type="number"
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onchange={handleInputChange}
+                                                    onblur={handleBlur}>
+                                                </lightning-input>
+                                            </template>
+                                            <template if:true={column.isDate}>
+                                                <lightning-input
+                                                    type="date"
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onchange={handleInputChange}
+                                                    onblur={handleBlur}>
+                                                </lightning-input>
+                                            </template>
+                                            <template if:true={column.isPicklist}>
+                                                <lightning-combobox
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    options={column.options}
+                                                    onchange={handleInputChange}
+                                                    onblur={handleBlur}>
+                                                </lightning-combobox>
+                                            </template>
+                                        </template>
+                                    </template>
+                                    <template if:false={column.isEditing}>
+                                        <template if:true={column.isHyperlink}>
+                                            <lightning-formatted-rich-text value={column.value}></lightning-formatted-rich-text>
+                                        </template>
+                                        <template if:false={column.isHyperlink}>
+                                            {column.value}
+                                            <template if:true={column.isEditable}>
+                                                <lightning-button-icon
+                                                    icon-name="utility:edit"
+                                                    alternative-text="Edit"
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onclick={handleEditClick}>
+                                                </lightning-button-icon>
+                                            </template>
+                                        </template>
+                                    </template>
+                                    <template if:true={column.isEditing}>
+                                        <lightning-button
+                                            label="Save"
+                                            data-id={row.Id}
+                                            onclick={handleSave}>
+                                        </lightning-button>
+                                        <lightning-button
+                                            label="Cancel"
+                                            data-id={row.Id}
+                                            onclick={handleCancel}>
+                                        </lightning-button>
+                                    </template>
+                                </td>
+                            </template>
+                        </tr>
+                        <!-- Child component row -->
+                        <template if:true={row.showContent}>
+                            <tr key={row.detailRowKey}>
+                                <td colspan={computedColspan}>
+                                    <div>
+                                        <p>{row.Id}</p>
+                                        <c-dynamic-datatable-debasis record-id={row.Id}></c-dynamic-datatable-debasis>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </lightning-card> handleEditClick(event) {
+        const rowId = event.target.dataset.id; // Use row.Id as the unique identifier
+        const field = event.target.dataset.field;
+    
+        // Set the editing flag for the specific field
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                return {
+                    ...row,
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        isEditing: col.field === field
+                    }))
+                };
             }
-        ];
-
-        this.filtersLength = filters.length;
-
-        this.casesFiltered = this.cases.filter(record => {
-            return filters.every(filter => this.evaluateField(record, filter));
+            return {
+                ...row,
+                columns: row.columns.map(col => ({
+                    ...col,
+                    isEditing: false
+                }))
+            };
         });
-
-        console.log("✅ Filtered Output:", this.casesFiltered);
     }
 
-    evaluateField(record, filter) {
-        if (filter.operator === "NestedBetween") {
-            return this.matchNestedDateRange(record[filter.field], filter);
-        } else if (filter.operator === "NestedDateEquals") {
-            return this.matchNestedDateEquals(record[filter.field], filter);
-        } else {
-            const path = filter.field.split('.');
-            return this.resolvePath(record, path, filter);
-        }
-    }
 
-    resolvePath(obj, pathArr, filter) {
-        const key = pathArr[0];
 
-        if (Array.isArray(obj)) {
-            return obj.some(item => this.resolvePath(item, pathArr, filter));
-        }
-
-        if (pathArr.length === 1) {
-            const value = obj?.[key];
-
-            if (Array.isArray(value)) {
-                return value.some(item => this.matchFilter(item, filter));
+    handleBlur(event) {
+        const rowId = event.target.dataset.id; // Use row.Id as the unique identifier
+        const field = event.target.dataset.field;
+    
+        // Exit edit mode on blur
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                return {
+                    ...row,
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        isEditing: col.field === field ? false : col.isEditing
+                    }))
+                };
             }
-
-            return this.matchFilter(value, filter);
-        }
-
-        const next = obj?.[key];
-
-        if (Array.isArray(next)) {
-            return next.some(item => this.resolvePath(item, pathArr.slice(1), filter));
-        }
-
-        return this.resolvePath(next, pathArr.slice(1), filter);
-    }
-
-    matchFilter(value, filter) {
-        switch (filter.operator) {
-            case "in":
-            case "includes":
-                return filter.value.includes(value);
-
-            case "equals":
-                return value === filter.value;
-
-            case "Date":
-                if (!value) return false;
-                return this.formatDateOnly(value) === this.formatDateOnly(filter.value);
-
-            case "Between":
-                if (!value) return false;
-                const valDate = new Date(this.formatDateOnly(value));
-                const [start, end] = filter.value.map(v => new Date(this.formatDateOnly(v)));
-                return valDate >= start && valDate <= end;
-
-            default:
-                return true;
-        }
-    }
-
-    matchNestedDateRange(array, filter) {
-        if (!array || !Array.isArray(array)) return false;
-
-        const [startDate, endDate] = filter.value.map(v => new Date(this.formatDateOnly(v)));
-
-        return array.some(item => {
-            let match = false;
-            if (item[filter.startField]) {
-                const valStart = new Date(this.formatDateOnly(item[filter.startField]));
-                match = match || (valStart >= startDate && valStart <= endDate);
-            }
-            if (item[filter.endField]) {
-                const valEnd = new Date(this.formatDateOnly(item[filter.endField]));
-                match = match || (valEnd >= startDate && valEnd <= endDate);
-            }
-            return match;
+            return row;
         });
     }
+    
+    @track editedValues = {}; // Store edited values temporarily
 
-    matchNestedDateEquals(array, filter) {
-        const targetDate = this.formatDateOnly(filter.value);
-        return array?.some(item => {
-            const dateVal = item[filter.startField];
-            return dateVal && this.formatDateOnly(dateVal) === targetDate;
-        });
+    handleInputChange(event) {
+        const rowId = event.target.dataset.id;
+        const field = event.target.dataset.field;
+        const value = event.target.value;
+    
+        console.log(`Input changed for rowId: ${rowId}, field: ${field}, new value: ${value}`);
+    
+        // Store the edited value in a temporary state
+        if (!this.editedValues[rowId]) {
+            this.editedValues[rowId] = {};
+        }
+        this.editedValues[rowId][field] = value;
+    
+        console.log('Edited values:', JSON.stringify(this.editedValues, null, 2));
     }
-
-    formatDateOnly(date) {
-        return new Date(date).toISOString().split('T')[0];
-    }
-
-    mockCases() {
-        return [
-            {
-                EnrollmentStatus__c: "Enrolled",
-                TreatmentSite__c: "TS001",
-                InfusionAppointmentDate__c: "2025-04-15",
-                Trips__r: [
-                    {
-                        InfusionMonitoringArrivalTravelDate__c: "2025-04-10",
-                        InfusionMonitoringReturnTravelDate__c: "2025-04-20"
-                    }
-                ]
-            },
-            {
-                EnrollmentStatus__c: "Enrolled",
-                TreatmentSite__c: "TS002",
-                InfusionAppointmentDate__c: "2024-03-01",
-                Trips__r: [
-                    {
-                        InfusionMonitoringArrivalTravelDate__c: "2026-01-01",
-                        InfusionMonitoringReturnTravelDate__c: "2026-01-10"
-                    }
-                ]
+    
+    handleSave(event) {
+        const rowId = event.target.dataset.id;
+        console.log('handleSave triggered for rowId:', rowId);
+    
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                const updatedRow = {
+                    ...row,
+                    isEditing: false,
+                    columns: row.columns.map(col => {
+                        const updatedValue = this.editedValues[rowId]?.[col.field];
+                        if (updatedValue !== undefined) {
+                            console.log(`Saving updated value for field ${col.field}:`, updatedValue);
+                            return {
+                                ...col,
+                                value: updatedValue, // Apply the updated value
+                                isEditing: false
+                            };
+                        }
+                        return {
+                            ...col,
+                            isEditing: false
+                        };
+                    })
+                };
+    
+                // Clear the temporary edited values for this row
+                delete this.editedValues[rowId];
+    
+                console.log('Updated row to save:', JSON.stringify(updatedRow, null, 2));
+                return updatedRow;
             }
-        ];
+            return row;
+        });
+    
+        console.log('Processed cases after save:', JSON.stringify(this.processedCases, null, 2));
+    
+        // Simulate server call to save the updated row
+        // Replace this with an actual server call (e.g., Apex method)
+        console.log('Simulating server call to save:', this.processedCases.find(row => row.Id === rowId));
     }
-}
+    
+    handleCancel(event) {
+        const rowId = event.target.dataset.id;
+        console.log('handleCancel triggered for rowId:', rowId);
+    
+        // Clear the temporary edited values for this row
+        delete this.editedValues[rowId];
+    
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                const revertedRow = {
+                    ...row,
+                    isEditing: false,
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        isEditing: false
+                    }))
+                };
+    
+                console.log('Reverted row after cancel:', JSON.stringify(revertedRow, null, 2));
+                return revertedRow;
+            }
+            return row;
+        });
+    
+        console.log('Processed cases after cancel:', JSON.stringify(this.processedCases, null, 2));
+    }
