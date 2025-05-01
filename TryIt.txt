@@ -1,5 +1,4 @@
-<template>
-    <lightning-card title="Editable Table POC" class="cardFlex" icon-name="custom:custom63">
+ <lightning-card title="Editable Table POC" class="cardFlex" icon-name="custom:custom63">
         <div class="slds-table_edit_container">
             <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                 <thead>
@@ -65,7 +64,7 @@
                                                     data-id={row.Id}
                                                     data-field={column.field}
                                                     onchange={handleInputChange}
-                                                    onblur={handleBlur}>
+                                                   >
                                                 </lightning-textarea>
                                             </template>
                                             <template if:true={column.isNumber}>
@@ -75,7 +74,7 @@
                                                     data-id={row.Id}
                                                     data-field={column.field}
                                                     onchange={handleInputChange}
-                                                    onblur={handleBlur}>
+                                                   >
                                                 </lightning-input>
                                             </template>
                                             <template if:true={column.isDate}>
@@ -85,7 +84,7 @@
                                                     data-id={row.Id}
                                                     data-field={column.field}
                                                     onchange={handleInputChange}
-                                                    onblur={handleBlur}>
+                                                    >
                                                 </lightning-input>
                                             </template>
                                             <template if:true={column.isPicklist}>
@@ -95,7 +94,7 @@
                                                     data-field={column.field}
                                                     options={column.options}
                                                     onchange={handleInputChange}
-                                                    onblur={handleBlur}>
+                                                   >
                                                 </lightning-combobox>
                                             </template>
                                         </template>
@@ -150,123 +149,3 @@
             </table>
         </div>
     </lightning-card>
-</template>
-
-
-
-import { LightningElement, api, track } from 'lwc';
-
-export default class EditableTablePOC extends LightningElement {
-    @track processedCases = []; // Example processed rows
-    @track columnConfig = []; // Column metadata
-    @track editedValues = {}; // Stores temp edits
-    @track computedColspan = 6; // Adjust as needed
-
-    handleRowAction(event) {
-        const rowId = event.target.dataset.id;
-        this.processedCases = this.processedCases.map(row => ({
-            ...row,
-            isExpanded: row.Id === rowId ? !row.isExpanded : row.isExpanded,
-            showContent: row.Id === rowId ? !row.showContent : row.showContent
-        }));
-    }
-
-    handleEditClick(event) {
-        const rowId = event.target.dataset.id;
-        const field = event.target.dataset.field;
-
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                return {
-                    ...row,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        isEditing: col.field === field
-                    }))
-                };
-            }
-            return {
-                ...row,
-                columns: row.columns.map(col => ({
-                    ...col,
-                    isEditing: false
-                }))
-            };
-        });
-    }
-
-    handleInputChange(event) {
-        const rowId = event.target.dataset.id;
-        const field = event.target.dataset.field;
-        const value = event.target.value;
-
-        if (!this.editedValues[rowId]) {
-            this.editedValues[rowId] = {};
-        }
-        this.editedValues[rowId][field] = value;
-    }
-
-    handleBlur(event) {
-        const rowId = event.target.dataset.id;
-        const field = event.target.dataset.field;
-
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                return {
-                    ...row,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        isEditing: col.field === field ? false : col.isEditing
-                    }))
-                };
-            }
-            return row;
-        });
-    }
-
-    handleSave(event) {
-        const rowId = event.target.dataset.id;
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                const updatedRow = {
-                    ...row,
-                    columns: row.columns.map(col => {
-                        const newVal = this.editedValues[rowId]?.[col.field];
-                        return {
-                            ...col,
-                            value: newVal !== undefined ? newVal : col.value,
-                            isEditing: false
-                        };
-                    })
-                };
-                delete this.editedValues[rowId];
-                return updatedRow;
-            }
-            return row;
-        });
-    }
-
-    handleCancel(event) {
-        const rowId = event.target.dataset.id;
-        delete this.editedValues[rowId];
-
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                return {
-                    ...row,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        isEditing: false
-                    }))
-                };
-            }
-            return row;
-        });
-    }
-
-    handleSort(event) {
-        const colId = event.target.dataset.columnId;
-        console.log('Sort triggered on column:', colId);
-        // Sorting logic to be implemented
-    }
-}
