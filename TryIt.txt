@@ -1,10 +1,10 @@
- <!-- Tble structure -->
+<template>
     <lightning-card title="Editable Table POC" class="cardFlex" icon-name="custom:custom63">
         <div class="slds-table_edit_container">
             <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                 <thead>
                     <tr>
-                        <th scope="col"></th> <!-- Column for the toggle icon -->
+                        <th scope="col"></th> <!-- Toggle icon column -->
                         <template for:each={columnConfig} for:item="column">
                             <template if:true={column.visible}>
                                 <th key={column.column_id} scope="col">
@@ -37,7 +37,6 @@
                 <tbody>
                     <template for:each={processedCases} for:item="row">
                         <tr key={row.Id}>
-                            <!-- Toggle icon for expanding/collapsing details -->
                             <td>
                                 <template if:true={row.isExpanded}>
                                     <lightning-button-icon
@@ -119,21 +118,23 @@
                                         </template>
                                     </template>
                                     <template if:true={column.isEditing}>
-                                        <lightning-button
-                                            label="Save"
-                                            data-id={row.Id}
-                                            onclick={handleSave}>
-                                        </lightning-button>
-                                        <lightning-button
-                                            label="Cancel"
-                                            data-id={row.Id}
-                                            onclick={handleCancel}>
-                                        </lightning-button>
+                                        <div class="slds-m-top_x-small">
+                                            <lightning-button
+                                                label="Save"
+                                                data-id={row.Id}
+                                                onclick={handleSave}>
+                                            </lightning-button>
+                                            <lightning-button
+                                                label="Cancel"
+                                                data-id={row.Id}
+                                                onclick={handleCancel}
+                                                class="slds-m-left_x-small">
+                                            </lightning-button>
+                                        </div>
                                     </template>
                                 </td>
                             </template>
                         </tr>
-                        <!-- Child component row -->
                         <template if:true={row.showContent}>
                             <tr key={row.detailRowKey}>
                                 <td colspan={computedColspan}>
@@ -148,11 +149,32 @@
                 </tbody>
             </table>
         </div>
-    </lightning-card> handleEditClick(event) {
-        const rowId = event.target.dataset.id; // Use row.Id as the unique identifier
+    </lightning-card>
+</template>
+
+
+
+import { LightningElement, api, track } from 'lwc';
+
+export default class EditableTablePOC extends LightningElement {
+    @track processedCases = []; // Example processed rows
+    @track columnConfig = []; // Column metadata
+    @track editedValues = {}; // Stores temp edits
+    @track computedColspan = 6; // Adjust as needed
+
+    handleRowAction(event) {
+        const rowId = event.target.dataset.id;
+        this.processedCases = this.processedCases.map(row => ({
+            ...row,
+            isExpanded: row.Id === rowId ? !row.isExpanded : row.isExpanded,
+            showContent: row.Id === rowId ? !row.showContent : row.showContent
+        }));
+    }
+
+    handleEditClick(event) {
+        const rowId = event.target.dataset.id;
         const field = event.target.dataset.field;
-    
-        // Set the editing flag for the specific field
+
         this.processedCases = this.processedCases.map(row => {
             if (row.Id === rowId) {
                 return {
@@ -173,13 +195,21 @@
         });
     }
 
+    handleInputChange(event) {
+        const rowId = event.target.dataset.id;
+        const field = event.target.dataset.field;
+        const value = event.target.value;
 
+        if (!this.editedValues[rowId]) {
+            this.editedValues[rowId] = {};
+        }
+        this.editedValues[rowId][field] = value;
+    }
 
     handleBlur(event) {
-        const rowId = event.target.dataset.id; // Use row.Id as the unique identifier
+        const rowId = event.target.dataset.id;
         const field = event.target.dataset.field;
-    
-        // Exit edit mode on blur
+
         this.processedCases = this.processedCases.map(row => {
             if (row.Id === rowId) {
                 return {
@@ -193,90 +223,50 @@
             return row;
         });
     }
-    
-    @track editedValues = {}; // Store edited values temporarily
 
-    handleInputChange(event) {
-        const rowId = event.target.dataset.id;
-        const field = event.target.dataset.field;
-        const value = event.target.value;
-    
-        console.log(`Input changed for rowId: ${rowId}, field: ${field}, new value: ${value}`);
-    
-        // Store the edited value in a temporary state
-        if (!this.editedValues[rowId]) {
-            this.editedValues[rowId] = {};
-        }
-        this.editedValues[rowId][field] = value;
-    
-        console.log('Edited values:', JSON.stringify(this.editedValues, null, 2));
-    }
-    
     handleSave(event) {
         const rowId = event.target.dataset.id;
-        console.log('handleSave triggered for rowId:', rowId);
-    
         this.processedCases = this.processedCases.map(row => {
             if (row.Id === rowId) {
                 const updatedRow = {
                     ...row,
-                    isEditing: false,
                     columns: row.columns.map(col => {
-                        const updatedValue = this.editedValues[rowId]?.[col.field];
-                        if (updatedValue !== undefined) {
-                            console.log(`Saving updated value for field ${col.field}:`, updatedValue);
-                            return {
-                                ...col,
-                                value: updatedValue, // Apply the updated value
-                                isEditing: false
-                            };
-                        }
+                        const newVal = this.editedValues[rowId]?.[col.field];
                         return {
                             ...col,
+                            value: newVal !== undefined ? newVal : col.value,
                             isEditing: false
                         };
                     })
                 };
-    
-                // Clear the temporary edited values for this row
                 delete this.editedValues[rowId];
-    
-                console.log('Updated row to save:', JSON.stringify(updatedRow, null, 2));
                 return updatedRow;
             }
             return row;
         });
-    
-        console.log('Processed cases after save:', JSON.stringify(this.processedCases, null, 2));
-    
-        // Simulate server call to save the updated row
-        // Replace this with an actual server call (e.g., Apex method)
-        console.log('Simulating server call to save:', this.processedCases.find(row => row.Id === rowId));
     }
-    
+
     handleCancel(event) {
         const rowId = event.target.dataset.id;
-        console.log('handleCancel triggered for rowId:', rowId);
-    
-        // Clear the temporary edited values for this row
         delete this.editedValues[rowId];
-    
+
         this.processedCases = this.processedCases.map(row => {
             if (row.Id === rowId) {
-                const revertedRow = {
+                return {
                     ...row,
-                    isEditing: false,
                     columns: row.columns.map(col => ({
                         ...col,
                         isEditing: false
                     }))
                 };
-    
-                console.log('Reverted row after cancel:', JSON.stringify(revertedRow, null, 2));
-                return revertedRow;
             }
             return row;
         });
-    
-        console.log('Processed cases after cancel:', JSON.stringify(this.processedCases, null, 2));
     }
+
+    handleSort(event) {
+        const colId = event.target.dataset.columnId;
+        console.log('Sort triggered on column:', colId);
+        // Sorting logic to be implemented
+    }
+}
