@@ -1,72 +1,42 @@
- /*  handleSave(event) {
-            const rowId = event.target.dataset.id;
-            console.log(`Saving record for rowId: ${rowId}`); // Debug log for rowId
-        
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    const updatedRow = {
-                        ...row,
-                        isEditing: false, // Exit editing mode
-                        detailRowKeyForSaveAndCancel: null, // Clear Save and Cancel row key
-                        columns: row.columns.map(col => {
-                            const newVal = this.editedValues[rowId]?.[col.field];
-                            if (newVal !== undefined) {
-                                console.log(`Field Name: ${col.field}, Record ID: ${rowId}, Updated Value: ${newVal}`);
-                            }
-                            return {
-                                ...col,
-                                value: newVal !== undefined ? newVal : col.value,
-                                isEditing: false
-                            };
-                        })
-                    };
-                    delete this.editedValues[rowId];
-                    return updatedRow;
-                }
-                return row;
-            });
-        }*/
-       
-            handleSave(event) {
-                const rowId = event.target.dataset.id;
-            
-                const updatedRow = this.processedCases.find(row => row.Id === rowId);
-                if (!updatedRow) {
-                    console.warn(`No row found with rowId: ${rowId}`);
-                    return;
-                }
-            
-                const updatedValues = this.editedValues[rowId];
-                const payload = {
-                    recordId: rowId,
-                    objectApiName: updatedRow.objectApiName || 'Case', // Default to 'Case' or make it dynamic if needed
-                    fields: updatedValues
+async handleSave(event) {
+    const rowId = event.target.dataset.id;
+
+    const updatedRow = this.processedCases.find(row => row.Id === rowId);
+    if (!updatedRow) {
+        console.warn(`No row found with rowId: ${rowId}`);
+        return;
+    }
+
+    const updatedValues = this.editedValues[rowId];
+    const payload = {
+        recordId: rowId,
+        objectApiName: updatedRow.objectApiName || 'Case',
+        fields: updatedValues
+    };
+
+    console.log('Payload to send to backend:', JSON.stringify(payload));
+
+    try {
+        await saveRecord({ payload });
+
+        console.log(`Record with rowId: ${rowId} saved successfully.`);
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                return {
+                    ...row,
+                    isEditing: false,
+                    detailRowKeyForSaveAndCancel: null,
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        value: updatedValues[col.field] ?? col.value,
+                        isEditing: false
+                    }))
                 };
-            
-                console.log('Payload to send to backend:', JSON.stringify(payload));
-            
-                saveRecord({ payload })
-                    .then(() => {
-                        console.log(`Record with rowId: ${rowId} saved successfully.`);
-                        // Update UI after save
-                        this.processedCases = this.processedCases.map(row => {
-                            if (row.Id === rowId) {
-                                return {
-                                    ...row,
-                                    isEditing: false,
-                                    columns: row.columns.map(col => ({
-                                        ...col,
-                                        value: updatedValues[col.fieldName] ?? col.value,
-                                        isEditing: false
-                                    }))
-                                };
-                            }
-                            return row;
-                        });
-                        delete this.editedValues[rowId];
-                    })
-                    .catch(error => {
-                        console.error(`Error saving record with rowId: ${rowId}`, error);
-                    });
             }
-    
+            return row;
+        });
+        delete this.editedValues[rowId];
+    } catch (error) {
+        console.error(`Error saving record with rowId: ${rowId}`, error);
+    }
+}
