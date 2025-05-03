@@ -1,46 +1,74 @@
-handleSave(event) {
-                const rowId = event.target.dataset.id;
-            
-                // Prepare the payload dynamically
-                const updatedRow = this.processedCases.find(row => row.Id === rowId);
-                if (!updatedRow) {
-                    console.warn(`No row found with rowId: ${rowId}`);
-                    return;
-                }
-            
-                const updatedValues = this.editedValues[rowId];
-                const payload = {
-                    recordId: rowId,
-                    fields: Object.keys(updatedValues).map(fieldName => ({
-                        fieldName: fieldName,
-                        value: updatedValues[fieldName]
-                    }))
-                };
-            
-                console.log('Payload to send to backend:', JSON.stringify(payload)); // Debug log
-            
-                // Call Apex method via Lightning Web Component (LWC)
-                saveRecord({ payload })
-                    .then(() => {
-                        console.log(`Record with rowId: ${rowId} saved successfully.`);
-                        this.processedCases = this.processedCases.map(row => {
-                            if (row.Id === rowId) {
-                                return {
-                                    ...row,
-                                    isEditing: false,
-                                    detailRowKeyForSaveAndCancel: null,
-                                    columns: row.columns.map(col => ({
-                                        ...col,
-                                        value: updatedValues[col.field] || col.value,
-                                        isEditing: false
-                                    }))
-                                };
-                            }
-                            return row;
-                        });
-                        delete this.editedValues[rowId];
-                    })
-                    .catch(error => {
-                        console.error(`Error saving record with rowId: ${rowId}`, error);
-                    });
+public with sharing class YourApexClass {
+    @AuraEnabled
+    public static void saveRecord(Map<String, Object> payload) {
+        String recordId = (String) payload.get('recordId');
+        String objectApiName = (String) payload.get('objectApiName');
+        Map<String, Object> fields = (Map<String, Object>) payload.get('fields');
+
+        if (String.isBlank(recordId) || String.isBlank(objectApiName) || fields == null || fields.isEmpty()) {
+            throw new AuraHandledException('Invalid payload: recordId, objectApiName, and fields are required.');
+        }
+
+        SObjectType sObjType = Schema.getGlobalDescribe().get(objectApiName);
+        if (sObjType == null) {
+            throw new AuraHandledException('Invalid object type: ' + objectApiName);
+        }
+
+        SObject recordToUpdate = sObjType.newSObject(recordId);
+        Map<String, Schema.SObjectField> fieldMap = sObjType.getDescribe().fields.getMap();
+
+        for (String fieldName : fields.keySet()) {
+            if (fieldMap.containsKey(fieldName)) {
+                recordToUpdate.put(fieldName, fields.get(fieldName));
+            } else {
+                throw new AuraHandledException('Field ' + fieldName + ' is not valid for object ' + objectApiName);
             }
+        }
+
+        update recordToUpdate;
+    }
+}
+-------------
+
+handleSave(event) {
+    const rowId = event.target.dataset.id;
+
+    const updatedRow = this.processedCases.find(row => row.Id === rowId);
+    if (!updatedRow) {
+        console.warn(`No row found with rowId: ${rowId}`);
+        return;
+    }
+
+    const updatedValues = this.editedValues[rowId];
+    const payload = {
+        recordId: rowId,
+        objectApiName: updatedRow.objectApiName || 'Case', // Default to 'Case' or make it dynamic if needed
+        fields: updatedValues
+    };
+
+    console.log('Payload to send to backend:', JSON.stringify(payload));
+
+    saveRecord({ payload })
+        .then(() => {
+            console.log(`Record with rowId: ${rowId} saved successfully.`);
+            // Update UI after save
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    return {
+                        ...row,
+                        isEditing: false,
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.fieldName] ?? col.value,
+                            isEditing: false
+                        }))
+                    };
+                }
+                return row;
+            });
+            delete this.editedValues[rowId];
+        })
+        .catch(error => {
+            console.error(`Error saving record with rowId: ${rowId}`, error);
+        });
+}
