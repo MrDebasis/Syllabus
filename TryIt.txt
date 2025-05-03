@@ -1,42 +1,9 @@
-async handleSave(event) {
-    const rowId = event.target.dataset.id;
-
-    const updatedRow = this.processedCases.find(row => row.Id === rowId);
-    if (!updatedRow) {
-        console.warn(`No row found with rowId: ${rowId}`);
-        return;
-    }
-
-    const updatedValues = this.editedValues[rowId];
-    const payload = {
-        recordId: rowId,
-        objectApiName: updatedRow.objectApiName || 'Case',
-        fields: updatedValues
-    };
-
-    console.log('Payload to send to backend:', JSON.stringify(payload));
-
-    try {
-        await saveRecord({ payload });
-
-        console.log(`Record with rowId: ${rowId} saved successfully.`);
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                return {
-                    ...row,
-                    isEditing: false,
-                    detailRowKeyForSaveAndCancel: null,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        value: updatedValues[col.field] ?? col.value,
-                        isEditing: false
-                    }))
-                };
-            }
-            return row;
-        });
-        delete this.editedValues[rowId];
-    } catch (error) {
-        console.error(`Error saving record with rowId: ${rowId}`, error);
-    }
-}
+isUserDefinedException
+: 
+false
+message
+: 
+"Illegal assignment from String to Date"
+stackTrace
+: 
+"Class.PSSTrackerCaseController.saveRecord: line 297, column 1"
