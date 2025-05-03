@@ -1,42 +1,116 @@
-async handleSave(event) {
-            const rowId = event.target.dataset.id;
+import { LightningElement } from 'lwc';
+import saveRecord from '@salesforce/apex/DynamicRecordUpdater.saveRecord';
 
-            const updatedRow = this.processedCases.find(row => row.Id === rowId);
-            if (!updatedRow) {
-                console.warn(`No row found with rowId: ${rowId}`);
-                return;
-            }
+export default class DynamicRecordUpdate extends LightningElement {
+    recordId = '001XXXXXXXXXXXX';  // Example recordId
+    fieldName = 'Name';  // Example field name
+    updatedValue = 'New Name';  // Example updated value
 
-            const updatedValues = this.editedValues[rowId];
-            const payload = {
-                recordId: rowId,
-                objectApiName: updatedRow.objectApiName || 'Case',
-                fields: updatedValues
-            };
+    async handleSave(event) {
+        const rowId = event.target.dataset.id;
 
-            console.log('Payload to send to backend:', JSON.stringify(payload));
-
-            try {
-                await saveRecord({ payload });
-
-                console.log(`Record with rowId: ${rowId} saved successfully.`);
-                this.processedCases = this.processedCases.map(row => {
-                    if (row.Id === rowId) {
-                        return {
-                            ...row,
-                            isEditing: false,
-                            detailRowKeyForSaveAndCancel: null,
-                            columns: row.columns.map(col => ({
-                                ...col,
-                                value: updatedValues[col.field] ?? col.value,
-                                isEditing: false
-                            }))
-                        };
-                    }
-                    return row;
-                });
-                delete this.editedValues[rowId];
-            } catch (error) {
-                console.error(`Error saving record with rowId: ${rowId}`, error);
-            }
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) {
+            console.warn(`No row found with rowId: ${rowId}`);
+            return;
         }
+
+        const updatedValues = this.editedValues[rowId];
+
+        // Prepare the payload for the Apex method
+        const payload = {
+            recordId: rowId,
+            fieldName: Object.keys(updatedValues)[0], // Assumes a single field update for simplicity
+            updatedValue: updatedValues[Object.keys(updatedValues)[0]], // Get value of first updated field
+        };
+
+        console.log('Payload to send to backend:', JSON.stringify(payload));
+
+        try {
+            await saveRecord({ payload });
+
+            console.log(`Record with rowId: ${rowId} saved successfully.`);
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    return {
+                        ...row,
+                        isEditing: false,
+                        detailRowKeyForSaveAndCancel: null,
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.field] ?? col.value,
+                            isEditing: false
+                        }))
+                    };
+                }
+                return row;
+            });
+
+            // Remove the edited values for this record to reset the form
+            delete this.editedValues[rowId];
+        } catch (error) {
+            console.error(`Error saving record with rowId: ${rowId}`, error);
+        }
+    }
+}
+
+
+public with sharing class DynamicRecordUpdater {
+    @AuraEnabled
+    public static void saveRecord(Map<String, Object> payload) {
+        try {
+            String recordId = (String) payload.get('recordId');
+            String fieldName = (String) payload.get('fieldName');
+            Object updatedValue = payload.get('updatedValue');
+
+            if (String.isBlank(recordId) || String.isBlank(fieldName) || updatedValue == null) {
+                throw new AuraHandledException('Invalid parameters: recordId, fieldName, and updatedValue are required.');
+            }
+
+            // Get object type dynamically from the recordId
+            SObject record = [SELECT Id FROM Account WHERE Id = :recordId LIMIT 1];  // Use the correct object type based on recordId
+            String objectApiName = record.getSObjectType().getDescribe().getName();
+
+            // Get field type dynamically
+            Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectApiName);
+            Schema.SObjectField field = objType.getDescribe().fields.getMap().get(fieldName);
+            Schema.DisplayType fieldType = field.getDescribe().getType();
+
+            // Update record based on field type
+            switch on fieldType {
+                when STRING {
+                    record.put(fieldName, (String) updatedValue);
+                }
+                when DATE {
+                    record.put(fieldName, Date.valueOf((String) updatedValue));
+                }
+                when DATETIME {
+                    record.put(fieldName, DateTime.valueOf((String) updatedValue));
+                }
+                when BOOLEAN {
+                    record.put(fieldName, Boolean.valueOf((String) updatedValue));
+                }
+                when INTEGER {
+                    record.put(fieldName, Integer.valueOf((String) updatedValue));
+                }
+                when DOUBLE {
+                    record.put(fieldName, Double.valueOf((String) updatedValue));
+                }
+                when PERCENT {
+                    record.put(fieldName, Double.valueOf((String) updatedValue));
+                }
+                when CURRENCY {
+                    record.put(fieldName, Decimal.valueOf((String) updatedValue));
+                }
+                when else {
+                    throw new AuraHandledException('Unsupported field type: ' + fieldType);
+                }
+            }
+
+            // Update record in Salesforce
+            update record;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error updating record: ' + e.getMessage());
+        }
+    }
+}
