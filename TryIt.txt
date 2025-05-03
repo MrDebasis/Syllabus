@@ -1,314 +1,46 @@
- <lightning-card title="Editable Table POC" class="cardFlex" icon-name="custom:custom63">
-        <div class="slds-table_edit_container">
-            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
-                <thead>
-                    <tr>
-                        <th scope="col"></th> <!-- Toggle icon column -->
-                        <template for:each={columnConfig} for:item="column">
-                            <template if:true={column.visible}>
-                                <th key={column.column_id} scope="col">
-                                    <div class="slds-grid slds-grid_align-spread">
-                                        <span>{column.label}</span>
-                                        <template if:true={column.isSortingApplied}>
-                                            <template if:true={column.IsAscsortDirection}>
-                                                <lightning-button-icon
-                                                    icon-name="utility:arrowup"
-                                                    alternative-text="Sort Ascending"
-                                                    data-column-id={column.column_id}
-                                                    onclick={handleSort}>
-                                                </lightning-button-icon>
-                                            </template>
-                                            <template if:true={column.IsDescsortDirection}>
-                                                <lightning-button-icon
-                                                    icon-name="utility:arrowdown"
-                                                    alternative-text="Sort Descending"
-                                                    data-column-id={column.column_id}
-                                                    onclick={handleSort}>
-                                                </lightning-button-icon>
-                                            </template>
-                                        </template>
-                                    </div>
-                                </th>
-                            </template>
-                        </template>
-                    </tr>
-                </thead>
-                <tbody>
-                    <template for:each={processedCases} for:item="row">
-                        <tr key={row.Id}>
-                            <td>
-                                <template if:true={row.isExpanded}>
-                                    <lightning-button-icon
-                                        icon-name="utility:dash"
-                                        alternative-text="Collapse Details"
-                                        data-id={row.Id}
-                                        onclick={handleRowAction}>
-                                    </lightning-button-icon>
-                                </template>
-                                <template if:false={row.isExpanded}>
-                                    <lightning-button-icon
-                                        icon-name="utility:add"
-                                        alternative-text="Expand Details"
-                                        data-id={row.Id}
-                                        onclick={handleRowAction}>
-                                    </lightning-button-icon>
-                                </template>
-                            </td>
-                            <template for:each={row.columns} for:item="column">
-                                <td key={column.field}>
-                                    <template if:true={column.isEditable}>
-                                        <template if:true={column.isEditing}>
-                                            <template if:true={column.isString}>
-                                                <lightning-textarea
-                                                    value={column.value}
-                                                    data-id={row.Id}
-                                                    data-field={column.field}
-                                                    onchange={handleInputChange}
-                                                   >
-                                                </lightning-textarea>
-                                            </template>
-                                            <template if:true={column.isNumber}>
-                                                <lightning-input
-                                                    type="number"
-                                                    value={column.value}
-                                                    data-id={row.Id}
-                                                    data-field={column.field}
-                                                    onchange={handleInputChange}
-                                                   >
-                                                </lightning-input>
-                                            </template>
-                                            <template if:true={column.isDate}>
-                                                <lightning-input
-                                                    type="date"
-                                                    value={column.value}
-                                                    data-id={row.Id}
-                                                    data-field={column.field}
-                                                    onchange={handleInputChange}
-                                                    >
-                                                </lightning-input>
-                                            </template>
-                                            <template if:true={column.isPicklist}>
-                                                <lightning-combobox
-                                                    value={column.value}
-                                                    data-id={row.Id}
-                                                    data-field={column.field}
-                                                    options={column.options}
-                                                    onchange={handleInputChange}
-                                                   >
-                                                </lightning-combobox>
-                                            </template>
-                                        </template>
-                                    </template>
-                                    <template if:false={column.isEditing}>
-                                        <template if:true={column.isHyperlink}>
-                                            <lightning-formatted-rich-text value={column.value}></lightning-formatted-rich-text>
-                                        </template>
-                                        <template if:false={column.isHyperlink}>
-                                            {column.value}
-                                            <template if:true={column.isEditable}>
-                                                <lightning-button-icon
-                                                    icon-name="utility:edit"
-                                                    alternative-text="Edit"
-                                                    data-id={row.Id}
-                                                    data-field={column.field}
-                                                    onclick={handleEditClick}>
-                                                </lightning-button-icon>
-                                            </template>
-                                        </template>
-                                    </template>
-                                    <template if:true={column.isEditing}>
-                                        <div class="slds-m-top_x-small">
-                                            <lightning-button
-                                                label="Save"
-                                                data-id={row.Id}
-                                                onclick={handleSave}>
-                                            </lightning-button>
-                                            <lightning-button
-                                                label="Cancel"
-                                                data-id={row.Id}
-                                                onclick={handleCancel}
-                                                class="slds-m-left_x-small">
-                                            </lightning-button>
-                                        </div>
-                                    </template>
-                                </td>
-                            </template>
-                        </tr>
-                        <template if:true={row.showContent}>
-                            <tr key={row.detailRowKey}>
-                                <td colspan={computedColspan}>
-                                    <div>
-                                        <p>{row.Id}</p>
-                                        <c-dynamic-datatable-debasis record-id={row.Id}></c-dynamic-datatable-debasis>
-                                    </div>
-                                </td>
-                            </tr>
-                        </template>
-                    </template>
-                </tbody>
-            </table>
-        </div>
-    </lightning-card>
-
-
- @track editedValues = {}; // Stores temp edits
-        @track computedColspan = 6; // Adjust as needed
-    
-        handleRowAction(event) {
-            const rowId = event.target.dataset.id;
-            this.processedCases = this.processedCases.map(row => ({
-                ...row,
-                isExpanded: row.Id === rowId ? !row.isExpanded : row.isExpanded,
-                showContent: row.Id === rowId ? !row.showContent : row.showContent
-            }));
-        }
-    
-        handleEditClick(event) {
-            const rowId = event.target.dataset.id;
-            const field = event.target.dataset.field;
-    
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    return {
-                        ...row,
-                        columns: row.columns.map(col => ({
-                            ...col,
-                            isEditing: col.field === field
-                        }))
-                    };
+handleSave(event) {
+                const rowId = event.target.dataset.id;
+            
+                // Prepare the payload dynamically
+                const updatedRow = this.processedCases.find(row => row.Id === rowId);
+                if (!updatedRow) {
+                    console.warn(`No row found with rowId: ${rowId}`);
+                    return;
                 }
-                return {
-                    ...row,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        isEditing: false
+            
+                const updatedValues = this.editedValues[rowId];
+                const payload = {
+                    recordId: rowId,
+                    fields: Object.keys(updatedValues).map(fieldName => ({
+                        fieldName: fieldName,
+                        value: updatedValues[fieldName]
                     }))
                 };
-            });
-        }
-    
-        handleInputChange(event) {
-            const rowId = event.target.dataset.id;
-            const field = event.target.dataset.field;
-            const value = event.target.value;
-    
-            if (!this.editedValues[rowId]) {
-                this.editedValues[rowId] = {};
-            }
-            this.editedValues[rowId][field] = value;
-        }
-    
-        handleBlur(event) {
-            const rowId = event.target.dataset.id;
-            const field = event.target.dataset.field;
-    
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    return {
-                        ...row,
-                        columns: row.columns.map(col => ({
-                            ...col,
-                            isEditing: col.field === field ? false : col.isEditing
-                        }))
-                    };
-                }
-                return row;
-            });
-        }
-    
-        handleSave(event) {
-            const rowId = event.target.dataset.id;
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    const updatedRow = {
-                        ...row,
-                        columns: row.columns.map(col => {
-                            const newVal = this.editedValues[rowId]?.[col.field];
-                            return {
-                                ...col,
-                                value: newVal !== undefined ? newVal : col.value,
-                                isEditing: false
-                            };
-                        })
-                    };
-                    delete this.editedValues[rowId];
-                    return updatedRow;
-                }
-                return row;
-            });
-        }
-    
-        handleCancel(event) {
-            const rowId = event.target.dataset.id;
-            delete this.editedValues[rowId];
-    
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    return {
-                        ...row,
-                        columns: row.columns.map(col => ({
-                            ...col,
-                            isEditing: false
-                        }))
-                    };
-                }
-                return row;
-            });
-        }
-   preprocessTableData(cases) {
-            const sortedCases = this.sortTableData(cases, this.columnConfig);
-        
-            return sortedCases.map(row => {
-                const updatedRow = { 
-                    ...row, 
-                    columns: [], 
-                    showContent: false,
-                    isExpanded: false,
-                    detailRowKey: `${row.Id}-details`
-                };
-        
-                this.columnConfig.forEach(column => {
-                    if (column.visible) {
-                        const fieldParts = column.column_id.split('.');
-                        let fieldValue = row;
-                        for (const part of fieldParts) {
-                            fieldValue = fieldValue ? fieldValue[part] : undefined;
-                        }
-        
-                        let value = fieldValue;
-                        let isHyperlink = false;
-        
-                        // Add hyperlink logic for specific columns
-                        if (column.column_id === 'Account.Name') {
-                            value = `${fieldValue}</br><a href="/lightning/r/Case/${row.Id}/view" target="_blank">${row.CaseNumber}</a>`;
-                            isHyperlink = true;
-                        } else if (column.column_id === 'CartCoordinatorName__c') {
-                           // value = `<a href="/lightning/r/User/${row.CaseOwnerId}/view" target="_blank">${fieldValue}</a>`;
-                            value =fieldValue;
-                            isHyperlink = true;
-                        } else if (column.column_id === 'TreatmentCenterName__c') {
-                            value = `<a href="/lightning/r/Account/${row.TreatmentSite__c}/view" target="_blank">${fieldValue}</a>`;
-                            isHyperlink = true;
-                        }
-        
-                        updatedRow.columns.push({
-                            field: column.column_id.toLowerCase(),
-                            label: column.label,
-                            value: value,
-                            isHyperlink: isHyperlink,
-                            dataType: column.data_type,
-                            isEditing: false,
-                            isEditable: column.editable || false,
-                            isString: column.isString || false,
-                            isNumber: column.isNumber || false,
-                            isDate: column.isDate || false,
-                            isPicklist: column.isPicklist || false,
-                            options: column.isPicklist ? column.picklist_values.map(value => ({ label: value, value })) : null
+            
+                console.log('Payload to send to backend:', JSON.stringify(payload)); // Debug log
+            
+                // Call Apex method via Lightning Web Component (LWC)
+                saveRecord({ payload })
+                    .then(() => {
+                        console.log(`Record with rowId: ${rowId} saved successfully.`);
+                        this.processedCases = this.processedCases.map(row => {
+                            if (row.Id === rowId) {
+                                return {
+                                    ...row,
+                                    isEditing: false,
+                                    detailRowKeyForSaveAndCancel: null,
+                                    columns: row.columns.map(col => ({
+                                        ...col,
+                                        value: updatedValues[col.field] || col.value,
+                                        isEditing: false
+                                    }))
+                                };
+                            }
+                            return row;
                         });
-                    }
-                });
-        
-                return updatedRow;
-            });
-        }
-    
+                        delete this.editedValues[rowId];
+                    })
+                    .catch(error => {
+                        console.error(`Error saving record with rowId: ${rowId}`, error);
+                    });
+            }
