@@ -1,12 +1,136 @@
-message
-: 
-"Error updating record: Script-thrown exception"
-[[Prototype]]
-: 
-Object
-errorType
-: 
-"fetchResponse"
-headers
-: 
-{}
+import { LightningElement } from 'lwc';
+import saveRecord from '@salesforce/apex/DynamicRecordUpdater.saveRecord';
+
+export default class DynamicRecordUpdate extends LightningElement {
+    recordId = '001XXXXXXXXXXXX';  // Example recordId
+    objectApiName = 'Account';  // Example objectApiName (this can be dynamically set)
+    editedValues = {
+        '001XXXXXXXXXXXX': {
+            'Name': 'New Account Name'  // Example field and updated value
+        }
+    };
+
+    async handleSave(event) {
+        const rowId = event.target.dataset.id;  // Get recordId from the event
+
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) {
+            console.warn(`No row found with rowId: ${rowId}`);
+            return;
+        }
+
+        const updatedValues = this.editedValues[rowId];
+        const fieldName = Object.keys(updatedValues)[0];  // Get the first field to update
+        const updatedValue = updatedValues[fieldName];  // Get the updated value
+
+        // Prepare the payload for the Apex method
+        const payload = {
+            recordId: rowId,
+            objectApiName: updatedRow.objectApiName || 'Account',  // Use the objectApiName dynamically
+            fieldName: fieldName,
+            updatedValue: updatedValue
+        };
+
+        console.log('Payload to send to backend:', JSON.stringify(payload));
+
+        try {
+            // Call Apex method to update the record
+            await saveRecord({ payload });
+
+            console.log(`Record with rowId: ${rowId} saved successfully.`);
+
+            // Update the UI after successful save
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    return {
+                        ...row,
+                        isEditing: false,  // Exit editing mode
+                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
+                            isEditing: false  // Reset editing state
+                        }))
+                    };
+                }
+                return row;
+            });
+
+            // Remove the edited values after save
+            delete this.editedValues[rowId];
+
+        } catch (error) {
+            console.error(`Error saving record with rowId: ${rowId}`, error.body.message || error);
+        }
+    }
+}
+
+
+public class DynamicRecordUpdater {
+    @AuraEnabled(cacheable=false)
+    public static void saveRecord(Map<String, Object> payload) {
+        try {
+            // Extract recordId, objectApiName, fieldName, and updatedValue from the payload
+            String recordId = (String) payload.get('recordId');
+            String objectApiName = (String) payload.get('objectApiName');
+            String fieldName = (String) payload.get('fieldName');
+            Object updatedValue = payload.get('updatedValue');
+
+            System.debug('Received Payload: ' + payload);
+            System.debug('RecordId: ' + recordId + ', ObjectApiName: ' + objectApiName + ', FieldName: ' + fieldName + ', UpdatedValue: ' + updatedValue);
+
+            // Get SObject Type dynamically from the objectApiName
+            SObjectType sObjectType = Schema.getGlobalDescribe().get(objectApiName);
+            if (sObjectType == null) {
+                throw new IllegalArgumentException('Invalid objectApiName: ' + objectApiName);
+            }
+
+            SObject recordToUpdate = sObjectType.newSObject(recordId);
+            Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
+
+            // Ensure that the field exists
+            if (!fieldMap.containsKey(fieldName)) {
+                throw new IllegalArgumentException('Field does not exist: ' + fieldName);
+            }
+
+            // Update the field based on its type
+            Schema.SObjectField field = fieldMap.get(fieldName);
+            Schema.DisplayType fieldType = field.getDescribe().getType();
+
+            if (updatedValue == null) {
+                throw new IllegalArgumentException('Updated value cannot be null.');
+            }
+
+            switch on fieldType {
+                when DATE {
+                    recordToUpdate.put(fieldName, Date.valueOf((String) updatedValue));
+                }
+                when DATETIME {
+                    recordToUpdate.put(fieldName, DateTime.valueOf((String) updatedValue));
+                }
+                when BOOLEAN {
+                    recordToUpdate.put(fieldName, Boolean.valueOf((String) updatedValue));
+                }
+                when INTEGER {
+                    recordToUpdate.put(fieldName, Integer.valueOf((String) updatedValue));
+                }
+                when DOUBLE {
+                    recordToUpdate.put(fieldName, Double.valueOf((String) updatedValue));
+                }
+                when CURRENCY {
+                    recordToUpdate.put(fieldName, Decimal.valueOf((String) updatedValue));
+                }
+                when else {
+                    recordToUpdate.put(fieldName, updatedValue);
+                }
+            }
+
+            // Update the record
+            update recordToUpdate;
+
+        } catch (Exception e) {
+            System.debug('Error updating record: ' + e.getMessage());
+            throw new AuraHandledException('Error updating record: ' + e.getMessage());
+        }
+    }
+}
