@@ -1,54 +1,41 @@
-//child comp start<template>
+<template>
     <div class="pagination">
         <lightning-button 
             disabled={isPreviousDisabled} 
             onclick={handlePreviousClick} 
             label="Previous">
         </lightning-button>
-        
-        <template for:each={paginationNumbers} for:item="page">
+
+        <template for:each={pagesToRender} for:item="page">
             <lightning-button
-                key={page}
-                class={}
+                key={page.number}
+                label={page.number}
+                data-page={page.number}
                 onclick={handlePageClick}
-                data-page={page}
-                variant={pageHilight}
-                label={page}>
+                disabled={page.disabled}
+                variant={page.variant}>
             </lightning-button>
         </template>
-    
+
         <lightning-button 
             disabled={isNextDisabled} 
             onclick={handleNextClick} 
             label="Next">
         </lightning-button>
-        {currentPage}
     </div>
 </template>
 
-import { LightningElement , api,track} from 'lwc';
+
+import { LightningElement, api, track } from 'lwc';
 
 export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
-    @api currentPage;
-    @api totalRecords;
-    @api pageSize;
+    @api currentPage = 1;
+    @api totalRecords = 0;
+    @api pageSize = 10;
+    @api paginatedMap = new Map(); // Make this public so parent can bind
 
-    @track pageHilight='';
     get totalPages() {
         return Math.ceil(this.totalRecords / this.pageSize);
-    }
-
-    get paginationNumbers() {
-        const maxVisiblePages = 5;
-        const startPage = Math.floor((this.currentPage - 1) / maxVisiblePages) * maxVisiblePages + 1;
-        const endPage = Math.min(startPage + maxVisiblePages - 1, this.totalPages);
-
-        const pages = [];
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(i);
-        }
-
-        return pages;
     }
 
     get isPreviousDisabled() {
@@ -57,6 +44,23 @@ export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
 
     get isNextDisabled() {
         return this.currentPage === this.totalPages;
+    }
+
+    get pagesToRender() {
+        const pages = [];
+        const maxVisible = 5;
+        const blockStart = Math.floor((this.currentPage - 1) / maxVisible) * maxVisible + 1;
+        const blockEnd = Math.min(blockStart + maxVisible - 1, this.totalPages);
+
+        for (let i = blockStart; i <= blockEnd; i++) {
+            pages.push({
+                number: i,
+                disabled: !this.paginatedMap?.has(i),
+                variant: i === this.currentPage ? 'brand' : 'neutral'
+            });
+        }
+
+        return pages;
     }
 
     handlePreviousClick() {
@@ -69,101 +73,17 @@ export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
 
     handlePageClick(event) {
         const page = parseInt(event.target.dataset.page, 10);
-        this.pageHilight = 'brand' ;
         this.dispatchEvent(new CustomEvent('pagechange', { detail: page }));
     }
-
-    get getNextButtonCSS(){
-        return this.currentPage === this.totalPages  ? '' : 'brand';
-    }
-    get getPreviousButtonCSS(){
-        return this.currentPage === 1  ? '' : 'brand';
-    }
-
-    getButtonVariant() {
-        return this.pageHilight === this.currentPage ? 'brand' : 'neutral';
-    }
-}  // child comp end
+}
 
 
-//parent starts 
-
-    <c-psp_-p-s-s-tracker-pagination-l-w-c-comp
+<c-psp_-p-s-s-tracker-pagination-l-w-c-comp
     current-page={currentPage}
     total-records={casesFiltered.length}
     page-size="10"
+    paginated-map={paginatedCasesMap}
     onprevious={handlePrevious}
     onnext={handleNext}
     onpagechange={handlePageClick}>
 </c-psp_-p-s-s-tracker-pagination-l-w-c-comp>
-
-
-    @track cases = [];
-    @track _casesFiltered = []; 
-    @track processedCases = []; /* Processed data variable used for render in table.*/
-    
-
-    paginatedCasesMap = new Map();
-    currentPage = 1;
-   // isPreviousDisabled = true;
-   // isNextDisabled = false;
-
-    get casesFiltered() {
-        return this._casesFiltered;
-    }
-    
-    /*set casesFiltered(value) {
-        this._casesFiltered = value;
-       // this.processedCases =value;
-        this.processedCases = this.preprocessTableData(value); // Process the data and store it in a separate variable
-       // console.log('Processed Cases:', JSON.stringify(this.processedCases[0])); 
-    }*/
-
-       set casesFiltered(value) {
-        this._casesFiltered = value;
-        this.paginatedCasesMap = this.createPaginationMap(value); // Create a map for paginated data
-        this.currentPage = 1; // Initialize to the first page
-        this.updatePaginationState(); // Update the pagination state
-    }
-
-    createPaginationMap(data) {
-        const itemsPerPage = 10; // Number of items per page
-        const paginatedMap = new Map();
-        const totalPages = Math.ceil(data.length / itemsPerPage);
-
-        for (let i = 0; i < totalPages; i++) {
-            const start = i * itemsPerPage;
-            const end = start + itemsPerPage;
-            paginatedMap.set(i + 1, data.slice(start, end));
-        }
-
-        return paginatedMap;
-    }
-
-    updatePaginationState() {
-        const currentPageData = this.paginatedCasesMap.get(this.currentPage) || [];
-        this.processedCases = this.preprocessTableData(currentPageData); // Preprocess data for the table
-       // this.isPreviousDisabled = this.currentPage === 1;
-       // this.isNextDisabled = this.currentPage === this.paginatedCasesMap.size;
-    }
-   
-    
-    handlePrevious() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.updatePaginationState();
-        }
-    }
-
-    handleNext() {
-        if (this.currentPage < this.paginatedCasesMap.size) {
-            this.currentPage++;
-            this.updatePaginationState();
-        }
-    }
-
-    handlePageClick(event) {
-        const pageNumber = event.detail;
-        this.currentPage = pageNumber;
-        this.updatePaginationState();
-    }
