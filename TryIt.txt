@@ -1,9 +1,9 @@
 import { LightningElement, api, track } from 'lwc';
 
 export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
-    @api currentPage;
-    @api totalRecords;
-    @api pageSize;
+    @api currentPage = 1;
+    @api totalRecords = 0;
+    @api pageSize = 10;
     @api validPages = [];
 
     @track pageButtons = [];
@@ -13,18 +13,34 @@ export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
     }
 
     get isPreviousDisabled() {
-        return this.currentPage === 1;
+        return this.currentPage <= 1;
     }
 
     get isNextDisabled() {
-        return this.currentPage === this.totalPages;
+        return this.currentPage >= this.totalPages;
     }
 
+    @api
+    refreshPagination(currentPage) {
+        this.currentPage = currentPage;
+        this.generatePageButtons();
+    }
+
+    connectedCallback() {
+        this.generatePageButtons();
+    }
+
+    // Force update if input values change
     renderedCallback() {
         this.generatePageButtons();
     }
 
     generatePageButtons() {
+        if (!this.totalRecords || !this.validPages || this.totalPages === 0) {
+            this.pageButtons = [];
+            return;
+        }
+
         const maxVisiblePages = 5;
         let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
         let endPage = startPage + maxVisiblePages - 1;
@@ -62,7 +78,7 @@ export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
 
 
 <template>
-    <div class="pagination slds-m-top_medium">
+    <div class="pagination slds-m-top_medium slds-align_absolute-center">
         <lightning-button 
             disabled={isPreviousDisabled}
             onclick={handlePreviousClick}
@@ -88,71 +104,14 @@ export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
         </lightning-button>
     </div>
 </template>
-====================================================================
+--------------------
 
-import { LightningElement, track } from 'lwc';
 
-export default class YourParentComponent extends LightningElement {
-    @track currentPage = 1;
-    @track casesFiltered = [];
-    @track paginatedCasesMap = new Map();
-    @track processedCases = [];
 
-    get validPages() {
-        return [...this.paginatedCasesMap.entries()]
-            .filter(([page, records]) => records.length > 0)
-            .map(([page]) => page);
-    }
-
-    set casesFiltered(value) {
-        this._casesFiltered = value;
-        this.paginatedCasesMap = this.createPaginationMap(value);
-        this.currentPage = 1;
-        this.updatePaginationState();
-    }
-
-    createPaginationMap(data) {
-        const itemsPerPage = 10;
-        const map = new Map();
-        const totalPages = Math.ceil(data.length / itemsPerPage);
-
-        for (let i = 0; i < totalPages; i++) {
-            const start = i * itemsPerPage;
-            const end = start + itemsPerPage;
-            map.set(i + 1, data.slice(start, end));
-        }
-
-        return map;
-    }
-
-    updatePaginationState() {
-        const data = this.paginatedCasesMap.get(this.currentPage) || [];
-        this.processedCases = this.preprocessTableData(data);
-    }
-
-    handlePrevious() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.updatePaginationState();
-        }
-    }
-
-    handleNext() {
-        if (this.currentPage < this.paginatedCasesMap.size) {
-            this.currentPage++;
-            this.updatePaginationState();
-        }
-    }
-
-    handlePageClick(event) {
-        this.currentPage = event.detail;
-        this.updatePaginationState();
-    }
-
-    preprocessTableData(data) {
-        // Modify this as needed
-        return data;
-    }
+get validPages() {
+    return [...this.paginatedCasesMap.entries()]
+        .filter(([page, records]) => records.length > 0)
+        .map(([page]) => page);
 }
 
 
