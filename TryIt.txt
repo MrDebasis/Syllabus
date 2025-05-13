@@ -9,11 +9,11 @@
         <template for:each={pagesToRender} for:item="page">
             <lightning-button
                 key={page.number}
-                label={page.number}
                 data-page={page.number}
-                onclick={handlePageClick}
                 disabled={page.disabled}
-                variant={page.variant}>
+                variant={page.variant}
+                onclick={handlePageClick}
+                label={page.number}>
             </lightning-button>
         </template>
 
@@ -25,65 +25,26 @@
     </div>
 </template>
 
+get pagesToRender() {
+    const pages = [];
+    const maxVisible = 5;
+    const totalPages = this.totalPages;
 
-import { LightningElement, api, track } from 'lwc';
+    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+    let end = start + maxVisible - 1;
 
-export default class Psp_PSSTrackerPaginationLWCComp extends LightningElement {
-    @api currentPage = 1;
-    @api totalRecords = 0;
-    @api pageSize = 10;
-    @api paginatedMap = new Map(); // Make this public so parent can bind
-
-    get totalPages() {
-        return Math.ceil(this.totalRecords / this.pageSize);
+    if (end > totalPages) {
+        end = totalPages;
+        start = Math.max(1, end - maxVisible + 1);
     }
 
-    get isPreviousDisabled() {
-        return this.currentPage === 1;
+    for (let i = start; i <= end; i++) {
+        pages.push({
+            number: i,
+            disabled: !this.paginatedMap?.has(i),
+            variant: i === this.currentPage ? 'brand' : 'neutral'
+        });
     }
 
-    get isNextDisabled() {
-        return this.currentPage === this.totalPages;
-    }
-
-    get pagesToRender() {
-        const pages = [];
-        const maxVisible = 5;
-        const blockStart = Math.floor((this.currentPage - 1) / maxVisible) * maxVisible + 1;
-        const blockEnd = Math.min(blockStart + maxVisible - 1, this.totalPages);
-
-        for (let i = blockStart; i <= blockEnd; i++) {
-            pages.push({
-                number: i,
-                disabled: !this.paginatedMap?.has(i),
-                variant: i === this.currentPage ? 'brand' : 'neutral'
-            });
-        }
-
-        return pages;
-    }
-
-    handlePreviousClick() {
-        this.dispatchEvent(new CustomEvent('previous'));
-    }
-
-    handleNextClick() {
-        this.dispatchEvent(new CustomEvent('next'));
-    }
-
-    handlePageClick(event) {
-        const page = parseInt(event.target.dataset.page, 10);
-        this.dispatchEvent(new CustomEvent('pagechange', { detail: page }));
-    }
+    return pages;
 }
-
-
-<c-psp_-p-s-s-tracker-pagination-l-w-c-comp
-    current-page={currentPage}
-    total-records={casesFiltered.length}
-    page-size="10"
-    paginated-map={paginatedCasesMap}
-    onprevious={handlePrevious}
-    onnext={handleNext}
-    onpagechange={handlePageClick}>
-</c-psp_-p-s-s-tracker-pagination-l-w-c-comp>
