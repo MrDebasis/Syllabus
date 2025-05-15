@@ -4,22 +4,22 @@ customSortByNextActionFields(cases) {
 
     const isEmpty = val => val === null || val === undefined || val === '' || String(val).trim() === '';
 
-    const getRank = record => {
-        const isNextActionEmpty = isEmpty(record.NextAction__c);
-        const isDueDateEmpty = isEmpty(record.NextActionDueDate__c);
-        const dueDate = record.NextActionDueDate__c ? new Date(record.NextActionDueDate__c) : null;
-        const isFutureDate = dueDate && dueDate > today;
-
-        if (isNextActionEmpty && isDueDateEmpty) {
-            return 0; // Highest priority
-        } else if (isFutureDate) {
-            return 1; // Middle priority
-        } else {
-            return 2; // Lowest priority
-        }
-    };
-
     return cases.sort((a, b) => {
-        return getRank(a) - getRank(b);
+        const aEmpty = isEmpty(a.NextAction__c) && isEmpty(a.NextActionDueDate__c);
+        const bEmpty = isEmpty(b.NextAction__c) && isEmpty(b.NextActionDueDate__c);
+
+        if (aEmpty && !bEmpty) return -1;
+        if (!aEmpty && bEmpty) return 1;
+
+        const aDueDate = a.NextActionDueDate__c ? new Date(a.NextActionDueDate__c) : null;
+        const bDueDate = b.NextActionDueDate__c ? new Date(b.NextActionDueDate__c) : null;
+
+        const aFuture = aDueDate && aDueDate > today;
+        const bFuture = bDueDate && bDueDate > today;
+
+        if (aFuture && !bFuture) return -1;
+        if (!aFuture && bFuture) return 1;
+
+        return 0; // maintain original order if all else is equal
     });
 }
