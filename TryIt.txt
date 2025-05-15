@@ -1,8 +1,23 @@
-sortedCases.sort((a, b) => {
-    const aIsEmpty = !a.NextAction__c && !a.NextActionDueDate__c;
-    const bIsEmpty = !b.NextAction__c && !b.NextActionDueDate__c;
+const today = new Date();
+today.setHours(0, 0, 0, 0);
 
-    if (aIsEmpty && !bIsEmpty) return -1;
-    if (!aIsEmpty && bIsEmpty) return 1;
-    return 0;
+const isEmpty = val => val === null || val === undefined || val === '' || String(val).trim() === '';
+
+const sortedCases = cases.sort((a, b) => {
+    const aEmpty = isEmpty(a.NextAction__c) && isEmpty(a.NextActionDueDate__c);
+    const bEmpty = isEmpty(b.NextAction__c) && isEmpty(b.NextActionDueDate__c);
+
+    if (aEmpty && !bEmpty) return -1;
+    if (!aEmpty && bEmpty) return 1;
+
+    const aDueDate = a.NextActionDueDate__c ? new Date(a.NextActionDueDate__c) : null;
+    const bDueDate = b.NextActionDueDate__c ? new Date(b.NextActionDueDate__c) : null;
+
+    const aFuture = aDueDate && aDueDate > today;
+    const bFuture = bDueDate && bDueDate > today;
+
+    if (aFuture && !bFuture) return -1;
+    if (!aFuture && bFuture) return 1;
+
+    return 0; // fallback to keep existing order
 });
