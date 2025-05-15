@@ -98,3 +98,63 @@ export default class DynamicDatatableDebasis extends LightningElement {
         </template>
     </lightning-card>
 </template>
+
+
+
+  @wire(getPSPTrackerConfig, { objectName: '$objectName' })
+    wiredColumnConfig({ error, data }) {
+        if (data) {
+            this.columnConfig = data
+                .map(config => ({
+                    column_id: config.column_id,
+                    label: config.label,
+                    data_type: config.data_type,
+                    visible: config.visible,
+                    editable: config.editable,
+                    isString: config.isString,
+                    isNumber: config.isNumber,
+                    isDate: config.isDate,
+                    isPicklist: config.isPicklist,
+                    picklist_values: config.picklist_values
+                        ? config.picklist_values[0].split(',').map(value => value.trim())
+                        : [],
+                    isSortingApplied: config.isSortingApplied,
+                    sortDirection: config.sortDirection,
+                    IsAscsortDirection: config.IsAscsortDirection,
+                    IsDescsortDirection: config.IsDescsortDirection,
+                    PSSViewColumnOrder: config.PSSViewColumnOrder ,// Add the order field
+                    IsDefaultColumnSort: config.IsDefaultColumnSort ,
+                    ColumnWidth : [null, '', undefined].includes(config.ColumnWidth) ? '' : this.abc(config.ColumnWidth)
+                }))
+                .sort((a, b) => {
+                    // Primary sorting by PSSViewColumnOrder
+                    if (a.PSSViewColumnOrder !== b.PSSViewColumnOrder) {
+                        return a.PSSViewColumnOrder - b.PSSViewColumnOrder;
+                    }
+                    // Secondary sorting by column_id (or any other field)
+                    return a.column_id.localeCompare(b.column_id);
+                });
+    
+           console.log('Column Config (sorted):', JSON.stringify(this.columnConfig));
+        } else if (error) {
+            console.error('Error fetching PSP Tracker Config:', error);
+        }
+    }
+
+
+
+                @track columnConfig = [
+                    { column_id: "Account.Name", label: "Patient", data_type: "string", visible: true, editable: false, isString: true, isSortingApplied: false, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "Account.Id", label: "Patient", data_type: "string", visible: false, editable: false, isString: true, isSortingApplied: true, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "CartCoordinatorName__c", label: "TCC", data_type: "string", visible: false, editable: false, isString: true, isSortingApplied: true, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "TreatmentCenterName__c", label: "Treatment Center", data_type: "string", visible: true, editable: true, isString: true, isSortingApplied: true, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "NextAction__c", label: "Next Action", data_type: "picklist", visible: true, editable: true, isPicklist: true, picklist_values: ["Begin Enrollment", "Eligibility Work Up"], isSortingApplied: true, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "NextActionDueDate__c", label: "Next Action Due Date", data_type: "date", visible: true, editable: true, isDate: true, isSortingApplied: true, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "NextActionNotes__c", label: "Next Action Notes", data_type: "String", visible: true, editable: true, isString: true, isSortingApplied: false, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "ApheresisPickupdate__c", label: "Aph. Pick Up", data_type: "date", visible: true, editable: false, isDate: true, isSortingApplied: false, sortDirection: null, IsAscsortDirection: false, IsDescsortDirection: false },
+                    { column_id: "EnrollmentStatus__c", label: "Enrollment Status", data_type: "picklist", visible: true, editable: true, isPicklist: true, picklist_values: ["Enrollment Information and Authorization Pending", "Enrollment Information and Authorization Complete", "Enrollment Process on Hold", "Enrollment Process Cancelled"], isSortingApplied: false, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false },
+                    { column_id: "ConsentStatusRollUp__c", label: "Consent Status", data_type: "string", visible: true, editable: false, isString: true, isSortingApplied: false, sortDirection: null, IsAscsortDirection: false, IsDescsortDirection: false },
+                    { column_id: "CasesNotes__c", label: "Case Note", data_type: "string", visible: true, editable: true, isString: true, isSortingApplied: false, sortDirection: null, IsAscsortDirection: false, IsDescsortDirection: false },
+                    { column_id: "CaseOwnerName__c", label: "Case Owner", data_type: "string", visible: true, editable: false, isString: true, isSortingApplied: true, sortDirection: 'asc', IsAscsortDirection: true, IsDescsortDirection: false }
+                   
+                ];
