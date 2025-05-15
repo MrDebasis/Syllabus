@@ -1,25 +1,233 @@
-customSortByNextActionFields(cases) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+ get casesFiltered() {
+        return this._casesFiltered;
+    }
+    
+       set casesFiltered(value) {
+        this._casesFiltered = value;
+        this.paginatedCasesMap = this.createPaginationMap(value); // Create a map for paginated data
+        this.currentPage = 1; // Initialize to the first page
+        this.updatePaginationState(); // Update the pagination state
+    }
 
-    const isEmpty = val => val === null || val === undefined || val === '' || String(val).trim() === '';
+    createPaginationMap(data) {
+      //  data = this.customSortByNextActionFields(data); // Sort the data based on custom logic
+        const itemsPerPage = 10; // Number of items per page
+        const paginatedMap = new Map();
+        const totalPages = Math.ceil(data.length / itemsPerPage);
 
-    return cases.sort((a, b) => {
-        const aEmpty = isEmpty(a.NextAction__c) && isEmpty(a.NextActionDueDate__c);
-        const bEmpty = isEmpty(b.NextAction__c) && isEmpty(b.NextActionDueDate__c);
+        for (let i = 0; i < totalPages; i++) {
+            const start = i * itemsPerPage;
+            const end = start + itemsPerPage;
+            paginatedMap.set(i + 1, data.slice(start, end));
+        }
 
-        if (aEmpty && !bEmpty) return -1;
-        if (!aEmpty && bEmpty) return 1;
+        return paginatedMap;
+    }
 
-        const aDueDate = a.NextActionDueDate__c ? new Date(a.NextActionDueDate__c) : null;
-        const bDueDate = b.NextActionDueDate__c ? new Date(b.NextActionDueDate__c) : null;
+    updatePaginationState() {
+        const currentPageData = this.paginatedCasesMap.get(this.currentPage) || [];
+        this.processedCases = this.preprocessTableData(currentPageData); // Preprocess data for the table
+    }
+    
+    handlePrevious() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.updatePaginationState();
+        }
+    }
 
-        const aFuture = aDueDate && aDueDate > today;
-        const bFuture = bDueDate && bDueDate > today;
+    handleNext() {
+        if (this.currentPage < this.paginatedCasesMap.size) {
+            this.currentPage++;
+            this.updatePaginationState();
+        }
+    }
 
-        if (aFuture && !bFuture) return -1;
-        if (!aFuture && bFuture) return 1;
+    handlePageClick(event) {
+        const pageNumber = event.detail;
+        this.currentPage = pageNumber;
+        this.updatePaginationState();
+    }
 
-        return 0; // maintain original order if all else is equal
-    });
-}
+     wiredCasesResult;
+
+     @wire(getFilteredCases, { 
+        filterType: '$filterType', 
+        caseOwnerIds: '$computedCaseOwnerIds' 
+    })
+    wiredCases(result) {
+        this.wiredCasesResult = result; 
+        const { data, error } = result;
+        this.isLoading = true;
+        if (data) {
+            this.cases = data;
+            this.casesFiltered = data;
+            this.isLoading = false;
+        } else if (error) {
+            console.error('Error fetching filtered cases:', error);
+            this.isLoading = false;
+        }
+    }
+  columnConfig = [];
+    objectName = 'Case'; // Default object name, can be updated dynamically
+
+    @wire(getPSPTrackerConfig, { objectName: '$objectName' })
+    wiredColumnConfig({ error, data }) {
+        if (data) {
+            this.columnConfig = data
+                .map(config => ({
+                    column_id: config.column_id,
+                    label: config.label,
+                    data_type: config.data_type,
+                    visible: config.visible,
+                    editable: config.editable,
+                    isString: config.isString,
+                    isNumber: config.isNumber,
+                    isDate: config.isDate,
+                    isPicklist: config.isPicklist,
+                    picklist_values: config.picklist_values
+                        ? config.picklist_values[0].split(',').map(value => value.trim())
+                        : [],
+                    isSortingApplied: config.isSortingApplied,
+                    sortDirection: config.sortDirection,
+                    IsAscsortDirection: config.IsAscsortDirection,
+                    IsDescsortDirection: config.IsDescsortDirection,
+                    PSSViewColumnOrder: config.PSSViewColumnOrder ,// Add the order field
+                    IsDefaultColumnSort: config.IsDefaultColumnSort ,
+                    ColumnWidth : [null, '', undefined].includes(config.ColumnWidth) ? '' : this.abc(config.ColumnWidth)
+                }))
+                .sort((a, b) => {
+                    // Primary sorting by PSSViewColumnOrder
+                    if (a.PSSViewColumnOrder !== b.PSSViewColumnOrder) {
+                        return a.PSSViewColumnOrder - b.PSSViewColumnOrder;
+                    }
+                    // Secondary sorting by column_id (or any other field)
+                    return a.column_id.localeCompare(b.column_id);
+                });
+    
+            console.log('Column Config (sorted):', JSON.stringify(this.columnConfig));
+        } else if (error) {
+            console.error('Error fetching PSP Tracker Config:', error);
+        }
+    }
+
+    abc(cssString){
+        this.injectCSS(cssString);
+        console.log('column-width:', cssString);
+        const classNames = cssString.match(/\.(\w[\w-]*)/g);
+        // Remove the leading dot (.) from each class name and join them into a single string
+        return classNames ? classNames.map(className => className.slice(1)).join(' ') : '';
+    }
+
+    injectCSS(cssString) {
+        const style = document.createElement('style');
+        style.textContent = cssString;
+        this.template.querySelector('head')?.appendChild(style) || document.head.appendChild(style);
+    }
+
+    customSortByNextActionFields(cases) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+    
+        const isEmpty = val => val === null || val === undefined || val === '' || String(val).trim() === '';
+    
+        return cases.sort((a, b) => {
+            const aEmpty = isEmpty(a.NextAction__c) && isEmpty(a.NextActionDueDate__c);
+            const bEmpty = isEmpty(b.NextAction__c) && isEmpty(b.NextActionDueDate__c);
+    
+            if (aEmpty && !bEmpty) return -1;
+            if (!aEmpty && bEmpty) return 1;
+    
+            const aDueDate = a.NextActionDueDate__c ? new Date(a.NextActionDueDate__c) : null;
+            const bDueDate = b.NextActionDueDate__c ? new Date(b.NextActionDueDate__c) : null;
+    
+            const aFuture = aDueDate && aDueDate > today;
+            const bFuture = bDueDate && bDueDate > today;
+    
+            if (aFuture && !bFuture) return -1;
+            if (!aFuture && bFuture) return 1;
+    
+            return 0; // maintain original order if all else is equal
+        });
+    }
+        preprocessTableData(cases) {
+           // const sortedCases = this.sortTableData(cases, this.columnConfig);
+        //   const sortedCases = this.customSortByNextActionFields(cases);
+   
+            return cases.map(row => {
+                const updatedRow = { 
+                    ...row, 
+                    columns: [], 
+                    showContent: false,
+                    isExpanded: false,
+                    detailRowKey: `${row.Id}-details`
+                };
+        
+                this.columnConfig.forEach(column => {
+                    if (column.visible) {
+                        const fieldParts = column.column_id.split('.');
+                        let fieldValue = row;
+                        for (const part of fieldParts) {
+                            fieldValue = fieldValue ? fieldValue[part] : undefined;
+                        }
+        
+                        let value = fieldValue;
+                        let isHyperlink = false;
+                        let cellClass = ''; 
+                        
+
+                        if (column.column_id === 'NextActionDueDate__c') {
+                            const dueDate = fieldValue ? new Date(fieldValue) : null;
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                        
+                            if (dueDate && dueDate > today) {
+                                cellClass = 'highlight-red'; // Highlight red for future dates
+                            } else if ([null, '', undefined].includes(fieldValue)) {
+                                cellClass = 'highlight-yellow'; // Highlight yellow for blank or undefined
+                            }
+                        }
+
+                        if (column.column_id === 'NextAction__c') {
+                            if ([null, '', undefined].includes(fieldValue)) {
+                                cellClass = 'highlight-yellow'; // Highlight yellow for blank or undefined
+                            }
+                        }
+        
+                        // Add hyperlink logic for specific columns
+                        if (column.column_id === 'Account.Name') {
+                            value = `<span class="patient-name">${fieldValue}</span></br><a href="/lightning/r/Case/${row.Id}/view" target="_blank">${row.CaseNumber}</a>`;
+                            isHyperlink = true;
+                        } else if (column.column_id === 'CartCoordinatorName__c') {
+                            value = [null, '', undefined].includes(fieldValue) 
+                            ? '' 
+                            : fieldValue.includes('_self') 
+                                ? fieldValue.replace('_self', '_blank') : fieldValue;  
+                            isHyperlink = true;
+                        } else if (column.column_id === 'TreatmentCenterName__c') {
+                            value = `<a href="/lightning/r/Account/${row.TreatmentSite__c}/view" target="_blank">${fieldValue}</a>`;
+                            isHyperlink = true;
+                        }
+        
+                        updatedRow.columns.push({
+                            field: column.column_id.toLowerCase(),
+                            label: column.label,
+                            value: value,
+                            isHyperlink: isHyperlink,
+                            dataType: column.data_type,
+                            isEditing: false,
+                            isEditable: column.editable || false,
+                            isString: column.isString || false,
+                            isNumber: column.isNumber || false,
+                            isDate: column.isDate || false,
+                            isPicklist: column.isPicklist || false,
+                            options: column.isPicklist ? column.picklist_values.map(value => ({ label: value, value })) : null,
+                            cellClass : cellClass
+                        });
+                    }
+                });
+        
+                return updatedRow;
+            });
+        }
+    
