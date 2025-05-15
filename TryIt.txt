@@ -1,64 +1,48 @@
-  @wire(getFilteredCases, { 
-        filterType: '$filterType', 
-        caseOwnerIds: '$computedCaseOwnerIds' 
-    })
-    wiredCases(result) {
-        this.wiredCasesResult = result; 
-        const { data, error } = result;
-        this.isLoading = true;
-        if (data) {
-            this.cases = data.map(caseItem => {
-                let tripStatus = '-';
+@wire(getFilteredCases, { 
+    filterType: '$filterType', 
+    caseOwnerIds: '$computedCaseOwnerIds' 
+})
+wiredCases(result) {
+    this.wiredCasesResult = result;
+    const { data, error } = result;
+    this.isLoading = true;
 
-                if (caseItem.Trips__r && caseItem.Trips__r.length > 0) {
-                    // Prioritize "In Progress" trip
-                    const inProgressTrip = caseItem.Trips__r.find(trip => trip.TripState__c === 'In Progress');
-                    const preTrip = caseItem.Trips__r.find(trip => trip.TripState__c === 'Pre - Trip');
+    if (data) {
+        this.cases = data.map(caseItem => {
+            let tripStatus = '-';
+            let tripDates = '-';
 
-                    if (inProgressTrip) {
-                        tripStatus = `Travel Coordination - ${inProgressTrip.TripState__c}`;
-                    } else if (preTrip) {
-                        tripStatus = `Travel Coordination - ${preTrip.TripState__c}`;
-                    }
+            if (caseItem.Trips__r && caseItem.Trips__r.length > 0) {
+                const inProgressTrip = caseItem.Trips__r.find(trip => trip.TripState__c === 'In Progress');
+                const preTrip = caseItem.Trips__r.find(trip => trip.TripState__c === 'Pre - Trip');
+                const anyTrip = inProgressTrip || preTrip || caseItem.Trips__r[0];
+
+                // Set tripStatus
+                if (inProgressTrip) {
+                    tripStatus = `Travel Coordination - ${inProgressTrip.TripState__c}`;
+                } else if (preTrip) {
+                    tripStatus = `Travel Coordination - ${preTrip.TripState__c}`;
                 }
 
-                return {
-                    ...caseItem,
-                    tripStatus
-                };
-            });
+                // Set tripDates
+                if (anyTrip) {
+                    const { TravelType__c, InfusionMonitoringArrivalTravelDate__c, InfusionMonitoringReturnTravelDate__c } = anyTrip;
+                    tripDates = `${TravelType__c || ''} - ${InfusionMonitoringArrivalTravelDate__c || ''} - ${InfusionMonitoringReturnTravelDate__c || ''}`;
+                }
+            }
 
-            console.log('Fetched cases with tripStatus:', JSON.stringify(this.cases));
-            this.casesFiltered = this.cases;
-            this.isLoading = false;
-        } else if (error) {
-            console.error('Error fetching filtered cases:', error);
-            this.isLoading = false;
-        }
-    }
+            return {
+                ...caseItem,
+                tripStatus,
+                tripDates
+            };
+        });
 
-{
-  "Id": "5005500000DqsWXAAZ",
-  "AccountId": "0015500001TTpqMAAT",
-  "CaseNumber": "00001566",
-  "NextAction__c": "Begin Enrollment",
-  "NextActionDueDate__c": "2025-07-19",
-  "CartCoordinatorName__c": "<a href=\"/\" target=\"_self\"> </a>",
-  "TreatmentSite__c": "0012300000bjcdeAAA",
-  "TreatmentCenterName__c": "Emoryy University Hospital",
-  "EnrollmentStatus__c": "Enrollment Information and Authorization Pending",
-  "EligibilityStatus__c": "Eligible",
-  "ConsentStatusRollUp__c": "Consent - Complete",
-  "CaseOwnerName__c": "Ananya Maiti",
-  "Trips__r": [
-    {
-      "RelatedCase__c": "5005500000DqsWXAAZ",
-      "Id": "a2l55000001Ut5FAAS",
-      "Name": "Trip-0137",
-      "TripState__c": "Pre - Trip",
-      "InfusionMonitoringArrivalTravelDate__c": "2024-09-04",
-      "InfusionMonitoringReturnTravelDate__c": "2022-05-17",
-      "TravelType__c": "Bridging"
+        console.log('Fetched cases with tripStatus and tripDates:', JSON.stringify(this.cases));
+        this.casesFiltered = this.cases;
+        this.isLoading = false;
+    } else if (error) {
+        console.error('Error fetching filtered cases:', error);
+        this.isLoading = false;
     }
-  ]
 }
