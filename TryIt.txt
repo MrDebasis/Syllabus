@@ -1,3 +1,20 @@
+formatDateToShortUS(dateStr) {
+    if (!dateStr) return '';
+
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+
+    const year = date.getFullYear();
+    // Handle Unix epoch or placeholder dates
+    if (year <= 1970) return '';
+
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const shortYear = String(year).slice(-2);
+
+    return `${month}/${day}/${shortYear}`;
+}
+
 @wire(getFilteredCases, { 
     filterType: '$filterType', 
     caseOwnerIds: '$computedCaseOwnerIds' 
@@ -27,7 +44,9 @@ wiredCases(result) {
                 // Set tripDates
                 if (anyTrip) {
                     const { TravelType__c, InfusionMonitoringArrivalTravelDate__c, InfusionMonitoringReturnTravelDate__c } = anyTrip;
-                    tripDates = `${TravelType__c || ''} - ${InfusionMonitoringArrivalTravelDate__c || ''} - ${InfusionMonitoringReturnTravelDate__c || ''}`;
+                    const formattedArrival = this.formatDateToShortUS(InfusionMonitoringArrivalTravelDate__c);
+                    const formattedReturn = this.formatDateToShortUS(InfusionMonitoringReturnTravelDate__c);
+                    tripDates = `${TravelType__c || ''} - ${formattedArrival} - ${formattedReturn}`;
                 }
             }
 
