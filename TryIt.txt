@@ -12,74 +12,77 @@ public with sharing class DynamicTableController {
     }
 
     @AuraEnabled(cacheable=true)
-    public static Map<String, TableConfigWrapper> getTableConfigs(List<String> objectNames) {
-        Map<String, TableConfigWrapper> tableConfigs = new Map<String, TableConfigWrapper>();
+    public static Map<String, TableConfigWrapper> getTableConfigs(Id caseId) {
+        Map<String, TableConfigWrapper> resultMap = new Map<String, TableConfigWrapper>();
 
-        // Query all metadata records and group by TableName__c
-        Map<String, List<PSPTrackerConfig__mdt>> groupedMetadata = new Map<String, List<PSPTrackerConfig__mdt>>();
-        List<PSPTrackerConfig__mdt> metadataRecords = [
-            SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c, ColumnWidth__c, PSSViewColumnOrder__c, IsDefaultColumnSort__c,
-                   IsSortingApplied__c, SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c,
-                   PickListValues__c, IsString__c, IsNumber__c, IsDate__c, IsPickList__c
+        // Step 1: Get all metadata (no filter on table names)
+        List<PSPTrackerConfig__mdt> allMetadata = [
+            SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c,
+                   ColumnWidth__c, PSSViewColumnOrder__c, IsDefaultColumnSort__c, IsSortingApplied__c,
+                   SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c, PickListValues__c,
+                   IsString__c, IsNumber__c, IsDate__c, IsPickList__c
             FROM PSPTrackerConfig__mdt
             WHERE Visible__c = true
         ];
 
-        for (PSPTrackerConfig__mdt record : metadataRecords) {
-            if (!groupedMetadata.containsKey(record.TableName__c)) {
-                groupedMetadata.put(record.TableName__c, new List<PSPTrackerConfig__mdt>());
+        // Step 2: Group metadata into maps without nested loops
+        Map<String, List<Map<String, Object>>> objectColumnsMap = new Map<String, List<Map<String, Object>>>();
+        Map<String, Set<String>> objectFieldNamesMap = new Map<String, Set<String>>();
+
+        for (PSPTrackerConfig__mdt config : allMetadata) {
+            String obj = config.TableName__c;
+
+            if (!objectColumnsMap.containsKey(obj)) {
+                objectColumnsMap.put(obj, new List<Map<String, Object>>());
+                objectFieldNamesMap.put(obj, new Set<String>());
             }
-            groupedMetadata.get(record.TableName__c).add(record);
+
+            objectColumnsMap.get(obj).add(new Map<String, Object>{
+                'column_id' => config.ColumnName__c,
+                'label' => config.Label__c,
+                'data_type' => config.DataType__c,
+                'visible' => config.Visible__c,
+                'editable' => config.Editable__c,
+                'isSortingApplied' => config.IsSortingApplied__c,
+                'sortDirection' => config.SortDirection__c,
+                'ColumnWidth' => config.ColumnWidth__c,
+                'picklistValues' => config.PickListValues__c
+            });
+
+            objectFieldNamesMap.get(obj).add(config.ColumnName__c);
         }
 
-        // Process each object name
-        for (String objectName : objectNames) {
-            if (!groupedMetadata.containsKey(objectName)) {
-                continue;
+        // Step 3: Query each object's data using switch with caseId filter
+        for (String objName : objectColumnsMap.keySet()) {
+            String soql;
+            List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
+            String fieldStr = 'Id';
+            if (!fields.isEmpty()) {
+                fieldStr += ', ' + String.join(fields, ', ');
             }
 
-            List<PSPTrackerConfig__mdt> configs = groupedMetadata.get(objectName);
-
-            // Transform the metadata into column configuration
-            List<Map<String, Object>> columnConfig = new List<Map<String, Object>>();
-            List<String> fieldNames = new List<String>();
-
-            for (PSPTrackerConfig__mdt config : configs) {
-                Map<String, Object> column = new Map<String, Object>();
-                column.put('column_id', config.ColumnName__c);
-                column.put('label', config.Label__c);
-                column.put('data_type', config.DataType__c);
-                column.put('visible', config.Visible__c);
-                column.put('editable', config.Editable__c);
-                column.put('isSortingApplied', config.IsSortingApplied__c);
-                column.put('sortDirection', config.SortDirection__c);
-                column.put('ColumnWidth', config.ColumnWidth__c);
-                columnConfig.add(column);
-
-                fieldNames.add(config.ColumnName__c);
-            }
-
-            // Form the query dynamically based on the object name
-            String query;
-            switch on objectName {
+            switch on objName {
                 when 'Case' {
-                    query = 'SELECT Id, ' + String.join(fieldNames, ',') + ' FROM Case';
+                    soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
                 }
                 when 'HealthCloudGA__ContactContactRelation__c' {
-                    query = 'SELECT Id, ' + String.join(fieldNames, ',') + ' FROM HealthCloudGA__ContactContactRelation__c';
+                    // Assuming HealthCloudGA__ContactContactRelation__c has CaseId field
+                    soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE CaseId = :caseId';
                 }
                 when else {
+                    // Skip unsupported objects
                     continue;
                 }
             }
 
-            // Execute the query and fetch records
-            List<SObject> records = Database.query(query);
-
-            // Add to the map
-            tableConfigs.put(objectName, new TableConfigWrapper(objectName, columnConfig, records));
+            try {
+                List<SObject> records = Database.query(soql);
+                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+            } catch (Exception ex) {
+                System.debug('Failed querying ' + objName + ': ' + ex.getMessage());
+            }
         }
 
-        return tableConfigs;
+        return resultMap;
     }
 }
