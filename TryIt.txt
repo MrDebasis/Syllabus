@@ -1,7 +1,53 @@
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error">{error}</div>
+    </template>
+
+    <template if:true={caseTable}>
+        <lightning-card title="Case Data">
+            <lightning-datatable
+                key-field="Id"
+                data={caseTable.data}
+                columns={caseTable.columns}
+                draft-values={caseTable.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={caseTable.sortedBy}
+                sorted-direction={caseTable.sortedDirection}
+                hide-checkbox-column
+                data-obj="Case">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+
+    <template for:each={otherTables} for:item="table">
+        <lightning-card key={table.objectName} title={table.objectName}>
+            <lightning-datatable
+                key-field="Id"
+                data={table.data}
+                columns={table.columns}
+                draft-values={table.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={table.sortedBy}
+                sorted-direction={table.sortedDirection}
+                hide-checkbox-column
+                data-obj={table.objectName}>
+            </lightning-datatable>
+        </lightning-card>
+    </template>
+</template>
+
+
 import { LightningElement, track } from 'lwc';
 import getObjectTables from '@salesforce/apex/PSSTrackerCaseController.getTableConfigs';
 
-export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
+export default class PspPSSTrackerDataTableLWCComp extends LightningElement {
     @track tables = {};
     loading = false;
     error;
@@ -15,10 +61,11 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         this.error = null;
 
         try {
-            const result = await getObjectTables();
+            const caseId = '5005j00001ABCDeXAZ'; // 🔁 Replace with real Case Id
+            const result = await getObjectTables({ caseId });
             this.populateTables(result);
         } catch (e) {
-            this.error = e.body ? e.body.message : e.message;
+            this.error = e.body?.message || e.message;
         } finally {
             this.loading = false;
         }
@@ -46,7 +93,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                 let type = 'text';
                 let typeAttributes;
 
-                const dataType = col.data_type ? col.data_type.toLowerCase() : 'string';
+                const dataType = col.data_type?.toLowerCase() || 'string';
                 switch (dataType) {
                     case 'number':
                         type = 'number';
@@ -126,57 +173,8 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     }
 }
 
-
-<template>
-    <template if:true={loading}>
-        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-    </template>
-
-    <template if:true={error}>
-        <div class="slds-text-color_error">{error}</div>
-    </template>
-
-    <!-- Render Case table separately -->
-    <template if:true={caseTable}>
-        <lightning-card title="Case Data">
-            <lightning-datatable
-                key-field="Id"
-                data={caseTable.data}
-                columns={caseTable.columns}
-                draft-values={caseTable.draftValues}
-                onsave={handleSave}
-                onsort={handleSort}
-                sorted-by={caseTable.sortedBy}
-                sorted-direction={caseTable.sortedDirection}
-                hide-checkbox-column
-                data-obj="Case">
-            </lightning-datatable>
-        </lightning-card>
-        <br />
-    </template>
-
-    <!-- Render other tables dynamically -->
-    <template for:each={otherTables} for:item="table">
-        <lightning-card key={table.objectName} title={table.objectName}>
-            <lightning-datatable
-                key-field="Id"
-                data={table.data}
-                columns={table.columns}
-                draft-values={table.draftValues}
-                onsave={handleSave}
-                onsort={handleSort}
-                sorted-by={table.sortedBy}
-                sorted-direction={table.sortedDirection}
-                hide-checkbox-column
-                data-obj={table.objectName}>
-            </lightning-datatable>
-        </lightning-card>
-
-    </template>
-</template>
-
 public without sharing class PSSTrackerCaseController {
-   public class TableConfigWrapper {
+    public class TableConfigWrapper {
         @AuraEnabled public String objectName;
         @AuraEnabled public List<Map<String, Object>> columns;
         @AuraEnabled public List<SObject> data;
@@ -190,19 +188,21 @@ public without sharing class PSSTrackerCaseController {
 
     @AuraEnabled(cacheable=true)
     public static Map<String, TableConfigWrapper> getTableConfigs(Id caseId) {
+        if (caseId == null) {
+            throw new AuraHandledException('Missing Case ID.');
+        }
+
         Map<String, TableConfigWrapper> resultMap = new Map<String, TableConfigWrapper>();
 
-        // Step 1: Get all metadata (no filter on table names)
         List<PSPTrackerConfig__mdt> allMetadata = [
             SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c,
                    ColumnWidth__c, PSSViewColumnOrder__c, IsSortingApplied__c,
                    SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c, PickListValues__c,
-                   IsString__c, IsNumber__c, IsDate__c, IsPickList__c
+                   IsString__c, IsNumber__c, IsDate__c, IsPickList__c, PSSListView__c
             FROM PSPTrackerConfig__mdt
-            WHERE Visible__c = true and PSSListView__c = true
+            WHERE Visible__c = true AND PSSListView__c = true
         ];
 
-        // Step 2: Group metadata into maps without nested loops
         Map<String, List<Map<String, Object>>> objectColumnsMap = new Map<String, List<Map<String, Object>>>();
         Map<String, Set<String>> objectFieldNamesMap = new Map<String, Set<String>>();
 
@@ -229,7 +229,6 @@ public without sharing class PSSTrackerCaseController {
             objectFieldNamesMap.get(obj).add(config.ColumnName__c);
         }
 
-        // Step 3: Query each object's data using switch with caseId filter
         for (String objName : objectColumnsMap.keySet()) {
             String soql;
             List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
@@ -243,11 +242,9 @@ public without sharing class PSSTrackerCaseController {
                     soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
                 }
                 when 'HealthCloudGA__ContactContactRelation__c' {
-                    // Assuming HealthCloudGA__ContactContactRelation__c has CaseId field
-                    soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c	 = :caseId';
+                    soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c = :caseId';
                 }
                 when else {
-                    // Skip unsupported objects
                     continue;
                 }
             }
@@ -256,7 +253,7 @@ public without sharing class PSSTrackerCaseController {
                 List<SObject> records = Database.query(soql);
                 resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
             } catch (Exception ex) {
-                System.debug('Failed querying ' + objName + ': ' + ex.getMessage());
+                System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
             }
         }
 
