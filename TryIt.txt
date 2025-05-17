@@ -54,7 +54,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
             .map(col => {
                 let type = 'text';
                 let typeAttributes;
-    
+
                 const dataType = col.data_type?.toLowerCase() || 'string';
                 if (col.column_id === 'Name') {
                     type = 'url';
@@ -89,10 +89,15 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                             }
                             break;
                         default:
-                            type = 'text';
+                            // Detect and handle phone field
+                            if (col.column_id.toLowerCase().includes('phone')) {
+                                type = 'phone';
+                            } else {
+                                type = 'text';
+                            }
                     }
                 }
-    
+
                 return {
                     label: col.label,
                     fieldName: col.column_id,
