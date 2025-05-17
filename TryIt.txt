@@ -1,92 +1,85 @@
 public with sharing class DynamicTableController {
-    
-    @AuraEnabled(cacheable=true)
-    public static List<Account> getAccounts() {
-        return [SELECT Id, Name, Industry, Phone FROM Account LIMIT 50];
-    }
+    public class TableConfigWrapper {
+        @AuraEnabled public String objectName;
+        @AuraEnabled public List<Map<String, Object>> columns;
+        @AuraEnabled public List<SObject> data;
 
-    @AuraEnabled
-    public static void updateAccounts(List<Account> updatedAccounts) {
-        update updatedAccounts;
-    }
-}
-
-
-<template>
-    <lightning-card title="Dynamic Editable DataTable">
-        <lightning-datatable
-            key-field="Id"
-            data={data}
-            columns={columns}
-            draft-values={draftValues}
-            onsave={handleSave}
-            oncellchange={handleCellChange}
-            sorted-by={sortedBy}
-            sorted-direction={sortedDirection}
-            onsort={handleSort}
-            hide-checkbox-column="true"
-        >
-        </lightning-datatable>
-    </lightning-card>
-</template>
-
-
-import { LightningElement, wire, track } from 'lwc';
-import getAccounts from '@salesforce/apex/DynamicTableController.getAccounts';
-import updateAccounts from '@salesforce/apex/DynamicTableController.updateAccounts';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-
-export default class DynamicTable extends LightningElement {
-    @track data = [];
-    @track columns = [
-        { label: 'Name', fieldName: 'Name', editable: true, sortable: true },
-        { label: 'Industry', fieldName: 'Industry', editable: true, sortable: true },
-        { label: 'Phone', fieldName: 'Phone', editable: true, sortable: true }
-    ];
-
-    draftValues = [];
-    sortedBy;
-    sortedDirection = 'asc';
-
-    @wire(getAccounts)
-    wiredAccounts({ data, error }) {
-        if (data) {
+        public TableConfigWrapper(String objectName, List<Map<String, Object>> columns, List<SObject> data) {
+            this.objectName = objectName;
+            this.columns = columns;
             this.data = data;
-        } else if (error) {
-            this.showToast('Error', error.body.message, 'error');
         }
     }
 
-    handleSave(event) {
-        const updatedFields = event.detail.draftValues;
+    @AuraEnabled(cacheable=true)
+    public static Map<String, TableConfigWrapper> getTableConfigs(List<String> objectNames) {
+        Map<String, TableConfigWrapper> tableConfigs = new Map<String, TableConfigWrapper>();
 
-        updateAccounts({ updatedAccounts: updatedFields })
-            .then(() => {
-                this.showToast('Success', 'Records updated', 'success');
-                this.draftValues = [];
-                return refreshApex(this.wiredAccounts);
-            })
-            .catch(error => {
-                this.showToast('Error updating records', error.body.message, 'error');
-            });
-    }
+        // Query all metadata records and group by TableName__c
+        Map<String, List<PSPTrackerConfig__mdt>> groupedMetadata = new Map<String, List<PSPTrackerConfig__mdt>>();
+        List<PSPTrackerConfig__mdt> metadataRecords = [
+            SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c, ColumnWidth__c, PSSViewColumnOrder__c, IsDefaultColumnSort__c,
+                   IsSortingApplied__c, SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c,
+                   PickListValues__c, IsString__c, IsNumber__c, IsDate__c, IsPickList__c
+            FROM PSPTrackerConfig__mdt
+            WHERE Visible__c = true
+        ];
 
-    handleSort(event) {
-        const { fieldName: sortedBy, sortDirection } = event.detail;
-        const cloneData = [...this.data];
+        for (PSPTrackerConfig__mdt record : metadataRecords) {
+            if (!groupedMetadata.containsKey(record.TableName__c)) {
+                groupedMetadata.put(record.TableName__c, new List<PSPTrackerConfig__mdt>());
+            }
+            groupedMetadata.get(record.TableName__c).add(record);
+        }
 
-        cloneData.sort((a, b) => {
-            let valA = a[sortedBy] || '';
-            let valB = b[sortedBy] || '';
-            return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        });
+        // Process each object name
+        for (String objectName : objectNames) {
+            if (!groupedMetadata.containsKey(objectName)) {
+                continue;
+            }
 
-        this.data = cloneData;
-        this.sortedBy = sortedBy;
-        this.sortedDirection = sortDirection;
-    }
+            List<PSPTrackerConfig__mdt> configs = groupedMetadata.get(objectName);
 
-    showToast(title, message, variant) {
-        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+            // Transform the metadata into column configuration
+            List<Map<String, Object>> columnConfig = new List<Map<String, Object>>();
+            List<String> fieldNames = new List<String>();
+
+            for (PSPTrackerConfig__mdt config : configs) {
+                Map<String, Object> column = new Map<String, Object>();
+                column.put('column_id', config.ColumnName__c);
+                column.put('label', config.Label__c);
+                column.put('data_type', config.DataType__c);
+                column.put('visible', config.Visible__c);
+                column.put('editable', config.Editable__c);
+                column.put('isSortingApplied', config.IsSortingApplied__c);
+                column.put('sortDirection', config.SortDirection__c);
+                column.put('ColumnWidth', config.ColumnWidth__c);
+                columnConfig.add(column);
+
+                fieldNames.add(config.ColumnName__c);
+            }
+
+            // Form the query dynamically based on the object name
+            String query;
+            switch on objectName {
+                when 'Case' {
+                    query = 'SELECT Id, ' + String.join(fieldNames, ',') + ' FROM Case';
+                }
+                when 'HealthCloudGA__ContactContactRelation__c' {
+                    query = 'SELECT Id, ' + String.join(fieldNames, ',') + ' FROM HealthCloudGA__ContactContactRelation__c';
+                }
+                when else {
+                    continue;
+                }
+            }
+
+            // Execute the query and fetch records
+            List<SObject> records = Database.query(query);
+
+            // Add to the map
+            tableConfigs.put(objectName, new TableConfigWrapper(objectName, columnConfig, records));
+        }
+
+        return tableConfigs;
     }
 }
