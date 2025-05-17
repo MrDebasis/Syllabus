@@ -42,6 +42,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         }
     }
 
+    
     buildLightningColumns(columns) {
         return columns
             .filter(col => col.visible)
@@ -56,13 +57,16 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                 let typeAttributes;
 
                 const dataType = col.data_type?.toLowerCase() || 'string';
-                if (col.column_id === 'Name') {
+                if (col.column_id == 'ContactName__c') {
                     type = 'url';
                     typeAttributes = {
                         label: {
-                            fieldName: 'Name.label'
+                            fieldName: 'ContactName__c'
                         },
-                        target: '_blank'
+                        target: '_blank',
+                        url: {
+                            fieldName:  'accountUrl'
+                        }
                     };
                 } else {
                     switch (dataType) {
@@ -117,6 +121,21 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     get associatedContact() {
         return this.tables['HealthCloudGA__ContactContactRelation__c'];
     }
+
+   /* get associatedContact() {
+        if (this.tables['HealthCloudGA__ContactContactRelation__c']) {
+            return {
+                ...this.tables['HealthCloudGA__ContactContactRelation__c'],
+                data: this.tables['HealthCloudGA__ContactContactRelation__c'].data.map(record => {
+                    return {
+                        ...record,
+                        accountUrl: record.Account__c ? `/lightning/r/Account/${record.Account__c}/view` : null
+                    };
+                })
+            };
+        }
+        return null;
+    }*/
 
     get contactTable() {
         return this.tables['Contact'];
