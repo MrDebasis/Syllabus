@@ -27,14 +27,36 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         }
     }
 
+    // 🔁 NEW: Format records with hyperlinks
+    formatRecordForLinks(objectName, record) {
+        if (objectName === 'HealthCloudGA__ContactContactRelation__c') {
+            if (record.Name && record.Account__c) {
+                return {
+                    ...record,
+                    Name: {
+                        label: record.Name,
+                        url: `/lightning/r/Account/${record.Account__c}/view`
+                    }
+                };
+            }
+        }
+        return record;
+    }
+
+    // 🔁 UPDATED: Format records while populating tables
     populateTables(result) {
         this.tables = {};
         for (const [objectName, wrapper] of Object.entries(result)) {
             const recordsArray = Object.values(wrapper.data);
 
+            // Format hyperlink for Name field if applicable
+            const formattedRecords = recordsArray.map(record =>
+                this.formatRecordForLinks(objectName, record)
+            );
+
             this.tables[objectName] = {
-                columns: this.buildLightningColumns(wrapper.columns),
-                data: recordsArray,
+                columns: this.buildLightningColumns(objectName, wrapper.columns),
+                data: formattedRecords,
                 draftValues: [],
                 sortedBy: '',
                 sortedDirection: 'asc'
@@ -42,7 +64,8 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         }
     }
 
-    buildLightningColumns(columns) {
+    // 🔁 UPDATED: Accept objectName to format Name as hyperlink
+    buildLightningColumns(objectName, columns) {
         return columns
             .filter(col => col.visible)
             .map(col => {
@@ -77,6 +100,15 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                         type = 'text';
                 }
 
+                // 🔁 NEW: Render Name as URL for associated object
+                if (col.column_id === 'Name' && objectName === 'HealthCloudGA__ContactContactRelation__c') {
+                    type = 'url';
+                    typeAttributes = {
+                        label: { fieldName: 'Name.label' },
+                        target: '_blank'
+                    };
+                }
+
                 return {
                     label: col.label,
                     fieldName: col.column_id,
@@ -105,7 +137,6 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         const objectName = event.target.dataset.obj;
         const draftValues = event.detail.draftValues;
         console.log(`Saving for ${objectName}:`, draftValues);
-        
 
         this.tables[objectName].data = this.tables[objectName].data.map(row => {
             const draft = draftValues.find(d => d.Id === row.Id);
