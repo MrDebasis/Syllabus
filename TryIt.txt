@@ -1,8 +1,8 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement } from 'lwc';
 import getObjectTables from '@salesforce/apex/PSSTrackerCaseController.getTableConfigs';
 
 export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
-    @track tables = {};
+    tables = {};
     loading = false;
     error;
 
@@ -15,7 +15,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         this.error = null;
 
         try {
-            const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id if needed
+            const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id
             const result = await getObjectTables({ caseId });
             console.log('Apex result:', JSON.stringify(result));
             this.populateTables(result);
@@ -29,8 +29,19 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
 
     populateTables(result) {
         this.tables = {};
+
         for (const [objectName, wrapper] of Object.entries(result)) {
-            const recordsArray = Object.values(wrapper.data);
+            let recordsArray = Object.values(wrapper.data);
+
+            // ✅ Inject accountUrl into each record if needed
+            if (objectName === 'HealthCloudGA__ContactContactRelation__c') {
+                recordsArray = recordsArray.map(record => ({
+                    ...record,
+                    accountUrl: record.Account__c
+                        ? `/lightning/r/Account/${record.Account__c}/view`
+                        : null
+                }));
+            }
 
             this.tables[objectName] = {
                 columns: this.buildLightningColumns(wrapper.columns),
@@ -42,7 +53,6 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         }
     }
 
-    
     buildLightningColumns(columns) {
         return columns
             .filter(col => col.visible)
@@ -57,16 +67,16 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                 let typeAttributes;
 
                 const dataType = col.data_type?.toLowerCase() || 'string';
-                if (col.column_id == 'ContactName__c') {
+                const field = col.column_id.toLowerCase();
+
+                if (col.column_id === 'ContactName__c') {
+                    // ✅ Render ContactName__c as a clickable URL using accountUrl
                     type = 'url';
                     typeAttributes = {
-                        label: {
-                            fieldName: 'ContactName__c'
-                        },
+                        label: { fieldName: 'ContactName__c' },
                         target: '_blank',
-                        url: {
-                            fieldName:  'accountUrl'
-                        }
+                        tooltip: 'View Account',
+                        url: { fieldName: 'accountUrl' }
                     };
                 } else {
                     switch (dataType) {
@@ -93,8 +103,8 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                             }
                             break;
                         default:
-                            // Detect and handle phone field
-                            if (col.column_id.toLowerCase().includes('phone')) {
+                            // ✅ Detect phone fields and apply 'phone' type
+                            if (field.includes('phone')) {
                                 type = 'phone';
                             } else {
                                 type = 'text';
@@ -113,7 +123,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
             });
     }
 
-    // ✅ Access each object directly by name
+    // 🔍 Getter shortcuts for tables
     get caseTable() {
         return this.tables['Case'];
     }
@@ -122,21 +132,6 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         return this.tables['HealthCloudGA__ContactContactRelation__c'];
     }
 
-   /* get associatedContact() {
-        if (this.tables['HealthCloudGA__ContactContactRelation__c']) {
-            return {
-                ...this.tables['HealthCloudGA__ContactContactRelation__c'],
-                data: this.tables['HealthCloudGA__ContactContactRelation__c'].data.map(record => {
-                    return {
-                        ...record,
-                        accountUrl: record.Account__c ? `/lightning/r/Account/${record.Account__c}/view` : null
-                    };
-                })
-            };
-        }
-        return null;
-    }*/
-
     get contactTable() {
         return this.tables['Contact'];
     }
@@ -144,7 +139,6 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     handleSave(event) {
         const objectName = event.target.dataset.obj;
         const draftValues = event.detail.draftValues;
-        console.log(`Saving for ${objectName}:`, draftValues);
 
         this.tables[objectName].data = this.tables[objectName].data.map(row => {
             const draft = draftValues.find(d => d.Id === row.Id);
@@ -158,8 +152,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         const { fieldName, sortDirection } = event.detail;
         const objectName = event.target.dataset.obj;
 
-        let sortedData = [...this.tables[objectName].data];
-        sortedData.sort((a, b) => {
+        const sortedData = [...this.tables[objectName].data].sort((a, b) => {
             const aVal = a[fieldName] ?? '';
             const bVal = b[fieldName] ?? '';
             return sortDirection === 'asc'
