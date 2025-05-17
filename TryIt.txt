@@ -1,193 +1,92 @@
-import { LightningElement, track } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-
-export default class DynamicDatatableDebasis extends LightningElement {
-    @track tables = [];
-
-    config = {
-        Account: {
-            columns: [
-                { label: 'Name', fieldName: 'Name', type: 'text', editable: true },
-                { label: 'Industry', fieldName: 'Industry', type: 'text', editable: true },
-                { label: 'Revenue', fieldName: 'Revenue', type: 'currency', editable: true }
-            ],
-            data: [
-                { Id: '1', Name: 'Acme Corp', Industry: 'Manufacturing', Revenue: 500000 },
-                { Id: '2', Name: 'Tech Innovators', Industry: 'Software', Revenue: 1200000 }
-            ]
-        },
-        Contact: {
-            columns: [
-                { label: 'First Name', fieldName: 'FirstName', type: 'text', editable: true },
-                { label: 'Last Name', fieldName: 'LastName', type: 'text', editable: true },
-                { label: 'Email', fieldName: 'Email', type: 'email', editable: true }
-            ],
-            data: [
-                { Id: '1', FirstName: 'John', LastName: 'Doe', Email: 'john.doe@example.com' },
-                { Id: '2', FirstName: 'Jane', LastName: 'Smith', Email: 'jane.smith@example.com' }
-            ]
-        },
-        AssociatedContact: {
-            columns: [
-                { label: 'First Name', fieldName: 'FirstName', type: 'text', editable: true },
-                { label: 'Last Name', fieldName: 'LastName', type: 'text', editable: true },
-                { label: 'Email', fieldName: 'Email', type: 'email', editable: true }
-            ],
-            data: [
-                { Id: '1', FirstName: 'Debasis', LastName: 'Maharana', Email: 'Debasis@example.com' },
-                { Id: '2', FirstName: 'Abcd', LastName: 'Abcd', Email: 'Abcd@example.com' }
-            ]
-        }
-    };
-
-    connectedCallback() {
-        this.tables = Object.keys(this.config).map(objName => ({
-            objectName: objName,
-            columns: this.config[objName].columns,
-            data: this.config[objName].data
-        }));
+public with sharing class DynamicTableController {
+    
+    @AuraEnabled(cacheable=true)
+    public static List<Account> getAccounts() {
+        return [SELECT Id, Name, Industry, Phone FROM Account LIMIT 50];
     }
 
-    handleSave(event) {
-        const { objectName } = event.target.dataset;
-        const updatedRecords = event.detail.draftValues;
-
-        this.tables = this.tables.map(table => {
-            if (table.objectName === objectName) {
-                table.data = table.data.map(record => {
-                    const updatedRecord = updatedRecords.find(upd => upd.Id === record.Id);
-                    return updatedRecord ? { ...record, ...updatedRecord } : record;
-                });
-            }
-            return table;
-        });
-
-        this.template.querySelectorAll('lightning-datatable').forEach(dt => dt.draftValues = []);
-
-        this.showToast('Success', `${objectName} records updated successfully`, 'success');
-    }
-
-
-    showToast(title, message, variant) {
-        const event = new ShowToastEvent({
-            title: title,
-            message: message,
-            variant: variant
-        });
-        this.dispatchEvent(event);
+    @AuraEnabled
+    public static void updateAccounts(List<Account> updatedAccounts) {
+        update updatedAccounts;
     }
 }
 
 
 <template>
-    <lightning-card title="Dynamic Data Tables">
-        <template for:each={tables} for:item="table">
-            <div key={table.objectName} class="slds-m-bottom_medium">
-                <h2 class="slds-text-heading_medium">{table.objectName} Data</h2>
-                
-                <lightning-datatable
-                    key-field="Id"
-                    data={table.data}
-                    columns={table.columns}
-                    draft-values={table.draftValues}
-                    onsave={handleSave}
-                    data-object-name={table.objectName}
-                    hide-checkbox-column>
-                </lightning-datatable>
-            </div>
-        </template>
+    <lightning-card title="Dynamic Editable DataTable">
+        <lightning-datatable
+            key-field="Id"
+            data={data}
+            columns={columns}
+            draft-values={draftValues}
+            onsave={handleSave}
+            oncellchange={handleCellChange}
+            sorted-by={sortedBy}
+            sorted-direction={sortedDirection}
+            onsort={handleSort}
+            hide-checkbox-column="true"
+        >
+        </lightning-datatable>
     </lightning-card>
 </template>
 
 
-   @AuraEnabled(cacheable=true)
-    public static List<Map<String, Object>> getPSPTrackerConfig(String objectName) {
-        // Get the logged-in user's role
-        User userRec = [SELECT UserRole.DeveloperName FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
-        String userRole = userRec.UserRole != null ? userRec.UserRole.DeveloperName : null;
+import { LightningElement, wire, track } from 'lwc';
+import getAccounts from '@salesforce/apex/DynamicTableController.getAccounts';
+import updateAccounts from '@salesforce/apex/DynamicTableController.updateAccounts';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-        // Query PSPTrackerConfig__mdt records dynamically based on the object name
-        List<PSPTrackerConfig__mdt> configs = [
-            SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c, ColumnWidth__c,PSSViewColumnOrder__c,IsDefaultColumnSort__c,
-                   IsSortingApplied__c, SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c,
-                   PickListValues__c, IsString__c, IsNumber__c, IsDate__c, IsPickList__c, UserRole__c
-            FROM PSPTrackerConfig__mdt
-            WHERE TableName__c = :objectName AND UserRole__c LIKE :('%' + userRole + '%')
-        ];
+export default class DynamicTable extends LightningElement {
+    @track data = [];
+    @track columns = [
+        { label: 'Name', fieldName: 'Name', editable: true, sortable: true },
+        { label: 'Industry', fieldName: 'Industry', editable: true, sortable: true },
+        { label: 'Phone', fieldName: 'Phone', editable: true, sortable: true }
+    ];
 
-        // Transform the data into the required format
-        List<Map<String, Object>> columnConfig = new List<Map<String, Object>>();
-        for (PSPTrackerConfig__mdt config : configs) {
-            Map<String, Object> column = new Map<String, Object>();
-            column.put('column_id', config.ColumnName__c);
-            column.put('label', config.Label__c);
-            column.put('data_type', config.DataType__c);
-            column.put('visible', config.Visible__c);
-            column.put('editable', config.Editable__c);
-            column.put('isString', config.IsString__c);
-            column.put('isNumber', config.IsNumber__c);
-            column.put('isDate', config.IsDate__c);
-            column.put('isPicklist', config.IsPickList__c);
-            column.put('picklist_values', config.PickListValues__c != null ? config.PickListValues__c.split(';') : null);
-            column.put('isSortingApplied', config.IsSortingApplied__c);
-            column.put('sortDirection', config.SortDirection__c);
-            column.put('IsAscsortDirection', config.IsASCSortDirection__c);
-            column.put('IsDescsortDirection', config.IsDESCSortDirection__c);
-            column.put('PSSViewColumnOrder', config.PSSViewColumnOrder__c);
-           // column.put('IsDefaultColumnSort', config.IsDefaultColumnSort__c);
-            column.put('ColumnWidth', config.ColumnWidth__c);
-            columnConfig.add(column);
+    draftValues = [];
+    sortedBy;
+    sortedDirection = 'asc';
+
+    @wire(getAccounts)
+    wiredAccounts({ data, error }) {
+        if (data) {
+            this.data = data;
+        } else if (error) {
+            this.showToast('Error', error.body.message, 'error');
         }
-
-        return columnConfig;
     }
- @wire(getFilteredCases, { 
-            filterType: '$filterType', 
-            caseOwnerIds: '$computedCaseOwnerIds' 
-        })
-        wiredCases(result) {
-            this.wiredCasesResult = result;
-            const { data, error } = result;
-            this.isLoading = true;
-        
-            if (data) {
-                this.cases = data.map(caseItem => {
-                    let tripStatus = '-';
-                    let tripDates = '-';
-        
-                    if (caseItem.Trips__r && caseItem.Trips__r.length > 0) {
-                        const inProgressTrip = caseItem.Trips__r.find(trip => trip.TripState__c === 'In Progress');
-                        const preTrip = caseItem.Trips__r.find(trip => trip.TripState__c === 'Pre - Trip');
-                        const anyTrip = inProgressTrip || preTrip || caseItem.Trips__r[0];
-        
-                        // Set tripStatus
-                        if (inProgressTrip) {
-                            tripStatus = `Travel Coordination - ${inProgressTrip.TripState__c}`;
-                        } else if (preTrip) {
-                            tripStatus = `Travel Coordination - ${preTrip.TripState__c}`;
-                        }
-        
-                        // Set tripDates
-                        if (anyTrip) {
-                            const { TravelType__c, InfusionMonitoringArrivalTravelDate__c, InfusionMonitoringReturnTravelDate__c } = anyTrip;
-                            const formattedArrival = this.formatDateToShortUS(InfusionMonitoringArrivalTravelDate__c);
-                            const formattedReturn = this.formatDateToShortUS(InfusionMonitoringReturnTravelDate__c);
-                            tripDates = `${TravelType__c || ''} - ${formattedArrival} - ${formattedReturn}`;
-                        }
-                    }
-        
-                    return {
-                        ...caseItem,
-                        tripStatus,
-                        tripDates
-                    };
-                });
-        
-                console.log('Fetched cases with tripStatus and tripDates:', JSON.stringify(this.cases));
-                this.casesFiltered = this.cases;
-                this.isLoading = false;
-            } else if (error) {
-                console.error('Error fetching filtered cases:', error);
-                this.isLoading = false;
-            }
-        }
+
+    handleSave(event) {
+        const updatedFields = event.detail.draftValues;
+
+        updateAccounts({ updatedAccounts: updatedFields })
+            .then(() => {
+                this.showToast('Success', 'Records updated', 'success');
+                this.draftValues = [];
+                return refreshApex(this.wiredAccounts);
+            })
+            .catch(error => {
+                this.showToast('Error updating records', error.body.message, 'error');
+            });
+    }
+
+    handleSort(event) {
+        const { fieldName: sortedBy, sortDirection } = event.detail;
+        const cloneData = [...this.data];
+
+        cloneData.sort((a, b) => {
+            let valA = a[sortedBy] || '';
+            let valB = b[sortedBy] || '';
+            return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+
+        this.data = cloneData;
+        this.sortedBy = sortedBy;
+        this.sortedDirection = sortDirection;
+    }
+
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+}
