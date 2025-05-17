@@ -15,46 +15,26 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         this.error = null;
 
         try {
-            const caseId = '50023000003st7sAAA'; // 🔁 Replace with real Case Id
+            const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id if needed
             const result = await getObjectTables({ caseId });
+            console.log('Apex result:', JSON.stringify(result));
             this.populateTables(result);
         } catch (e) {
             this.error = e.body?.message || e.message;
+            console.error('Error loading tables:', e);
         } finally {
             this.loading = false;
         }
     }
 
-    // 🔁 NEW: Helper to add hyperlink for specific fields
-    formatRecordForLinks(objectName, record) {
-        if (objectName === 'HealthCloudGA__ContactContactRelation__c') {
-            if (record.Name && record.Account__c) {
-                return {
-                    ...record,
-                    Name: {
-                        label: record.Name,
-                        url: `/lightning/r/Account/${record.Account__c}/view`
-                    }
-                };
-            }
-        }
-        return record;
-    }
-
-    // 🔁 UPDATED: Use formatting helper
     populateTables(result) {
         this.tables = {};
         for (const [objectName, wrapper] of Object.entries(result)) {
             const recordsArray = Object.values(wrapper.data);
 
-            // 🔁 NEW: Format records
-            const formattedRecords = recordsArray.map(record =>
-                this.formatRecordForLinks(objectName, record)
-            );
-
             this.tables[objectName] = {
-                columns: this.buildLightningColumns(objectName, wrapper.columns), // 🔁 Pass objectName
-                data: formattedRecords,
+                columns: this.buildLightningColumns(wrapper.columns),
+                data: recordsArray,
                 draftValues: [],
                 sortedBy: '',
                 sortedDirection: 'asc'
@@ -62,18 +42,9 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         }
     }
 
-    // 🔁 UPDATED: Accept objectName and configure Name field as URL
-    buildLightningColumns(objectName, columns) {
+    buildLightningColumns(columns) {
         return columns
             .filter(col => col.visible)
-            .sort((a, b) => {
-                if (a.PSSViewColumnOrder__c == null) return 1;
-                if (b.PSSViewColumnOrder__c == null) return -1;
-                if (a.PSSViewColumnOrder__c !== b.PSSViewColumnOrder__c) {
-                    return a.PSSViewColumnOrder__c - b.PSSViewColumnOrder__c;
-                }
-                return a.column_id.localeCompare(b.column_id);
-            })
             .map(col => {
                 let type = 'text';
                 let typeAttributes;
@@ -106,15 +77,6 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
                         type = 'text';
                 }
 
-                // 🔁 NEW: Special case for clickable Name field
-                if (col.column_id === 'Name' && objectName === 'HealthCloudGA__ContactContactRelation__c') {
-                    type = 'url';
-                    typeAttributes = {
-                        label: { fieldName: 'Name.label' },
-                        target: '_blank'
-                    };
-                }
-
                 return {
                     label: col.label,
                     fieldName: col.column_id,
@@ -126,25 +88,24 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
             });
     }
 
-    // Accessor for Case table
+    // ✅ Access each object directly by name
     get caseTable() {
         return this.tables['Case'];
     }
 
-    // 🔁 You can add more like this
     get associatedContact() {
         return this.tables['HealthCloudGA__ContactContactRelation__c'];
     }
 
-    get otherTables() {
-        return Object.entries(this.tables)
-            .filter(([key]) => key !== 'Case')
-            .map(([objectName, table]) => ({ objectName, ...table }));
+    get contactTable() {
+        return this.tables['Contact'];
     }
 
     handleSave(event) {
         const objectName = event.target.dataset.obj;
         const draftValues = event.detail.draftValues;
+        console.log(`Saving for ${objectName}:`, draftValues);
+        
 
         this.tables[objectName].data = this.tables[objectName].data.map(row => {
             const draft = draftValues.find(d => d.Id === row.Id);
