@@ -1,1 +1,174 @@
-lightning/r/Account/0012300000bkOGZAA2/view
+import { LightningElement, track } from 'lwc';
+import getObjectTables from '@salesforce/apex/PSSTrackerCaseController.getTableConfigs';
+
+export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
+    @track tables = {};
+    loading = false;
+    error;
+
+    connectedCallback() {
+        this.loadTables();
+    }
+
+    async loadTables() {
+        this.loading = true;
+        this.error = null;
+
+        try {
+            const caseId = '50023000003st7sAAA'; // 🔁 Replace with real Case Id
+            const result = await getObjectTables({ caseId });
+            this.populateTables(result);
+        } catch (e) {
+            this.error = e.body?.message || e.message;
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    // 🔁 NEW: Helper to add hyperlink for specific fields
+    formatRecordForLinks(objectName, record) {
+        if (objectName === 'HealthCloudGA__ContactContactRelation__c') {
+            if (record.Name && record.Account__c) {
+                return {
+                    ...record,
+                    Name: {
+                        label: record.Name,
+                        url: `/lightning/r/Account/${record.Account__c}/view`
+                    }
+                };
+            }
+        }
+        return record;
+    }
+
+    // 🔁 UPDATED: Use formatting helper
+    populateTables(result) {
+        this.tables = {};
+        for (const [objectName, wrapper] of Object.entries(result)) {
+            const recordsArray = Object.values(wrapper.data);
+
+            // 🔁 NEW: Format records
+            const formattedRecords = recordsArray.map(record =>
+                this.formatRecordForLinks(objectName, record)
+            );
+
+            this.tables[objectName] = {
+                columns: this.buildLightningColumns(objectName, wrapper.columns), // 🔁 Pass objectName
+                data: formattedRecords,
+                draftValues: [],
+                sortedBy: '',
+                sortedDirection: 'asc'
+            };
+        }
+    }
+
+    // 🔁 UPDATED: Accept objectName and configure Name field as URL
+    buildLightningColumns(objectName, columns) {
+        return columns
+            .filter(col => col.visible)
+            .sort((a, b) => {
+                if (a.PSSViewColumnOrder__c == null) return 1;
+                if (b.PSSViewColumnOrder__c == null) return -1;
+                if (a.PSSViewColumnOrder__c !== b.PSSViewColumnOrder__c) {
+                    return a.PSSViewColumnOrder__c - b.PSSViewColumnOrder__c;
+                }
+                return a.column_id.localeCompare(b.column_id);
+            })
+            .map(col => {
+                let type = 'text';
+                let typeAttributes;
+
+                const dataType = col.data_type?.toLowerCase() || 'string';
+                switch (dataType) {
+                    case 'number':
+                        type = 'number';
+                        break;
+                    case 'date':
+                    case 'datetime':
+                        type = 'date';
+                        break;
+                    case 'picklist':
+                        type = 'picklist';
+                        if (col.picklistValues) {
+                            const options = col.picklistValues.split(';').map(val => ({
+                                label: val.trim(),
+                                value: val.trim()
+                            }));
+                            typeAttributes = {
+                                options,
+                                placeholder: 'Select',
+                                value: { fieldName: col.column_id },
+                                context: { fieldName: 'Id' }
+                            };
+                        }
+                        break;
+                    default:
+                        type = 'text';
+                }
+
+                // 🔁 NEW: Special case for clickable Name field
+                if (col.column_id === 'Name' && objectName === 'HealthCloudGA__ContactContactRelation__c') {
+                    type = 'url';
+                    typeAttributes = {
+                        label: { fieldName: 'Name.label' },
+                        target: '_blank'
+                    };
+                }
+
+                return {
+                    label: col.label,
+                    fieldName: col.column_id,
+                    editable: col.editable,
+                    sortable: col.isSortingApplied,
+                    type,
+                    typeAttributes
+                };
+            });
+    }
+
+    // Accessor for Case table
+    get caseTable() {
+        return this.tables['Case'];
+    }
+
+    // 🔁 You can add more like this
+    get associatedContact() {
+        return this.tables['HealthCloudGA__ContactContactRelation__c'];
+    }
+
+    get otherTables() {
+        return Object.entries(this.tables)
+            .filter(([key]) => key !== 'Case')
+            .map(([objectName, table]) => ({ objectName, ...table }));
+    }
+
+    handleSave(event) {
+        const objectName = event.target.dataset.obj;
+        const draftValues = event.detail.draftValues;
+
+        this.tables[objectName].data = this.tables[objectName].data.map(row => {
+            const draft = draftValues.find(d => d.Id === row.Id);
+            return draft ? { ...row, ...draft } : row;
+        });
+
+        this.tables[objectName].draftValues = [];
+    }
+
+    handleSort(event) {
+        const { fieldName, sortDirection } = event.detail;
+        const objectName = event.target.dataset.obj;
+
+        let sortedData = [...this.tables[objectName].data];
+        sortedData.sort((a, b) => {
+            const aVal = a[fieldName] ?? '';
+            const bVal = b[fieldName] ?? '';
+            return sortDirection === 'asc'
+                ? aVal > bVal ? 1 : -1
+                : aVal < bVal ? 1 : -1;
+        });
+
+        this.tables[objectName].data = sortedData;
+        this.tables[objectName].sortedBy = fieldName;
+        this.tables[objectName].sortedDirection = sortDirection;
+    }
+}
