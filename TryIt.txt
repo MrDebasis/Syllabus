@@ -1,8 +1,177 @@
-    @track columns = [
-        { label: 'PSP Mobile Phone', fieldName: 'PSPMobilePhone__c', editable: true, sortable: true },
-        { label: 'Benefits', fieldName: 'Benefits__c', editable: true, sortable: true },
-        { label: 'Benefit Eligibility Notes', fieldName: 'BenefitEligibilityNotes__c', editable: true, sortable: true },
-        { label: 'Welcome Email and Kit Sent', fieldName: 'WelcomeEmailandKitSent__c', editable: true, sortable: true }
-    ];
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
 
-{Case=TableConfigWrapper:[columns=({ColumnWidth=null, column_id=BenefitEligibilityNotes__c, data_type=String, editable=true, isSortingApplied=false, label=Benefit Eligibility Notes, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=Benefits__c, data_type=String, editable=false, isSortingApplied=true, label=Benefits, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=PSPMobilePhone__c, data_type=number, editable=true, isSortingApplied=true, label=Phone Number, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=WelcomeEmailandKitSent__c, data_type=String, editable=true, isSortingApplied=true, label=Welcome Email and Kit Sent, picklistValues=null, sortDirection=ASC, visible=true}), data=(Case:{Id=50023000003st7sAAA, PSPMobilePhone__c=9600205548, RecordTypeId=0123h000000tylEAAQ}), objectName=Case], HealthCloudGA__ContactContactRelation__c=TableConfigWrapper:[columns=({ColumnWidth=null, column_id=Benefits__c, data_type=String, editable=true, isSortingApplied=true, label=Benefits, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=AuthorizationAppFormSignedByLAR__c, data_type=String, editable=true, isSortingApplied=true, label=Consent Received, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=ContactName__c, data_type=String, editable=true, isSortingApplied=true, label=Name, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=Phone__c, data_type=number, editable=true, isSortingApplied=true, label=Phone Number, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=RelatedRoleName__c, data_type=String, editable=true, isSortingApplied=true, label=Role, picklistValues=null, sortDirection=ASC, visible=true}, {ColumnWidth=null, column_id=WelcomeEmailandKitSent__c, data_type=String, editable=true, isSortingApplied=true, label=Welcome Email and Kit Sent, picklistValues=null, sortDirection=ASC, visible=true}), data=(HealthCloudGA__ContactContactRelation__c:{Id=a0E5500000Bz6OUEAZ, AuthorizationAppFormSignedByLAR__c=Yes, ContactName__c=LAR Jhon LAR, Phone__c=9600205548, RelatedRoleName__c=Caregiver}, HealthCloudGA__ContactContactRelation__c:{Id=a0E5500000Bz6OXEAZ, ContactName__c=Jhon Jack, Phone__c=123-456-7898, RelatedRoleName__c=Patient}, HealthCloudGA__ContactContactRelation__c:{Id=a0E5500000CPB46EAH, AuthorizationAppFormSignedByLAR__c=Yes, ContactName__c=LAnR Jhon LAnR, Phone__c=9600205548, RelatedRoleName__c=Caregiver}, HealthCloudGA__ContactContactRelation__c:{Id=a0E5500000CPB48EAH, ContactName__c=Jhon Jack, Phone__c=123-456-7898, RelatedRoleName__c=Patient}, HealthCloudGA__ContactContactRelation__c:{Id=a0E5500000CPiKLEA1, AuthorizationAppFormSignedByLAR__c=Yes, ContactName__c=testing test, Phone__c=9755476546, RelatedRoleName__c=Caregiver}, HealthCloudGA__ContactContactRelation__c:{Id=a0E5500000CPiKMEA1, ContactName__c=Jhon Jack, Phone__c=123-456-7898, RelatedRoleName__c=Patient}, HealthCloudGA__ContactContactRelation__c:{Id=a0EKS000000bm7d2AA, AuthorizationAppFormSignedByLAR__c=Yes, ContactName__c=dfjvhk fdvbk, Phone__c=9937467546, RelatedRoleName__c=Legally Authorized Representative}, HealthCloudGA__ContactContactRelation__c:{Id=a0EKS000000bm7e2AA, ContactName__c=Jhon Jack, Phone__c=123-456-7898, RelatedRoleName__c=Patient}, HealthCloudGA__ContactContactRelation__c:{Id=a0EKS000000bm832AA, AuthorizationAppFormSignedByLAR__c=Yes, ContactName__c=firster git, Phone__c=9700006546, RelatedRoleName__c=Caregiver}, HealthCloudGA__ContactContactRelation__c:{Id=a0EKS000000bm842AA, ContactName__c=Jhon Jack, Phone__c=123-456-7898, RelatedRoleName__c=Patient}), objectName=HealthCloudGA__ContactContactRelation__c]}
+    <template if:true={error}>
+        <div class="slds-text-color_error">{error}</div>
+    </template>
+
+    <!-- Render Case table separately -->
+    <template if:true={caseTable}>
+        <lightning-card title="Case Data">
+            <lightning-datatable
+                key-field="Id"
+                data={caseTable.data}
+                columns={caseTable.columns}
+                draft-values={caseTable.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={caseTable.sortedBy}
+                sorted-direction={caseTable.sortedDirection}
+                hide-checkbox-column
+                data-obj="Case">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+
+    <!-- Render other tables dynamically -->
+    <template for:each={otherTables} for:item="table">
+        <lightning-card key={table.objectName} title={table.objectName}>
+            <lightning-datatable
+                key-field="Id"
+                data={table.data}
+                columns={table.columns}
+                draft-values={table.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={table.sortedBy}
+                sorted-direction={table.sortedDirection}
+                hide-checkbox-column
+                data-obj={table.objectName}>
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+</template>
+
+
+
+import { LightningElement, track } from 'lwc';
+import getObjectTables from '@salesforce/apex/ObjectTableController.getObjectTables';
+
+export default class DynamicObjectTables extends LightningElement {
+    @track tables = {};
+    loading = false;
+    error;
+
+    connectedCallback() {
+        this.loadTables();
+    }
+
+    async loadTables() {
+        this.loading = true;
+        this.error = null;
+
+        try {
+            const result = await getObjectTables();
+            this.populateTables(result);
+        } catch (e) {
+            this.error = e.body ? e.body.message : e.message;
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    populateTables(result) {
+        this.tables = {};
+        for (const [objectName, wrapper] of Object.entries(result)) {
+            const recordsArray = Object.values(wrapper.data);
+
+            this.tables[objectName] = {
+                columns: this.buildLightningColumns(wrapper.columns),
+                data: recordsArray,
+                draftValues: [],
+                sortedBy: '',
+                sortedDirection: 'asc'
+            };
+        }
+    }
+
+    buildLightningColumns(columns) {
+        return columns
+            .filter(col => col.visible)
+            .map(col => {
+                let type = 'text';
+                let typeAttributes;
+
+                const dataType = col.data_type ? col.data_type.toLowerCase() : 'string';
+                switch (dataType) {
+                    case 'number':
+                        type = 'number';
+                        break;
+                    case 'date':
+                    case 'datetime':
+                        type = 'date';
+                        break;
+                    case 'picklist':
+                        type = 'picklist';
+                        if (col.picklistValues) {
+                            const options = col.picklistValues.split(';').map(val => ({
+                                label: val.trim(),
+                                value: val.trim()
+                            }));
+                            typeAttributes = {
+                                options,
+                                placeholder: 'Select',
+                                value: { fieldName: col.column_id },
+                                context: { fieldName: 'Id' }
+                            };
+                        }
+                        break;
+                    default:
+                        type = 'text';
+                }
+
+                return {
+                    label: col.label,
+                    fieldName: col.column_id,
+                    editable: col.editable,
+                    sortable: col.isSortingApplied,
+                    type,
+                    typeAttributes
+                };
+            });
+    }
+
+    get caseTable() {
+        return this.tables['Case'];
+    }
+
+    get otherTables() {
+        return Object.entries(this.tables)
+            .filter(([key]) => key !== 'Case')
+            .map(([objectName, table]) => ({ objectName, ...table }));
+    }
+
+    handleSave(event) {
+        const objectName = event.target.dataset.obj;
+        const draftValues = event.detail.draftValues;
+
+        this.tables[objectName].data = this.tables[objectName].data.map(row => {
+            const draft = draftValues.find(d => d.Id === row.Id);
+            return draft ? { ...row, ...draft } : row;
+        });
+
+        this.tables[objectName].draftValues = [];
+    }
+
+    handleSort(event) {
+        const { fieldName, sortDirection } = event.detail;
+        const objectName = event.target.dataset.obj;
+
+        let sortedData = [...this.tables[objectName].data];
+        sortedData.sort((a, b) => {
+            const aVal = a[fieldName] ?? '';
+            const bVal = b[fieldName] ?? '';
+            return sortDirection === 'asc'
+                ? aVal > bVal ? 1 : -1
+                : aVal < bVal ? 1 : -1;
+        });
+
+        this.tables[objectName].data = sortedData;
+        this.tables[objectName].sortedBy = fieldName;
+        this.tables[objectName].sortedDirection = sortDirection;
+    }
+}
