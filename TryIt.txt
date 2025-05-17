@@ -1,3 +1,71 @@
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error">{error}</div>
+    </template>
+
+    <!-- Case Table -->
+    <template if:true={caseTable}>
+        <lightning-card title="Case">
+            <lightning-datatable
+                key-field="Id"
+                data={caseTable.data}
+                columns={caseTable.columns}
+                draft-values={caseTable.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={caseTable.sortedBy}
+                sorted-direction={caseTable.sortedDirection}
+                hide-checkbox-column
+                data-obj="Case">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+
+    <!-- HealthCloudGA__ContactContactRelation__c -->
+    <template if:true={associatedContact}>
+        <lightning-card title="Associated Contact Relation">
+            <lightning-datatable
+                key-field="Id"
+                data={associatedContact.data}
+                columns={associatedContact.columns}
+                draft-values={associatedContact.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={associatedContact.sortedBy}
+                sorted-direction={associatedContact.sortedDirection}
+                hide-checkbox-column
+                data-obj="HealthCloudGA__ContactContactRelation__c">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+
+    <!-- Contact Table -->
+    <template if:true={contactTable}>
+        <lightning-card title="Contact">
+            <lightning-datatable
+                key-field="Id"
+                data={contactTable.data}
+                columns={contactTable.columns}
+                draft-values={contactTable.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={contactTable.sortedBy}
+                sorted-direction={contactTable.sortedDirection}
+                hide-checkbox-column
+                data-obj="Contact">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+</template>
+
+
 import { LightningElement, track } from 'lwc';
 import getObjectTables from '@salesforce/apex/PSSTrackerCaseController.getTableConfigs';
 
@@ -13,13 +81,15 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     async loadTables() {
         this.loading = true;
         this.error = null;
-//50023000003st7sAAA
+
         try {
-            const caseId = '50023000003st7sAAA'; // 🔁 Replace with real Case Id
+            const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id if needed
             const result = await getObjectTables({ caseId });
+            console.log('Apex result:', JSON.stringify(result));
             this.populateTables(result);
         } catch (e) {
             this.error = e.body?.message || e.message;
+            console.error('Error loading tables:', e);
         } finally {
             this.loading = false;
         }
@@ -86,6 +156,7 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
             });
     }
 
+    // ✅ Access each object directly by name
     get caseTable() {
         return this.tables['Case'];
     }
@@ -93,17 +164,15 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     get associatedContact() {
         return this.tables['HealthCloudGA__ContactContactRelation__c'];
     }
-    
 
-    get otherTables() {
-        return Object.entries(this.tables)
-            .filter(([key]) => key !== 'Case')
-            .map(([objectName, table]) => ({ objectName, ...table }));
+    get contactTable() {
+        return this.tables['Contact'];
     }
 
     handleSave(event) {
         const objectName = event.target.dataset.obj;
         const draftValues = event.detail.draftValues;
+        console.log(`Saving for ${objectName}:`, draftValues);
 
         this.tables[objectName].data = this.tables[objectName].data.map(row => {
             const draft = draftValues.find(d => d.Id === row.Id);
@@ -131,48 +200,3 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         this.tables[objectName].sortedDirection = sortDirection;
     }
 }
-
-<template>
-    <template if:true={loading}>
-        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-    </template>
-
-    <template if:true={error}>
-        <div class="slds-text-color_error">{error}</div>
-    </template>
-
-    <template if:true={caseTable}>
-        <lightning-card title="Case Data">
-            <lightning-datatable
-                key-field="Id"
-                data={caseTable.data}
-                columns={caseTable.columns}
-                draft-values={caseTable.draftValues}
-                onsave={handleSave}
-                onsort={handleSort}
-                sorted-by={caseTable.sortedBy}
-                sorted-direction={caseTable.sortedDirection}
-                hide-checkbox-column
-                data-obj="Case">
-            </lightning-datatable>
-        </lightning-card>
-        <br />
-    </template>
-
-    <template for:each={associatedContact} for:item="table">
-        <lightning-card key={table.objectName} title={table.objectName}>
-            <lightning-datatable
-                key-field="Id"
-                data={table.data}
-                columns={table.columns}
-                draft-values={table.draftValues}
-                onsave={handleSave}
-                onsort={handleSort}
-                sorted-by={table.sortedBy}
-                sorted-direction={table.sortedDirection}
-                hide-checkbox-column
-                data-obj={table.objectName}>
-            </lightning-datatable>
-        </lightning-card>
-    </template>
-</template>
