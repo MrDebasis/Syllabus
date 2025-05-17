@@ -1,13 +1,66 @@
-PSSViewColumnOrder__c
+buildLightningColumns(columns) {
+    return columns
+        .filter(col => col.visible)
+        .sort((a, b) => {
+            const aOrder = a.PSSViewColumnOrder__c ?? Number.MAX_SAFE_INTEGER;
+            const bOrder = b.PSSViewColumnOrder__c ?? Number.MAX_SAFE_INTEGER;
 
-according to this field sort the column 
- .sort((a, b) => {
-                    // Primary sorting by PSSViewColumnOrder
-                    if (a.PSSViewColumnOrder !== b.PSSViewColumnOrder) {
-                        return a.PSSViewColumnOrder - b.PSSViewColumnOrder;
+            if (aOrder !== bOrder) {
+                return aOrder - bOrder;
+            }
+            return a.column_id?.localeCompare(b.column_id || '') || 0;
+        })
+        .map(col => {
+            let type = 'text';
+            let typeAttributes;
+
+            const dataType = col.data_type?.toLowerCase() || 'string';
+            const columnId = col.column_id?.toLowerCase() || '';
+
+            // Handle specific types
+            switch (dataType) {
+                case 'number':
+                    type = 'number';
+                    break;
+                case 'date':
+                case 'datetime':
+                    type = 'date';
+                    break;
+                case 'picklist':
+                    type = 'picklist';
+                    if (col.picklistValues) {
+                        const options = col.picklistValues.split(';').map(val => ({
+                            label: val.trim(),
+                            value: val.trim()
+                        }));
+                        typeAttributes = {
+                            options,
+                            placeholder: 'Select',
+                            value: { fieldName: col.column_id },
+                            context: { fieldName: 'Id' }
+                        };
                     }
-                    // Secondary sorting by column_id (or any other field)
-                    return a.column_id.localeCompare(b.column_id);
-                });
+                    break;
+                default:
+                    type = 'text';
+            }
 
-and case having phone number field when i click that need to be open an dial pad, 
+            // Handle phone fields: match exact 'Phone' or fields ending in 'Phone'
+            if (
+                columnId === 'phone' ||
+                columnId.endsWith('phone') ||
+                col.label?.toLowerCase().includes('phone')
+            ) {
+                type = 'phone';
+            }
+
+            return {
+                label: col.label,
+                fieldName: col.column_id,
+                editable: col.editable,
+                sortable: col.isSortingApplied,
+                type,
+                typeAttributes
+            };
+        });
+}
