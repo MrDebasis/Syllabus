@@ -1,44 +1,35 @@
- else {
-                    switch (dataType) {
-                        case 'number':
-                            type = 'number';
-                            break;
-                        case 'date':
-                        case 'datetime':
-                            type = 'date';
-                            break;
-                        case 'picklist':
-                            type = 'picklist';
-                            if (col.picklistValues) {
-                                const options = col.picklistValues.split(';').map(val => ({
-                                    label: val.trim(),
-                                    value: val.trim()
-                                }));
-                                typeAttributes = {
-                                    options,
-                                    placeholder: 'Select',
-                                    value: { fieldName: col.column_id },
-                                    context: { fieldName: 'Id' }
-                                };
-                            }
-                            break;
-                        default:
-                            // Detect and handle phone field
-                            if (col.column_id.toLowerCase().includes('phone')) {
-                                type = 'phone';
-                            } else {
-                                type = 'text';
-                            }
-                    }
-                }
+else {
+    switch (dataType) {
+        case 'number':
+            type = 'number';
+            break;
 
-                return {
-                    label: col.label,
-                    fieldName: col.column_id,
-                    editable: col.editable,
-                    sortable: col.isSortingApplied,
-                    type,
-                    typeAttributes
+        case 'date':
+        case 'datetime':
+            type = 'date';
+            typeAttributes = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            };
+            break;
+
+        case 'picklist':
+            type = 'picklist';
+            if (col.picklistValues) {
+                const options = col.picklistValues.split(';').map(val => ({
+                    label: val.trim(),
+                    value: val.trim()
+                }));
+                typeAttributes = {
+                    options,
+                    placeholder: 'Select',
+                    value: { fieldName: col.column_id },
+                    context: { fieldName: 'Id' }
                 };
-            });
-    }
+            }
+            break;
+
+        default:
+            // Detect and handle phone field
+            if (col.column_id_
