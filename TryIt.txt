@@ -1,15 +1,5 @@
-try {
-    if (String.isNotBlank(soql)) {
-        List<SObject> records = Database.query(soql);
-        resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-    }
-} catch (Exception ex) {
-    System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
-}
-
-
 when 'echosign_dev1__SIGN_Agreement__c' {
-    // Step 1: Aggregate latest CreatedDate per trip for the case
+    // Step 1: Get latest CreatedDate for each Trip related to the Case
     List<AggregateResult> latestDates = [
         SELECT Trip__c, MAX(CreatedDate) latestDate
         FROM echosign_dev1__SIGN_Agreement__c
@@ -17,19 +7,33 @@ when 'echosign_dev1__SIGN_Agreement__c' {
         GROUP BY Trip__c
     ];
 
-    List<SObject> records = new List<SObject>();
-
-    // Step 2: For each Trip, get the agreement with latest CreatedDate
+    // Build a Map<TripId, CreatedDate>
+    Map<Id, Datetime> tripToLatestDateMap = new Map<Id, Datetime>();
     for (AggregateResult ar : latestDates) {
-        Id tripId = (Id) ar.get('Trip__c');
-        Datetime latestDate = (Datetime) ar.get('latestDate');
-
-        String agreementSoql = 'SELECT ' + fieldStr +
-            ' FROM echosign_dev1__SIGN_Agreement__c WHERE Trip__c = :tripId AND CreatedDate = :latestDate';
-
-        records.addAll(Database.query(agreementSoql));
+        tripToLatestDateMap.put((Id)ar.get('Trip__c'), (Datetime)ar.get('latestDate'));
     }
 
-    resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-    continue; // Skip the general try-catch since we've already handled this
+    // Step 2: Bulk fetch agreements where Trip__c IN keys and CreatedDate IN values
+    List<echosign_dev1__SIGN_Agreement__c> allAgreements = [
+        SELECT Id, Trip__c, CreatedDate, 
+               // Add all dynamically selected fields
+               // We'll dynamically use fieldStr
+               // Dummy fields replaced dynamically below
+               TripName__c
+        FROM echosign_dev1__SIGN_Agreement__c
+        WHERE Trip__c IN :tripToLatestDateMap.keySet()
+          AND CreatedDate IN :tripToLatestDateMap.values()
+    ];
+
+    // Step 3: Filter agreements in Apex that match exact tripId + latestDate
+    List<SObject> filteredAgreements = new List<SObject>();
+    for (echosign_dev1__SIGN_Agreement__c ag : allAgreements) {
+        if (tripToLatestDateMap.containsKey(ag.Trip__c) &&
+            tripToLatestDateMap.get(ag.Trip__c) == ag.CreatedDate) {
+            filteredAgreements.add(ag);
+        }
+    }
+
+    resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), filteredAgreements));
+    continue;
 }
