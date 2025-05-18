@@ -1,156 +1,285 @@
- @track tables = {};
-    loading = false;
-    error;
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
 
-    connectedCallback() {
-        this.loadTables();
-    }
+    <template if:true={error}>
+        <div class="slds-text-color_error">{error}</div>
+    </template>
 
-    async loadTables() {
-        this.loading = true;
-        this.error = null;
+    <!-- Case Table -->
+    <template if:true={caseTable}>
+        <lightning-card title="Patient Case Information">
+            <lightning-datatable
+                key-field="Id"
+                data={caseTable.data}
+                columns={caseTable.columns}
+                draft-values={caseTable.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={caseTable.sortedBy}
+                sorted-direction={caseTable.sortedDirection}
+                hide-checkbox-column
+                data-obj="Case">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
 
-        try {
-            const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id if needed
-            const result = await getObjectTables({ caseId });
-            console.log('Apex result:', JSON.stringify(result));
-            this.populateTables(result);
-        } catch (e) {
-            this.error = e.body?.message || e.message;
-            console.error('Error loading tables:', e);
-        } finally {
-            this.loading = false;
-        }
-    }
+    <!-- HealthCloudGA__ContactContactRelation__c -->
+    <template if:true={associatedContact}>
+        <lightning-card title="Associated Contacts Information">
+            <lightning-datatable
+                key-field="Id"
+                data={associatedContact.data}
+                columns={associatedContact.columns}
+                draft-values={associatedContact.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={associatedContact.sortedBy}
+                sorted-direction={associatedContact.sortedDirection}
+                hide-checkbox-column
+                data-obj="HealthCloudGA__ContactContactRelation__c">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
 
-    populateTables(result) {
-        this.tables = {};
-        for (const [objectName, wrapper] of Object.entries(result)) {
-            const recordsArray = Object.values(wrapper.data);
+    <!-- Contact Table -->
+    <template if:true={getAgreement}>
+        <lightning-card title="Reimbursement Forms">
+            <lightning-datatable
+                key-field="Id"
+                data={getAgreement.data}
+                columns={getAgreement.columns}
+                draft-values={getAgreement.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={getAgreement.sortedBy}
+                sorted-direction={getAgreement.sortedDirection}
+                hide-checkbox-column
+                data-obj="echosign_dev1__SIGN_Agreement__c">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+</template>
 
-            this.tables[objectName] = {
-                columns: this.buildLightningColumns(wrapper.columns),
-                data: recordsArray,
-                draftValues: [],
-                sortedBy: '',
-                sortedDirection: 'asc'
-            };
-        }
-    }
-
+       @api caseId ='';
+        tables = {};
+        loading = false;
+        error;
     
-    buildLightningColumns(columns) {
-        return columns
-            .filter(col => col.visible)
-            .sort((a, b) => {
-                if (a.PSSViewColumnOrder__c != null && b.PSSViewColumnOrder__c != null) {
-                    return a.PSSViewColumnOrder__c - b.PSSViewColumnOrder__c;
+        connectedCallback() {
+            this.loadTables();
+        }
+    
+        async loadTables() {
+            this.loading = true;
+            this.error = null;
+    
+            try {
+               // const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id
+                const result = await getObjectTables({  caseId: this.caseId });
+                console.log('Apex result:', JSON.stringify(result));
+                this.populateTables(result);
+            } catch (e) {
+                this.error = e.body?.message || e.message;
+                console.error('Error loading tables:', e);
+            } finally {
+                this.loading = false;
+            }
+        }
+    
+        populateTables(result) {
+            this.tables = {};
+    
+            for (const [objectName, wrapper] of Object.entries(result)) {
+                let recordsArray = Object.values(wrapper.data);
+    
+              
+                if (objectName === 'HealthCloudGA__ContactContactRelation__c') {
+                    recordsArray = recordsArray.map(record => ({
+                        ...record,
+                        accountUrl: record.Account__c
+                            ? `/lightning/r/Account/${record.Account__c}/view`
+                            : null
+                    }));
+                }else if (objectName === 'echosign_dev1__SIGN_Agreement__c') {
+                    recordsArray = recordsArray.map(record => ({
+                        ...record,
+                        tripUrl: record.Trip__c
+                            ? `/lightning/r/Trip__c/${record.Trip__c}/view`
+                            : null,
+                        agreementUrl: record.Id
+                            ? `/lightning/r/echosign_dev1__SIGN_Agreement__c/${record.Id}/view`
+                            : null
+                    }));
                 }
-                return a.column_id.localeCompare(b.column_id);
-            })
-            .map(col => {
-                let type = 'text';
-                let typeAttributes;
-
-                const dataType = col.data_type?.toLowerCase() || 'string';
-                if (col.column_id == 'ContactName__c') {
-                    type = 'url';
-                    typeAttributes = {
-                        label: {
-                            fieldName: 'ContactName__c'
-                        },
-                        target: '_blank',
-                        url: {
-                            fieldName:  'accountUrl'
-                        }
-                    };
-                } else {
-                    switch (dataType) {
-                        case 'number':
-                            type = 'number';
-                            break;
-                        case 'date':
-                        case 'datetime':
-                            type = 'date';
-                            break;
-                        case 'picklist':
-                            type = 'picklist';
-                            if (col.picklistValues) {
-                                const options = col.picklistValues.split(';').map(val => ({
-                                    label: val.trim(),
-                                    value: val.trim()
-                                }));
+    
+                this.tables[objectName] = {
+                    columns: this.buildLightningColumns(wrapper.columns,objectName),
+                    data: recordsArray,
+                    draftValues: [],
+                    sortedBy: '',
+                    sortedDirection: 'asc'
+                };
+            }
+        }
+    
+    
+                buildLightningColumns(columns, objectName) {
+                    return columns
+                        .filter(col => col.visible)
+                        .sort((a, b) => {
+                            if (a.PSSViewColumnOrder__c != null && b.PSSViewColumnOrder__c != null) {
+                                return a.PSSViewColumnOrder__c - b.PSSViewColumnOrder__c;
+                            }
+                            return a.column_id.localeCompare(b.column_id);
+                        })
+                        .map(col => {
+                            let type = 'text';
+                            let typeAttributes;
+                            const dataType = col.data_type?.toLowerCase() || 'string';
+                            const field = col.column_id.toLowerCase();
+                
+                            // 🌐 Object + column-specific URL logic
+                            if (objectName === 'HealthCloudGA__ContactContactRelation__c' && col.column_id === 'ContactName__c') {
+                                type = 'url';
                                 typeAttributes = {
-                                    options,
-                                    placeholder: 'Select',
-                                    value: { fieldName: col.column_id },
-                                    context: { fieldName: 'Id' }
+                                    label: { fieldName: 'ContactName__c' },
+                                    target: '_blank'
+                                };
+                                return {
+                                    label: col.label,
+                                    fieldName: 'accountUrl', // mapped field
+                                    editable: col.editable,
+                                    sortable: col.isSortingApplied,
+                                    type,
+                                    typeAttributes
+                                };
+                            } else if (objectName === 'echosign_dev1__SIGN_Agreement__c' && col.column_id === 'TripName__c') {
+                                type = 'url';
+                                typeAttributes = {
+                                    label: { fieldName: 'TripName__c' },
+                                    target: '_blank'
+                                };
+                                return {
+                                    label: col.label,
+                                    fieldName: 'tripUrl',
+                                    editable: col.editable,
+                                    sortable: col.isSortingApplied,
+                                    type,
+                                    typeAttributes
                                 };
                             }
-                            break;
-                        default:
-                            // Detect and handle phone field
-                            if (col.column_id.toLowerCase().includes('phone')) {
-                                type = 'phone';
-                            } else {
-                                type = 'text';
+                            else if (objectName === 'echosign_dev1__SIGN_Agreement__c' && col.column_id === 'Name') {
+                                type = 'url';
+                                typeAttributes = {
+                                    label: { fieldName: 'Name' },
+                                    target: '_blank'
+                                };
+                                return {
+                                    label: col.label,
+                                    fieldName: 'agreementUrl',
+                                    editable: col.editable,
+                                    sortable: col.isSortingApplied,
+                                    type,
+                                    typeAttributes
+                                };
+                            }  else {
+                                // 🧠 Default type detection
+                                switch (dataType) {
+                                    case 'number':
+                                        type = 'number';
+                                        break;
+                                    case 'date':
+                                    case 'datetime':
+                                        type = 'date';
+                                        break;
+                                    case 'picklist':
+                                        type = 'picklist';
+                                        if (col.picklistValues) {
+                                            const options = col.picklistValues.split(';').map(val => ({
+                                                label: val.trim(),
+                                                value: val.trim()
+                                            }));
+                                            typeAttributes = {
+                                                options,
+                                                placeholder: 'Select',
+                                                value: { fieldName: col.column_id },
+                                                context: { fieldName: 'Id' }
+                                            };
+                                        }
+                                        break;
+                                    default:
+                                        if (field.includes('phone')) {
+                                            type = 'phone';
+                                        } else {
+                                            type = 'text';
+                                        }
+                                }
                             }
-                    }
+                
+                            return {
+                                label: col.label,
+                                fieldName: col.column_id,
+                                editable: col.editable,
+                                sortable: col.isSortingApplied,
+                                type,
+                                typeAttributes
+                            };
+                        });
                 }
+    
+        // 🔍 Getter shortcuts for tables
+        get caseTable() {
+            return this.tables['Case'];
+        }
 
-                return {
-                    label: col.label,
-                    fieldName: col.column_id,
-                    editable: col.editable,
-                    sortable: col.isSortingApplied,
-                    type,
-                    typeAttributes
-                };
+        get getAgreement() {
+          //  return this.tables['echosign_dev1__SIGN_Agreement__c'];
+          return this.tables['echosign_dev1__SIGN_Agreement__c'];
+       
+       
+        }
+    
+            get associatedContact() {
+               return this.tables['HealthCloudGA__ContactContactRelation__c'];
+              
+            }
+    
+        get contactTable() {
+            return this.tables['Contact'];
+        }
+    
+    
+        handleSave(event) {
+            const objectName = event.target.dataset.obj;
+            const draftValues = event.detail.draftValues;
+            console.log(`Saving for ${objectName}:`, draftValues);
+    
+            this.tables[objectName].data = this.tables[objectName].data.map(row => {
+                const draft = draftValues.find(d => d.Id === row.Id);
+                return draft ? { ...row, ...draft } : row;
             });
-    }
-
-    // ✅ Access each object directly by name
-    get caseTable() {
-        return this.tables['Case'];
-    }
-
-    get associatedContact() {
-        return this.tables['HealthCloudGA__ContactContactRelation__c'];
-    }
-
-
-
-    get contactTable() {
-        return this.tables['Contact'];
-    }
-
-    handleSave(event) {
-        const objectName = event.target.dataset.obj;
-        const draftValues = event.detail.draftValues;
-        console.log(`Saving for ${objectName}:`, draftValues);
-
-        this.tables[objectName].data = this.tables[objectName].data.map(row => {
-            const draft = draftValues.find(d => d.Id === row.Id);
-            return draft ? { ...row, ...draft } : row;
-        });
-
-        this.tables[objectName].draftValues = [];
-    }
-
-    handleSort(event) {
-        const { fieldName, sortDirection } = event.detail;
-        const objectName = event.target.dataset.obj;
-
-        let sortedData = [...this.tables[objectName].data];
-        sortedData.sort((a, b) => {
-            const aVal = a[fieldName] ?? '';
-            const bVal = b[fieldName] ?? '';
-            return sortDirection === 'asc'
-                ? aVal > bVal ? 1 : -1
-                : aVal < bVal ? 1 : -1;
-        });
-
-        this.tables[objectName].data = sortedData;
-        this.tables[objectName].sortedBy = fieldName;
-        this.tables[objectName].sortedDirection = sortDirection;
-    }
+    
+            this.tables[objectName].draftValues = [];
+        }
+        
+        handleSort(event) {
+            const { fieldName, sortDirection } = event.detail;
+            const objectName = event.target.dataset.obj;
+    
+            const sortedData = [...this.tables[objectName].data].sort((a, b) => {
+                const aVal = a[fieldName] ?? '';
+                const bVal = b[fieldName] ?? '';
+                return sortDirection === 'asc'
+                    ? aVal > bVal ? 1 : -1
+                    : aVal < bVal ? 1 : -1;
+            });
+    
+            this.tables[objectName].data = sortedData;
+            this.tables[objectName].sortedBy = fieldName;
+            this.tables[objectName].sortedDirection = sortDirection;
+        }
