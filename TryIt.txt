@@ -1,33 +1,4 @@
-public static List<echosign_dev1__SIGN_Agreement__c> getLatestAgreements(String relatedCaseId) {
-    // Step 1: Get the latest CreatedDate for each trip
-    List<AggregateResult> latestDates = [
-        SELECT Trip__c, MAX(CreatedDate) latestDate
-        FROM echosign_dev1__SIGN_Agreement__c
-        WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :relatedCaseId)
-        GROUP BY Trip__c
-    ];
-
-    // Step 2: Fetch the full records for the latest CreatedDate
-    List<echosign_dev1__SIGN_Agreement__c> latestAgreements = new List<echosign_dev1__SIGN_Agreement__c>();
-    for (AggregateResult ar : latestDates) {
-        Id tripId = (Id) ar.get('Trip__c');
-        Datetime latestDate = (Datetime) ar.get('latestDate');
-
-        List<echosign_dev1__SIGN_Agreement__c> agreements = [
-            SELECT Id, TripName__c, CreatedDate
-            FROM echosign_dev1__SIGN_Agreement__c
-            WHERE Trip__c = :tripId AND CreatedDate = :latestDate
-            ORDER BY CreatedDate DESC
-        ];
-
-        latestAgreements.addAll(agreements);
-    }
-
-    return latestAgreements;
-}
-
-
-  for (String objName : objectColumnsMap.keySet()) {
+for (String objName : objectColumnsMap.keySet()) {
         String soql;
         List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
         String fieldStr = 'Id';
