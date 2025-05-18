@@ -1,7 +1,52 @@
-  // Step 2: Bulk fetch agreements where Trip__c IN keys and CreatedDate IN values
-                List<echosign_dev1__SIGN_Agreement__c> allAgreements = [
-                    SELECT fieldStr
+for (String objName : objectColumnsMap.keySet()) {
+    String soql = '';
+    List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
+    String fieldStr = 'Id';
+    if (!fields.isEmpty()) {
+        fieldStr += ', ' + String.join(fields, ', ');
+    }
+
+    try {
+        switch on objName {
+            when 'Case' {
+                soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
+                List<SObject> records = Database.query(soql);
+                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+            }
+            when 'HealthCloudGA__ContactContactRelation__c' {
+                soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
+                List<SObject> records = Database.query(soql);
+                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+            }
+            when 'echosign_dev1__SIGN_Agreement__c' {
+                // Step 1: Get latest CreatedDate for each Trip under the given Case
+                List<AggregateResult> latestDates = [
+                    SELECT Trip__c, MAX(CreatedDate) latestDate
                     FROM echosign_dev1__SIGN_Agreement__c
-                    WHERE Trip__c IN :tripToLatestDateMap.keySet()
-                    AND CreatedDate IN :tripToLatestDateMap.values()
+                    WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :caseId)
+                    GROUP BY Trip__c
                 ];
+
+                // Step 2: Build a Map<TripId, CreatedDate>
+                Map<Id, Datetime> tripToLatestDateMap = new Map<Id, Datetime>();
+                for (AggregateResult ar : latestDates) {
+                    tripToLatestDateMap.put((Id)ar.get('Trip__c'), (Datetime)ar.get('latestDate'));
+                }
+
+                // Step 3: Dynamically build query using fieldStr
+                String agreementQuery = 'SELECT ' + fieldStr + ' FROM echosign_dev1__SIGN_Agreement__c' +
+                    ' WHERE Trip__c IN :tripToLatestDateMap.keySet()' +
+                    ' AND CreatedDate IN :tripToLatestDateMap.values()';
+
+                List<SObject> records = Database.query(agreementQuery);
+                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+            }
+            when else {
+                // Skip unsupported objects
+                continue;
+            }
+        }
+    } catch (Exception ex) {
+        System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
+    }
+}
