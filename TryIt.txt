@@ -1,47 +1,18 @@
-[
-    {
-        "Id": "a0E5500000Bz6OUEAZ",
-        "AuthorizationAppFormSignedByLAR__c": "Yes",
-        "ContactName__c": "LAR Jhon LAR",
-        "Account__c": "0012300000bkOGZAA2",
-        "Phone__c": "9600205548",
-        "RelatedRoleName__c": "Caregiver",
-        "accountUrl": "/lightning/r/Account/0012300000bkOGZAA2/view"
-    },
-    {
-        "Id": "a0E5500000CPB46EAH",
-        "AuthorizationAppFormSignedByLAR__c": "Yes",
-        "ContactName__c": "LAnR Jhon LAnR",
-        "Account__c": "0012300000bkOGZAA2",
-        "Phone__c": "9600205548",
-        "RelatedRoleName__c": "Caregiver",
-        "accountUrl": "/lightning/r/Account/0012300000bkOGZAA2/view"
-    },
-    {
-        "Id": "a0E5500000CPiKLEA1",
-        "AuthorizationAppFormSignedByLAR__c": "Yes",
-        "ContactName__c": "testing test",
-        "Account__c": "0012300000bkOGZAA2",
-        "Phone__c": "9755476546",
-        "RelatedRoleName__c": "Caregiver",
-        "accountUrl": "/lightning/r/Account/0012300000bkOGZAA2/view"
-    },
-    {
-        "Id": "a0EKS000000bm7d2AA",
-        "AuthorizationAppFormSignedByLAR__c": "Yes",
-        "ContactName__c": "dfjvhk fdvbk",
-        "Account__c": "0012300000bkOGZAA2",
-        "Phone__c": "9937467546",
-        "RelatedRoleName__c": "Legally Authorized Representative",
-        "accountUrl": "/lightning/r/Account/0012300000bkOGZAA2/view"
-    },
-    {
-        "Id": "a0EKS000000bm832AA",
-        "AuthorizationAppFormSignedByLAR__c": "Yes",
-        "ContactName__c": "firster git",
-        "Account__c": "0012300000bkOGZAA2",
-        "Phone__c": "9700006546",
-        "RelatedRoleName__c": "Caregiver",
-        "accountUrl": "/lightning/r/Account/0012300000bkOGZAA2/view"
-    }
-]
+if (col.column_id === 'ContactName__c') {
+    type = 'url';
+    typeAttributes = {
+        label: {
+            fieldName: 'ContactName__c'
+        },
+        target: '_blank'
+    };
+    // Make sure fieldName is accountUrl, not ContactName__c
+    return {
+        label: col.label,
+        fieldName: 'accountUrl', // important: URL must be in fieldName
+        editable: col.editable,
+        sortable: col.isSortingApplied,
+        type,
+        typeAttributes
+    };
+}
