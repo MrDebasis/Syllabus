@@ -1,18 +1,62 @@
-if (col.column_id === 'ContactName__c') {
-    type = 'url';
-    typeAttributes = {
-        label: {
-            fieldName: 'ContactName__c'
-        },
-        target: '_blank'
-    };
-    // Make sure fieldName is accountUrl, not ContactName__c
-    return {
-        label: col.label,
-        fieldName: 'accountUrl', // important: URL must be in fieldName
-        editable: col.editable,
-        sortable: col.isSortingApplied,
-        type,
-        typeAttributes
-    };
+public static List<echosign_dev1__SIGN_Agreement__c> getLatestAgreements(String relatedCaseId) {
+    // Step 1: Get the latest CreatedDate for each trip
+    List<AggregateResult> latestDates = [
+        SELECT Trip__c, MAX(CreatedDate) latestDate
+        FROM echosign_dev1__SIGN_Agreement__c
+        WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :relatedCaseId)
+        GROUP BY Trip__c
+    ];
+
+    // Step 2: Fetch the full records for the latest CreatedDate
+    List<echosign_dev1__SIGN_Agreement__c> latestAgreements = new List<echosign_dev1__SIGN_Agreement__c>();
+    for (AggregateResult ar : latestDates) {
+        Id tripId = (Id) ar.get('Trip__c');
+        Datetime latestDate = (Datetime) ar.get('latestDate');
+
+        List<echosign_dev1__SIGN_Agreement__c> agreements = [
+            SELECT Id, TripName__c, CreatedDate
+            FROM echosign_dev1__SIGN_Agreement__c
+            WHERE Trip__c = :tripId AND CreatedDate = :latestDate
+            ORDER BY CreatedDate DESC
+        ];
+
+        latestAgreements.addAll(agreements);
+    }
+
+    return latestAgreements;
+}
+
+
+  for (String objName : objectColumnsMap.keySet()) {
+        String soql;
+        List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
+        String fieldStr = 'Id';
+        if (!fields.isEmpty()) {
+            fieldStr += ', ' + String.join(fields, ', ');
+        }
+
+        switch on objName {
+            when 'Case' {
+                soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
+            }
+            when 'HealthCloudGA__ContactContactRelation__c' {
+                soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
+            }
+                when 'echosign_dev1__SIGN_Agreement__c' {
+                soql = 'SELECT ' + fieldStr + ' FROM echosign_dev1__SIGN_Agreement__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
+            }
+            when else {
+                continue;
+            }
+        }
+
+        try {
+            List<SObject> records = Database.query(soql);
+            resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+        } catch (Exception ex) {
+            System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
+        }
+    }
+
+    return resultMap;
 }
