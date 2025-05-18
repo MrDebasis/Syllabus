@@ -1,52 +1,262 @@
-for (String objName : objectColumnsMap.keySet()) {
-    String soql = '';
-    List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
-    String fieldStr = 'Id';
-    if (!fields.isEmpty()) {
-        fieldStr += ', ' + String.join(fields, ', ');
-    }
 
-    try {
-        switch on objName {
-            when 'Case' {
-                soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
-                List<SObject> records = Database.query(soql);
-                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-            }
-            when 'HealthCloudGA__ContactContactRelation__c' {
-                soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
-                List<SObject> records = Database.query(soql);
-                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-            }
-            when 'echosign_dev1__SIGN_Agreement__c' {
-                // Step 1: Get latest CreatedDate for each Trip under the given Case
-                List<AggregateResult> latestDates = [
-                    SELECT Trip__c, MAX(CreatedDate) latestDate
-                    FROM echosign_dev1__SIGN_Agreement__c
-                    WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :caseId)
-                    GROUP BY Trip__c
-                ];
-
-                // Step 2: Build a Map<TripId, CreatedDate>
-                Map<Id, Datetime> tripToLatestDateMap = new Map<Id, Datetime>();
-                for (AggregateResult ar : latestDates) {
-                    tripToLatestDateMap.put((Id)ar.get('Trip__c'), (Datetime)ar.get('latestDate'));
-                }
-
-                // Step 3: Dynamically build query using fieldStr
-                String agreementQuery = 'SELECT ' + fieldStr + ' FROM echosign_dev1__SIGN_Agreement__c' +
-                    ' WHERE Trip__c IN :tripToLatestDateMap.keySet()' +
-                    ' AND CreatedDate IN :tripToLatestDateMap.values()';
-
-                List<SObject> records = Database.query(agreementQuery);
-                resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-            }
-            when else {
-                // Skip unsupported objects
-                continue;
+        @api caseId ='';
+        tables = {};
+        loading = false;
+        error;
+    
+        connectedCallback() {
+            this.loadTables();
+        }
+    
+        async loadTables() {
+            this.loading = true;
+            this.error = null;
+    
+            try {
+               // const caseId = '50023000003st7sAAA'; // Replace with dynamic Case Id
+                const result = await getObjectTables({  caseId: this.caseId });
+                console.log('Apex result:', JSON.stringify(result));
+                this.populateTables(result);
+            } catch (e) {
+                this.error = e.body?.message || e.message;
+                console.error('Error loading tables:', e);
+            } finally {
+                this.loading = false;
             }
         }
-    } catch (Exception ex) {
-        System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
-    }
+    
+        populateTables(result) {
+            this.tables = {};
+    
+            for (const [objectName, wrapper] of Object.entries(result)) {
+                let recordsArray = Object.values(wrapper.data);
+    
+                // ✅ Inject accountUrl into each record if needed
+                if (objectName === 'HealthCloudGA__ContactContactRelation__c') {
+                    recordsArray = recordsArray.map(record => ({
+                        ...record,
+                        accountUrl: record.Account__c
+                            ? `/lightning/r/Account/${record.Account__c}/view`
+                            : null
+                    }));
+                }
+    
+                this.tables[objectName] = {
+                    columns: this.buildLightningColumns(wrapper.columns),
+                    data: recordsArray,
+                    draftValues: [],
+                    sortedBy: '',
+                    sortedDirection: 'asc'
+                };
+            }
+        }
+    
+        buildLightningColumns(columns) {
+            return columns
+                .filter(col => col.visible)
+                .sort((a, b) => {
+                    if (a.PSSViewColumnOrder__c != null && b.PSSViewColumnOrder__c != null) {
+                        return a.PSSViewColumnOrder__c - b.PSSViewColumnOrder__c;
+                    }
+                    return a.column_id.localeCompare(b.column_id);
+                })
+                .map(col => {
+                    let type = 'text';
+                    let typeAttributes;
+    
+                    const dataType = col.data_type?.toLowerCase() || 'string';
+                    const field = col.column_id.toLowerCase();
+    
+                    if (col.column_id === 'ContactName__c') {
+                        type = 'url';
+                        typeAttributes = {
+                            label: {
+                                fieldName: 'ContactName__c'
+                            },
+                            target: '_blank'
+                        };
+                        // Make sure fieldName is accountUrl, not ContactName__c
+                        return {
+                            label: col.label,
+                            fieldName: 'accountUrl', // important: URL must be in fieldName
+                            editable: col.editable,
+                            sortable: col.isSortingApplied,
+                            type,
+                            typeAttributes
+                        };
+                    } else {
+                        switch (dataType) {
+                            case 'number':
+                                type = 'number';
+                                break;
+                            case 'date':
+                            case 'datetime':
+                                type = 'date';
+                                break;
+                            case 'picklist':
+                                type = 'picklist';
+                                if (col.picklistValues) {
+                                    const options = col.picklistValues.split(';').map(val => ({
+                                        label: val.trim(),
+                                        value: val.trim()
+                                    }));
+                                    typeAttributes = {
+                                        options,
+                                        placeholder: 'Select',
+                                        value: { fieldName: col.column_id },
+                                        context: { fieldName: 'Id' }
+                                    };
+                                }
+                                break;
+                            default:
+                                // ✅ Detect phone fields and apply 'phone' type
+                                if (field.includes('phone')) {
+                                    type = 'phone';
+                                } else {
+                                    type = 'text';
+                                }
+                        }
+                    }
+    
+                    return {
+                        label: col.label,
+                        fieldName: col.column_id,
+                        editable: col.editable,
+                        sortable: col.isSortingApplied,
+                        type,
+                        typeAttributes
+                    };
+                });
+        }
+    
+        // 🔍 Getter shortcuts for tables
+        get caseTable() {
+            return this.tables['Case'];
+        }
+
+        get getAgreement() {
+            return this.tables['echosign_dev1__SIGN_Agreement__c'];
+        }
+    
+      /*  get associatedContact() {
+            return this.tables['HealthCloudGA__ContactContactRelation__c'];
+        }*/
+            get associatedContact() {
+                const table = this.tables['HealthCloudGA__ContactContactRelation__c'];
+                if (!table) return null;
+            
+                // Add accountUrl field to each record in .data
+                const enhancedData = table.data.map(record => ({
+                    ...record,
+                    accountUrl: record.Account__c
+                        ? `/lightning/r/Account/${record.Account__c}/view`
+                        : null
+                }));
+                console.log('enhancedData--->',enhancedData)  ;
+                return {
+                    ...table,
+                    data: enhancedData
+                };
+             
+            }
+    
+        get contactTable() {
+            return this.tables['Contact'];
+        }
+    
+        handleSave(event) {
+            const objectName = event.target.dataset.obj;
+            const draftValues = event.detail.draftValues;
+    
+            this.tables[objectName].data = this.tables[objectName].data.map(row => {
+                const draft = draftValues.find(d => d.Id === row.Id);
+                return draft ? { ...row, ...draft } : row;
+            });
+    
+            this.tables[objectName].draftValues = [];
+        }
+    
+        handleSort(event) {
+            const { fieldName, sortDirection } = event.detail;
+            const objectName = event.target.dataset.obj;
+    
+            const sortedData = [...this.tables[objectName].data].sort((a, b) => {
+                const aVal = a[fieldName] ?? '';
+                const bVal = b[fieldName] ?? '';
+                return sortDirection === 'asc'
+                    ? aVal > bVal ? 1 : -1
+                    : aVal < bVal ? 1 : -1;
+            });
+    
+            this.tables[objectName].data = sortedData;
+            this.tables[objectName].sortedBy = fieldName;
+            this.tables[objectName].sortedDirection = sortDirection;
+        }
 }
+
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error">{error}</div>
+    </template>
+
+    <!-- Case Table -->
+    <template if:true={caseTable}>
+        <lightning-card title="Case">
+            <lightning-datatable
+                key-field="Id"
+                data={caseTable.data}
+                columns={caseTable.columns}
+                draft-values={caseTable.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={caseTable.sortedBy}
+                sorted-direction={caseTable.sortedDirection}
+                hide-checkbox-column
+                data-obj="Case">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+
+    <!-- HealthCloudGA__ContactContactRelation__c -->
+    <template if:true={associatedContact}>
+        <lightning-card title="Associated Contact Relation">
+            <lightning-datatable
+                key-field="Id"
+                data={associatedContact.data}
+                columns={associatedContact.columns}
+                draft-values={associatedContact.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={associatedContact.sortedBy}
+                sorted-direction={associatedContact.sortedDirection}
+                hide-checkbox-column
+                data-obj="HealthCloudGA__ContactContactRelation__c">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+
+    <!-- Contact Table -->
+    <template if:true={getAgreement}>
+        <lightning-card title="Contact">
+            <lightning-datatable
+                key-field="Id"
+                data={getAgreement.data}
+                columns={getAgreement.columns}
+                draft-values={getAgreement.draftValues}
+                onsave={handleSave}
+                onsort={handleSort}
+                sorted-by={getAgreement.sortedBy}
+                sorted-direction={getAgreement.sortedDirection}
+                hide-checkbox-column
+                data-obj="echosign_dev1__SIGN_Agreement__c">
+            </lightning-datatable>
+        </lightning-card>
+        <br />
+    </template>
+</template>
