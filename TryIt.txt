@@ -1,7 +1,3 @@
- case 'currency':
-        type = 'currency';
-        typeAttributes = {
-            currencyCode: 'USD', // or use { fieldName: 'CurrencyIsoCode' } if dynamic
-            minimumFractionDigits: 2
-        };
-        break;
+SObject comment = records[0];
+String createdByName = ((User)comment.getSObject('CreatedBy')).get('Name');
+System.debug('Created By: ' + createdByName);
