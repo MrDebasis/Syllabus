@@ -1,104 +1,35 @@
- @AuraEnabled(cacheable=true)
-public static Map<String, TableConfigWrapper> getTableConfigs(Id caseId) {
-    if (caseId == null) {
-        throw new AuraHandledException('Missing Case ID.');
+try {
+    if (String.isNotBlank(soql)) {
+        List<SObject> records = Database.query(soql);
+        resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
     }
+} catch (Exception ex) {
+    System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
+}
 
-    Map<String, TableConfigWrapper> resultMap = new Map<String, TableConfigWrapper>();
 
-    List<PSPTrackerConfig__mdt> allMetadata = [
-        SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c,
-               ColumnWidth__c, PSSViewColumnOrder__c, IsSortingApplied__c, SupportedFields__c,
-               SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c, PickListValues__c,
-               IsString__c, IsNumber__c, IsDate__c, IsPickList__c, PSSListView__c
-        FROM PSPTrackerConfig__mdt
-        WHERE Visible__c = true AND PSSListView__c = true
+when 'echosign_dev1__SIGN_Agreement__c' {
+    // Step 1: Aggregate latest CreatedDate per trip for the case
+    List<AggregateResult> latestDates = [
+        SELECT Trip__c, MAX(CreatedDate) latestDate
+        FROM echosign_dev1__SIGN_Agreement__c
+        WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :caseId)
+        GROUP BY Trip__c
     ];
 
-    Map<String, List<Map<String, Object>>> objectColumnsMap = new Map<String, List<Map<String, Object>>>();
-    Map<String, Set<String>> objectFieldNamesMap = new Map<String, Set<String>>();
+    List<SObject> records = new List<SObject>();
 
-    for (PSPTrackerConfig__mdt config : allMetadata) {
-        String obj = config.TableName__c;
+    // Step 2: For each Trip, get the agreement with latest CreatedDate
+    for (AggregateResult ar : latestDates) {
+        Id tripId = (Id) ar.get('Trip__c');
+        Datetime latestDate = (Datetime) ar.get('latestDate');
 
-        if (!objectColumnsMap.containsKey(obj)) {
-            objectColumnsMap.put(obj, new List<Map<String, Object>>());
-            objectFieldNamesMap.put(obj, new Set<String>());
-        }
+        String agreementSoql = 'SELECT ' + fieldStr +
+            ' FROM echosign_dev1__SIGN_Agreement__c WHERE Trip__c = :tripId AND CreatedDate = :latestDate';
 
-        // Add field config metadata
-        objectColumnsMap.get(obj).add(new Map<String, Object>{
-            'column_id' => config.ColumnName__c,
-            'label' => config.Label__c,
-            'data_type' => config.DataType__c,
-            'PSSViewColumnOrder__c' => config.PSSViewColumnOrder__c,
-            'visible' => config.Visible__c,
-            'editable' => config.Editable__c,
-            'isSortingApplied' => config.IsSortingApplied__c,
-            'sortDirection' => config.SortDirection__c,
-            'ColumnWidth' => config.ColumnWidth__c,
-            'picklistValues' => config.PickListValues__c
-        });
-
-        // Add main field
-        objectFieldNamesMap.get(obj).add(config.ColumnName__c);
-
-        // NEW: Add SupportedFields__c if not blank
-        if (String.isNotBlank(config.SupportedFields__c)) {
-            List<String> extraFields = config.SupportedFields__c.split(',');
-            for (String field : extraFields) {
-                if (String.isNotBlank(field)) {
-                    objectFieldNamesMap.get(obj).add(field.trim());
-                }
-            }
-        }
+        records.addAll(Database.query(agreementSoql));
     }
 
-    for (String objName : objectColumnsMap.keySet()) {
-        String soql;
-        List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
-        String fieldStr = 'Id';
-        if (!fields.isEmpty()) {
-            fieldStr += ', ' + String.join(fields, ', ');
-        }
-
-        switch on objName {
-            when 'Case' {
-                soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
-            }
-            when 'HealthCloudGA__ContactContactRelation__c' {
-                soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
-            }
-                when 'echosign_dev1__SIGN_Agreement__c' {
-               // Dynamically fetch latest agreements per trip for the case
-                // Step 1: Aggregate latest CreatedDate per trip
-                List<AggregateResult> latestDates = [
-                    SELECT Trip__c, MAX(CreatedDate) latestDate
-                    FROM echosign_dev1__SIGN_Agreement__c
-                    WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :caseId)
-                    GROUP BY Trip__c
-                ];
-
-                // Step 2: Query full agreement records for each latest date/trip
-                for (AggregateResult ar : latestDates) {
-                    Id tripId = (Id) ar.get('Trip__c');
-                    Datetime latestDate = (Datetime) ar.get('latestDate');
-
-                   soql = 'SELECT ' + fieldStr + ' FROM echosign_dev1__SIGN_Agreement__c WHERE Trip__c = :tripId AND CreatedDate = :latestDate';
-                    system.debug('soql--->'+soql);
-                }            }
-            when else {
-                continue;
-            }
-        }
-
-        try {
-            List<SObject> records = Database.query(soql);
-            resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-        } catch (Exception ex) {
-            System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
-        }
-    }
-
-    return resultMap;
+    resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+    continue; // Skip the general try-catch since we've already handled this
 }
