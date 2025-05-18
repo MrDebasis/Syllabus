@@ -1,35 +1,7 @@
-else {
-    switch (dataType) {
-        case 'number':
-            type = 'number';
-            break;
-
-        case 'date':
-        case 'datetime':
-            type = 'date';
-            typeAttributes = {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            };
-            break;
-
-        case 'picklist':
-            type = 'picklist';
-            if (col.picklistValues) {
-                const options = col.picklistValues.split(';').map(val => ({
-                    label: val.trim(),
-                    value: val.trim()
-                }));
-                typeAttributes = {
-                    options,
-                    placeholder: 'Select',
-                    value: { fieldName: col.column_id },
-                    context: { fieldName: 'Id' }
-                };
-            }
-            break;
-
-        default:
-            // Detect and handle phone field
-            if (col.column_id_
+ case 'currency':
+        type = 'currency';
+        typeAttributes = {
+            currencyCode: 'USD', // or use { fieldName: 'CurrencyIsoCode' } if dynamic
+            minimumFractionDigits: 2
+        };
+        break;
