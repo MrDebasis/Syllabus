@@ -1,33 +1,51 @@
 for (String objName : objectColumnsMap.keySet()) {
-        String soql;
-        List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
-        String fieldStr = 'Id';
-        if (!fields.isEmpty()) {
-            fieldStr += ', ' + String.join(fields, ', ');
-        }
+    String soql;
+    List<String> fields = new List<String>(objectFieldNamesMap.get(objName));
+    String fieldStr = 'Id';
+    if (!fields.isEmpty()) {
+        fieldStr += ', ' + String.join(fields, ', ');
+    }
+
+    try {
+        List<SObject> records = new List<SObject>();
 
         switch on objName {
             when 'Case' {
                 soql = 'SELECT ' + fieldStr + ' FROM Case WHERE Id = :caseId';
+                records = Database.query(soql);
             }
             when 'HealthCloudGA__ContactContactRelation__c' {
                 soql = 'SELECT ' + fieldStr + ' FROM HealthCloudGA__ContactContactRelation__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
+                records = Database.query(soql);
             }
-                when 'echosign_dev1__SIGN_Agreement__c' {
-                soql = 'SELECT ' + fieldStr + ' FROM echosign_dev1__SIGN_Agreement__c WHERE Patient_Support_Case__c = :caseId AND RelatedRoleName__c != \'Patient\'';
+            when 'echosign_dev1__SIGN_Agreement__c' {
+                // Dynamically fetch latest agreements per trip for the case
+                // Step 1: Aggregate latest CreatedDate per trip
+                List<AggregateResult> latestDates = [
+                    SELECT Trip__c, MAX(CreatedDate) latestDate
+                    FROM echosign_dev1__SIGN_Agreement__c
+                    WHERE Trip__c IN (SELECT Id FROM Trip__c WHERE RelatedCase__c = :caseId)
+                    GROUP BY Trip__c
+                ];
+
+                // Step 2: Query full agreement records for each latest date/trip
+                for (AggregateResult ar : latestDates) {
+                    Id tripId = (Id) ar.get('Trip__c');
+                    Datetime latestDate = (Datetime) ar.get('latestDate');
+
+                    String agreementSOQL = 'SELECT ' + fieldStr + ' FROM echosign_dev1__SIGN_Agreement__c WHERE Trip__c = :tripId AND CreatedDate = :latestDate';
+                    records.addAll(Database.query(agreementSOQL));
+                }
             }
             when else {
                 continue;
             }
         }
 
-        try {
-            List<SObject> records = Database.query(soql);
-            resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
-        } catch (Exception ex) {
-            System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
-        }
+        resultMap.put(objName, new TableConfigWrapper(objName, objectColumnsMap.get(objName), records));
+    } catch (Exception ex) {
+        System.debug('Query failed for ' + objName + ': ' + ex.getMessage());
     }
-
-    return resultMap;
 }
+
+return resultMap;
