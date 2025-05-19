@@ -7,6 +7,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     @track tables = {};
+    @track showSpinner = false;
     loading = false;
     error;
     @api caseId ='';
@@ -422,10 +423,9 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         return this.tables['Contact'];
     }
 
-    @track showSpinner = false;
-
    async  handleSave(event) {
         this.showSpinner = true;
+        this.spinnerEvent();
         const objectName = event.target.dataset.obj;
         const draftValues = event.detail.draftValues;
         console.log(`Saving for ${objectName}:`, draftValues);
@@ -439,9 +439,11 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
     try {
         await saveRecord({ payloadList });
         this.showSpinner = false;
+        this.spinnerEvent();
         this.showToastAfterSaving('success', `Record saved successfully.`); 
     } catch (error) {
         this.showSpinner = false;
+        this.spinnerEvent();
         this.showToastAfterSaving('error', `Error saving record. Details: ${
             error.message || (error.body && error.body.message) || JSON.stringify(error)
         }`);
@@ -464,6 +466,16 @@ export default class Psp_PSSTrackerDataTableLWCComp extends LightningElement {
         });
         this.dispatchEvent(event);
     }  
+
+    spinnerEvent() {
+        const event = new CustomEvent('spin', {
+            detail: {
+                showSpinner: this.showSpinner
+            }
+        });
+        this.dispatchEvent(event);        
+     }
+ 
 
     handleSort(event) {
         const { fieldName, sortDirection } = event.detail;
