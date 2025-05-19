@@ -1,15 +1,17 @@
-    // 🔽 Inject "Itinerary" column for Trip__c (not present in metadata)
-    if (objectColumnsMap.containsKey('Trip__c')) {
-        objectColumnsMap.get('Trip__c').add(new Map<String, Object>{
-            'column_id' => 'Itinerary__c',
-            'label' => 'Itinerary',
-            'data_type' => 'url',
-            'PSSViewColumnOrder__c' => 999,
-            'visible' => true,
-            'editable' => false,
-            'isSortingApplied' => false,
-            'sortDirection' => null,
-            'ColumnWidth' => '150',
-            'picklistValues' => null
-        });
-    }
+ if (objectName === 'Trip__c' && col.column_id === 'Itinerary__c') {
+                    type = 'url';
+                    typeAttributes = {
+                        label: { fieldName: 'Itinerary__c' }, // Label field
+                        target: '_blank',
+                        url: { fieldName: 'itineraryURL' }
+                    };
+                    return {
+                        label: col.label,
+                        fieldName: 'itineraryURL',
+                        editable: false,
+                        sortable: false,
+                        type,
+                        typeAttributes,
+                        hideDefaultActions: true
+                    };
+                }
