@@ -1,8 +1,24 @@
-   if (objectName == 'HealthCloudGA__ContactContactRelation__c') {
-                recordsArray = recordsArray.map(record => ({
-                    ...record,
-                    accountUrl: record.Account__c
-                        ? `/lightning/r/Account/${record.Account__c}/view`
-                        : null
-                }));
+lightning/r/069dp000001xfD3AAI/view
+
+   @AuraEnabled(cacheable=true)
+    public static Map<Id, Id> getLatestTripContentDocumentMap(List<Id> tripIds) {
+        Map<Id, Id> tripToLatestDocMap = new Map<Id, Id>();
+
+        // Query links and order by CreatedDate DESC to get latest document first
+        List<ContentDocumentLink> docLinks = [
+            SELECT ContentDocumentId, LinkedEntityId,
+                   ContentDocument.CreatedDate
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :tripIds
+            ORDER BY ContentDocument.CreatedDate DESC
+        ];
+
+        for (ContentDocumentLink link : docLinks) {
+            // Add only the first (latest) document per Trip
+            if (!tripToLatestDocMap.containsKey(link.LinkedEntityId)) {
+                tripToLatestDocMap.put(link.LinkedEntityId, link.ContentDocumentId);
             }
+        }
+
+        return tripToLatestDocMap;
+    }
