@@ -1,36 +1,8 @@
-  get getCaseComment() {
-            this.isCaseCommentTableRecords = this.tables['CaseComment'] && this.tables['CaseComment'].data.length > 0;
-            let caseCommentTable = this.tables['CaseComment'];
-        
-            if (!caseCommentTable || !caseCommentTable.data || caseCommentTable._isProcessed) {
-                return caseCommentTable;
+   if (objectName == 'HealthCloudGA__ContactContactRelation__c') {
+                recordsArray = recordsArray.map(record => ({
+                    ...record,
+                    accountUrl: record.Account__c
+                        ? `/lightning/r/Account/${record.Account__c}/view`
+                        : null
+                }));
             }
-        
-            const userIdSet = new Set();
-        
-            // Collect CreatedById values
-            caseCommentTable.data.forEach(record => {
-                if (record.CreatedById) {
-                    userIdSet.add(record.CreatedById);
-                }
-            });
-        
-            const userIds = Array.from(userIdSet);
-        
-            if (userIds.length > 0) {
-                getUserNamesByIds({ userIds })
-                    .then(userMap => {
-                        caseCommentTable.data = caseCommentTable.data.map(record => ({
-                            ...record,
-                            CreatedById: userMap[record.CreatedById] || record.CreatedById
-                        }));
-                        caseCommentTable._isProcessed = true;
-                        this.tables['CaseComment'] = caseCommentTable;
-                    })
-                    .catch(error => {
-                        console.error('Error fetching user names for CaseComment:', error);
-                    });
-            }
-        
-            return caseCommentTable;
-        }
