@@ -1,35 +1,24 @@
-get getCaseComment() {
-    let caseCommentTable = this.tables['CaseComment'];
+public with sharing class TripFileService {
+    @AuraEnabled(cacheable=true)
+    public static Map<Id, Id> getLatestTripContentDocumentMap(List<Id> tripIds) {
+        Map<Id, Id> tripToLatestDocMap = new Map<Id, Id>();
 
-    if (!caseCommentTable || !caseCommentTable.data || caseCommentTable._isProcessed) {
-        return caseCommentTable;
-    }
+        // Query links and order by CreatedDate DESC to get latest document first
+        List<ContentDocumentLink> docLinks = [
+            SELECT ContentDocumentId, LinkedEntityId,
+                   ContentDocument.CreatedDate
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :tripIds
+            ORDER BY ContentDocument.CreatedDate DESC
+        ];
 
-    const userIdSet = new Set();
-
-    // Collect CreatedById values
-    caseCommentTable.data.forEach(record => {
-        if (record.CreatedById) {
-            userIdSet.add(record.CreatedById);
+        for (ContentDocumentLink link : docLinks) {
+            // Add only the first (latest) document per Trip
+            if (!tripToLatestDocMap.containsKey(link.LinkedEntityId)) {
+                tripToLatestDocMap.put(link.LinkedEntityId, link.ContentDocumentId);
+            }
         }
-    });
 
-    const userIds = Array.from(userIdSet);
-
-    if (userIds.length > 0) {
-        getUserNamesByIds({ userIds })
-            .then(userMap => {
-                caseCommentTable.data = caseCommentTable.data.map(record => ({
-                    ...record,
-                    CreatedById: userMap[record.CreatedById] || record.CreatedById
-                }));
-                caseCommentTable._isProcessed = true;
-                this.tables['CaseComment'] = caseCommentTable;
-            })
-            .catch(error => {
-                console.error('Error fetching user names for CaseComment:', error);
-            });
+        return tripToLatestDocMap;
     }
-
-    return caseCommentTable;
 }
