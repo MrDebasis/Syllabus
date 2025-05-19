@@ -1,34 +1,4 @@
-for (const wrapper of Object.values(result)) {
-    const recordsArray = Object.values(wrapper.data);
-    recordsArray.forEach(record => {
-        if (record.CreatedById) {
-            createdByIdSet.add(record.CreatedById);
-        }
-    });
-}
-
-
-// 2. Fetch user names once
-const userMap = await getUserNamesByIds({ userIds: Array.from(createdByIdSet) });
-
-for (const [objectName, wrapper] of Object.entries(result)) {
-    let recordsArray = Object.values(wrapper.data);
-
-    // Inject CreatedByName for CaseComment records
-    if (objectName === 'CaseComment') {
-        recordsArray = recordsArray.map(record => ({
-            ...record,
-            CreatedByName: userMap[record.CreatedById] || record.CreatedById
-        }));
-    }
-
-if (objectName == 'CaseComment' && col.column_id == 'CreatedById') {
-    return {
-        label: col.label || 'Created By',
-        fieldName: 'CreatedByName',
-        editable: col.editable,
-        sortable: col.isSortingApplied,
-        type,
-        typeAttributes
-    }
-}
+      get getCaseComment() {
+        console.log('this.tablesCaseComment -->',this.tables['CaseComment']);
+        return this.tables['CaseComment'];
+      }
