@@ -1,17 +1,175 @@
- if (objectName === 'Trip__c' && col.column_id === 'Itinerary__c') {
-                    type = 'url';
-                    typeAttributes = {
-                        label: { fieldName: 'Itinerary__c' }, // Label field
-                        target: '_blank',
-                        url: { fieldName: 'itineraryURL' }
-                    };
-                    return {
-                        label: col.label,
-                        fieldName: 'itineraryURL',
-                        editable: false,
-                        sortable: false,
-                        type,
-                        typeAttributes,
-                        hideDefaultActions: true
-                    };
-                }
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error">{error}</div>
+    </template>
+
+    <!-- <template if:true={showSpinner}>
+        <div class="overlay">
+            <lightning-spinner alternative-text="Loading" size="medium" variant="brand"></lightning-spinner>
+        </div>
+    </template> -->
+
+    <!-- Case Table -->
+        <template if:true={caseTable}>
+            <div class="pss-list-view-container">
+                <div class="font-style1 slds-m-bottom_small">Patient Case Information</div>
+                <template if:false={isCaseTableRecords}>
+                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>No Records Found !</i></b></div>
+                </template>
+                <template if:true={isCaseTableRecords}>
+                    <div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={caseTable.data}
+                            columns={caseTable.columns}
+                            draft-values={caseTable.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={caseTable.sortedBy}
+                            sorted-direction={caseTable.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="Case"
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+
+    <!-- HealthCloudGA__ContactContactRelation__c -->
+        <template if:true={associatedContact}>
+            <div class="pss-list-view-container">
+                <div class="font-style1 slds-m-bottom_small">Associated Contacts Information</div>
+                <template if:false={isContactTableRecords}>
+                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>{noRecordsFound}</i></b></div>
+                </template>
+                <template if:true={isContactTableRecords}>            
+                    <div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={associatedContact.data}
+                            columns={associatedContact.columns}
+                            draft-values={associatedContact.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={associatedContact.sortedBy}
+                            sorted-direction={associatedContact.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="HealthCloudGA__ContactContactRelation__c"
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template if:true={travelDates}>
+            <div class="pss-list-view-container">
+                <div class="font-style1 slds-m-bottom_small">Travel Dates</div>
+                <template if:false={isTripTableRecords}>
+                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>{noRecordsFound}</i></b></div>
+                </template>
+                <template if:true={isTripTableRecords}>            
+                    <div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={travelDates.data}
+                            columns={travelDates.columns}
+                            draft-values={travelDates.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={travelDates.sortedBy}
+                            sorted-direction={travelDates.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="Trip__c"
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template if:true={getAgreement}>
+            <div class="pss-list-view-container">
+                <div class="font-style1 slds-m-bottom_small">Reimbursement Forms</div>
+                <template if:false={isAgreementTableRecords}>
+                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>{noRecordsFound}</i></b></div>
+                </template>  
+                <template if:true={isAgreementTableRecords}>          
+                    <div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={getAgreement.data}
+                            columns={getAgreement.columns}
+                            draft-values={getAgreement.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={getAgreement.sortedBy}
+                            sorted-direction={getAgreement.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="echosign_dev1__SIGN_Agreement__c"
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template if:true={getReimbursemwnt}>
+            <div class="pss-list-view-container">
+                <div class="font-style1 slds-m-bottom_small">Reimbursement Details</div>
+                <template if:false={isReimbursementTableRecords}>
+                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>{noRecordsFound}</i></b></div>
+                </template> 
+                <template if:true={isReimbursementTableRecords}>           
+                    <div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={getReimbursemwnt.data}
+                            columns={getReimbursemwnt.columns}
+                            draft-values={getReimbursemwnt.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={getReimbursemwnt.sortedBy}
+                            sorted-direction={getReimbursemwnt.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="Reimbursement__c"
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template if:true={getCaseComment}>
+            <div class="pss-list-view-container">
+                <div class="font-style1 slds-m-bottom_small">Case Comments</div>
+                <template if:false={isCaseCommentTableRecords}>
+                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>{noRecordsFound}</i></b></div>
+                </template>   
+                <template if:true={isCaseCommentTableRecords}>         
+                    <div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={getCaseComment.data}
+                            columns={getCaseComment.columns}
+                            draft-values={getCaseComment.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={getCaseComment.sortedBy}
+                            sorted-direction={getCaseComment.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="CaseComment"
+                            resize-column-disabled>
+                        </lightning-datatable>
+                    </div>
+                </template>
+            </div>
+        </template>
+</template>
+<!--<c-psp_-p-s-s-tracker-data-table-l-w-c-comp case-id={row.Id}></c-psp_-p-s-s-tracker-data-table-l-w-c-comp>-->
