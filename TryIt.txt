@@ -1,59 +1,10 @@
-// Apex Class
-public with sharing class UserLookupController {
-    @AuraEnabled(cacheable=true)
-    public static Map<Id, String> getUserNamesByIds(Set<Id> userIds) {
-        Map<Id, String> userMap = new Map<Id, String>();
-        for (User u : [SELECT Id, Name FROM User WHERE Id IN :userIds]) {
-            userMap.put(u.Id, u.Name);
-        }
-        return userMap;
+@AuraEnabled(cacheable=true)
+public static Map<Id, String> getUserNamesByIds(List<Id> userIds) {
+    Map<Id, String> userMap = new Map<Id, String>();
+    for (User u : [SELECT Id, Name FROM User WHERE Id IN :userIds]) {
+        userMap.put(u.Id, u.Name);
     }
-}
-import getUserNamesByIds from '@salesforce/apex/UserLookupController.getUserNamesByIds';
-
-
-async populateTables(result) {
-    this.tables = {};
-    const createdByIdSet = new Set();
-
-    // 1. Collect all CreatedByIds
-    for (const wrapper of Object.values(result)) {
-        const recordsArray = Object.values(wrapper.data);
-        recordsArray.forEach(record => {
-            if (record.CreatedById) {
-                createdByIdSet.add(record.CreatedById);
-            }
-        });
-    }
-
-    // 2. Call Apex to get names
-    const userMap = await getUserNamesByIds({ userIds: Array.from(createdByIdSet) });
-
-    // 3. Map names into records
-    for (const [objectName, wrapper] of Object.entries(result)) {
-        let recordsArray = Object.values(wrapper.data);
-        recordsArray = recordsArray.map(record => ({
-            ...record,
-            CreatedByName: userMap[record.CreatedById] || record.CreatedById
-        }));
-
-        this.tables[objectName] = {
-            columns: this.buildLightningColumns(wrapper.columns, objectName),
-            data: recordsArray,
-            draftValues: [],
-            sortedBy: '',
-            sortedDirection: 'asc'
-        };
-    }
+    return userMap;
 }
 
-
-if (col.column_id === 'CreatedById') {
-    return {
-        label: col.label || 'Created By',
-        fieldName: 'CreatedByName',
-        type: 'text',
-        editable: false,
-        sortable: col.isSortingApplied
-    };
-}
+const userMap = await getUserNamesByIds({ userIds: Array.from(createdByIdSet) });
