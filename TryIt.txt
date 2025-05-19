@@ -1,24 +1,48 @@
-lightning/r/069dp000001xfD3AAI/view
+if (this.objectApiName === 'Trip__c') {
+    this.columns.push({
+        label: 'Itinerary',
+        fieldName: 'itineraryURL',
+        type: 'url',
+        typeAttributes: {
+            label: 'View',
+            target: '_blank'
+        },
+        editable: false,
+        sortable: false
+    });
+}
 
-   @AuraEnabled(cacheable=true)
-    public static Map<Id, Id> getLatestTripContentDocumentMap(List<Id> tripIds) {
-        Map<Id, Id> tripToLatestDocMap = new Map<Id, Id>();
 
-        // Query links and order by CreatedDate DESC to get latest document first
-        List<ContentDocumentLink> docLinks = [
-            SELECT ContentDocumentId, LinkedEntityId,
-                   ContentDocument.CreatedDate
-            FROM ContentDocumentLink
-            WHERE LinkedEntityId IN :tripIds
-            ORDER BY ContentDocument.CreatedDate DESC
-        ];
-
-        for (ContentDocumentLink link : docLinks) {
-            // Add only the first (latest) document per Trip
-            if (!tripToLatestDocMap.containsKey(link.LinkedEntityId)) {
-                tripToLatestDocMap.put(link.LinkedEntityId, link.ContentDocumentId);
-            }
-        }
-
-        return tripToLatestDocMap;
+get getTripTable() {
+    let tripTable = this.tables['Trip__c'];
+    if (!tripTable || !tripTable.data || tripTable._isProcessed) {
+        return tripTable;
     }
+
+    const tripIds = tripTable.data.map(record => record.Id);
+
+    if (tripIds.length > 0) {
+        // Apex call to fetch ContentDocumentId per Trip
+        getLatestTripContentDocumentMap({ tripIds })
+            .then(docMap => {
+                // Build Lightning record view URL
+                const baseURL = window.location.origin;
+
+                tripTable.data = tripTable.data.map(record => {
+                    const docId = docMap[record.Id];
+                    return {
+                        ...record,
+                        itineraryURL: docId ? `${baseURL}/lightning/r/ContentDocument/${docId}/view` : null
+                    };
+                });
+
+                tripTable._isProcessed = true;
+                this.tables['Trip__c'] = tripTable;
+            })
+            .catch(error => {
+                console.error('Error fetching itinerary document map:', error);
+            });
+    }
+
+    return tripTable;
+}
