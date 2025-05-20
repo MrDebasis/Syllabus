@@ -1,6 +1,4 @@
- updatedRow = this.updateNextActionCellHighlight(updatedRow);
-
-updateNextActionCellHighlight(row) {
+updateNextActionStyling(row) {
     const nextActionCol = row.columns.find(col => col.field === 'nextaction__c');
     const dueDateCol = row.columns.find(col => col.field === 'nextactionduedate__c');
 
@@ -10,10 +8,19 @@ updateNextActionCellHighlight(row) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const isFutureDue = dueDate && dueDate > today;
-    const isNextActionBlank = [null, '', undefined].includes(nextActionCol.value);
-
-    nextActionCol.cellClass = (isFutureDue && isNextActionBlank) ? 'highlight-yellow' : '';
+    if (dueDate && dueDate > today) {
+        // Future date
+        dueDateCol.cellClass = 'highlight-red';
+        nextActionCol.cellClass = 'highlight-red';
+    } else {
+        // Due date is today or past
+        dueDateCol.cellClass = ''; // no class
+        if ([null, '', undefined].includes(nextActionCol.value)) {
+            nextActionCol.cellClass = 'highlight-yellow';
+        } else {
+            nextActionCol.cellClass = ''; // filled
+        }
+    }
 
     return row;
 }
