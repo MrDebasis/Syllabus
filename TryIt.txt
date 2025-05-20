@@ -1,48 +1,68 @@
-updateNextActionHighlighting(processedCases) {
-    return processedCases.map(row => {
-        let dueDate = null;
-        let nextActionValue = null;
+  @track showSpinner = false;
+    async handleSave(event) {
+        this.showSpinner = true;
+        const rowId = event.target.dataset.id;  // Get recordId from the event
 
-        // Extract values for logic
-        row.columns.forEach(col => {
-            if (col.field === 'nextactionduedate__c') {
-                dueDate = col.value ? new Date(col.value) : null;
-            }
-            if (col.field === 'nextaction__c') {
-                nextActionValue = col.value;
-            }
-        });
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) {
+            console.warn(`No row found with rowId: ${rowId}`);
+            this.showSpinner = false;
+            return;
+        }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const updatedValues = this.editedValues[rowId];
 
-        const isFutureDate = dueDate && dueDate > today;
-        const isNextActionEmpty = [null, '', undefined].includes(nextActionValue);
+        if(!updatedValues || Object.keys(updatedValues).length === 0) {
+            this.handleCancel(event);
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`);
+            return;
+        }
 
-        return {
-            ...row,
-            columns: row.columns.map(col => {
-                let cellClass = col.cellClass;
-
-                if (col.field === 'nextactionduedate__c') {
-                    cellClass = isFutureDate ? 'highlight-red' : '';
-                }
-
-                if (col.field === 'nextaction__c') {
-                    if (isFutureDate) {
-                        cellClass = 'highlight-red';
-                    } else if (isNextActionEmpty) {
-                        cellClass = 'highlight-yellow';
-                    } else {
-                        cellClass = '';
-                    }
-                }
-
-                return {
-                    ...col,
-                    cellClass
-                };
-            })
+        // Prepare the payload for the Apex method
+        const payload = {
+            recordId: rowId,
+            objectApiName: updatedRow.objectApiName || 'Case',  // Use the objectApiName dynamically
+            fieldName: Object.keys(updatedValues)[0],  // Get the first field to update (can be expanded to multiple fields)
+            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  // Get the updated value
         };
-    });
-}
+
+        console.log('Payload to send to backend:', JSON.stringify(payload));
+
+        try {
+            // Call Apex method to update the record
+            await saveRecord({ payload });
+
+            console.log(`Record saved successfully.`);
+
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`); 
+            // Update the UI after successful save
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    return {
+                        ...row,
+                        isEditing: false,  // Exit editing mode
+                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
+                            isEditing: false,  // Reset editing state
+                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass // Reset cellClass only for the updated field
+                        }))
+                    };
+                }
+                return row;
+            });
+
+            // Remove the edited values after save
+            delete this.editedValues[rowId];
+
+        } catch (error) {
+            this.showSpinner = false;
+            this.showToastAfterSaving('error', `Error saving record. Details: ${
+                error.message || (error.body && error.body.message) || JSON.stringify(error)
+            }`);
+            console.error(`Error saving record with rowId: ${rowId}`, error);
+        }
+    }
