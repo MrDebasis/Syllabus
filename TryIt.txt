@@ -1,33 +1,28 @@
-getHighlightFlags(row) {
-    const flags = {};
+updateNextActionHighlight(objectName, draftValues) {
+    this.tables[objectName].data = this.tables[objectName].data.map(row => {
+        const draft = draftValues.find(d => d.Id === row.Id);
+        const mergedRow = { ...row, ...draft };
 
-    const nextActionDueDateVal = row['NextActionDueDate__c'];
-    if (nextActionDueDateVal) {
-        const dueDate = new Date(nextActionDueDateVal);
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        if (dueDate > today) {
-            flags.isNextActionDueDateRed = true;
-        }
-    }
+        const nextAction = mergedRow['NextAction__c'];
+        const dueDateStr = mergedRow['NextActionDueDate__c'];
+        const dueDate = dueDateStr ? new Date(dueDateStr) : null;
 
-    return flags;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Update columns array with correct class for NextAction__c
+        const updatedColumns = row.columns.map(cell => {
+            if (cell.field === 'nextaction__c') {
+                if ([null, '', undefined].includes(nextAction)) {
+                    if (dueDate && dueDate > today) {
+                        return { ...cell, cellClass: 'highlight-yellow' };
+                    }
+                }
+                return { ...cell, cellClass: '' }; // Clear the class otherwise
+            }
+            return cell;
+        });
+
+        return { ...mergedRow, columns: updatedColumns };
+    });
 }
-
-      const highlightFlags = this.getHighlightFlags(row);
-
-     let cellClass = '';
-            if (column.column_id === 'NextActionDueDate__c') {
-                if (highlightFlags.isNextActionDueDateRed) {
-                    cellClass = 'highlight-red';
-                } else if ([null, '', undefined].includes(fieldValue)) {
-                    cellClass = 'highlight-yellow';
-                }
-            }
-
-            if (column.column_id === 'NextAction__c') {
-                if (highlightFlags.isNextActionDueDateRed) {
-                    cellClass = 'highlight-red';
-                } else if ([null, '', undefined].includes(fieldValue)) {
-                    cellClass = 'highlight-yellow';
-                }
-            }
