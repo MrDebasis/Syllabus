@@ -1,28 +1,38 @@
-  customSortByNextActionFields(cases) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-        
-            const isEmpty = val => val === null || val === undefined || String(val).trim() === '';
-        
-            const getPriority = (record) => {
-                const actionEmpty = isEmpty(record.NextAction__c);
-                const dueDateEmpty = isEmpty(record.NextActionDueDate__c);
-                const dueDate = dueDateEmpty ? null : new Date(record.NextActionDueDate__c);
-        
-                if (actionEmpty && dueDateEmpty) {
-                    return 2; // Highest priority
-                } else if (actionEmpty || dueDateEmpty) {
-                    return 3;
-                } else if (dueDate < today) {
-                    return 1;
-                } else {
-                    return 4; // Lowest priority
-                }
-            };
-        
-            return cases.sort((a, b) => {
-                const priorityA = getPriority(a);
-                const priorityB = getPriority(b);
-                return priorityA - priorityB;
-            });
+customSortByNextActionFields(cases) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // normalize to midnight for accurate comparison
+
+    const isEmpty = val => val === null || val === undefined || String(val).trim() === '';
+
+    const getPriority = (record) => {
+        const actionEmpty = isEmpty(record.NextAction__c);
+        const dueDateEmpty = isEmpty(record.NextActionDueDate__c);
+        const dueDate = dueDateEmpty ? null : new Date(Date.parse(record.NextActionDueDate__c));
+
+        if (!dueDateEmpty && dueDate instanceof Date && !isNaN(dueDate) && dueDate < today) {
+            return 1; // Past date
+        } else if (actionEmpty && dueDateEmpty) {
+            return 2; // Both empty
+        } else if (actionEmpty || dueDateEmpty) {
+            return 3; // One is empty
+        } else {
+            return 4; // All filled with valid future or today due date
         }
+    };
+
+    return cases.sort((a, b) => {
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+
+        if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+        }
+
+        // Optional secondary sort: by earliest due date if priority is same
+        const dateA = isEmpty(a.NextActionDueDate__c) ? null : new Date(a.NextActionDueDate__c);
+        const dateB = isEmpty(b.NextActionDueDate__c) ? null : new Date(b.NextActionDueDate__c);
+        if (dateA && dateB) return dateA - dateB;
+
+        return 0;
+    });
+}
