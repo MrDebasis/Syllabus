@@ -1,81 +1,33 @@
-    preprocessTableData(cases) {
-           // const sortedCases = this.sortTableData(cases, this.columnConfig);
-        //   const sortedCases = this.customSortByNextActionFields(cases);
-   
-            return cases.map(row => {
-                const updatedRow = { 
-                    ...row, 
-                    columns: [], 
-                    showContent: false,
-                    isExpanded: false,
-                    detailRowKey: `${row.Id}-details`
-                };
-        
-                this.columnConfig.forEach(column => {
-                    if (column.visible) {
-                        const fieldParts = column.column_id.split('.');
-                        let fieldValue = row;
-                        for (const part of fieldParts) {
-                            fieldValue = fieldValue ? fieldValue[part] : undefined;
-                        }
-        
-                        let value = fieldValue;
-                        let isHyperlink = false;
-                        let cellClass = ''; 
-                        
+getHighlightFlags(row) {
+    const flags = {};
 
-                        if (column.column_id === 'NextActionDueDate__c') {
-                            const dueDate = fieldValue ? new Date(fieldValue) : null;
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                        
-                            if (dueDate && dueDate > today) {
-                                cellClass = 'highlight-red'; // Highlight red for future dates
-                            } else if ([null, '', undefined].includes(fieldValue)) {
-                                cellClass = 'highlight-yellow'; // Highlight yellow for blank or undefined
-                            }
-                        }
-
-                        if (column.column_id === 'NextAction__c') {
-                            if ([null, '', undefined].includes(fieldValue)) {
-                                cellClass = 'highlight-yellow'; // Highlight yellow for blank or undefined
-                            }
-                        }
-        
-                        // Add hyperlink logic for specific columns
-                        if (column.column_id === 'Account.Name') {
-                            value = `<span class="patient-name">${fieldValue}</span></br><a href="/lightning/r/Case/${row.Id}/view" target="_blank">${row.CaseNumber}</a>`;
-                            isHyperlink = true;
-                        } else if (column.column_id === 'CartCoordinatorName__c') {
-                            value = [null, '', undefined].includes(fieldValue) 
-                            ? '' 
-                            : fieldValue.includes('_self') 
-                                ? fieldValue.replace('_self', '_blank') : fieldValue;  
-                            isHyperlink = true;
-                        } else if (column.column_id === 'TreatmentCenterName__c') {
-                            value = `<a href="/lightning/r/Account/${row.TreatmentSite__c}/view" target="_blank">${fieldValue}</a>`;
-                            isHyperlink = true;
-                        }
-        
-                        updatedRow.columns.push({
-                            field: column.column_id.toLowerCase(),
-                            label: column.label,
-                            value: value,
-                            isHyperlink: isHyperlink,
-                            dataType: column.data_type,
-                            isEditing: false,
-                            isEditable: column.editable || false,
-                            isString: column.isString || false,
-                            isNumber: column.isNumber || false,
-                            isDate: column.isDate || false,
-                            isPicklist: column.isPicklist || false,
-                            options: column.isPicklist ? column.picklist_values.map(value => ({ label: value, value })) : null,
-                            cellClass : cellClass
-                        });
-                    }
-                });
-        
-                return updatedRow;
-            });
+    const nextActionDueDateVal = row['NextActionDueDate__c'];
+    if (nextActionDueDateVal) {
+        const dueDate = new Date(nextActionDueDateVal);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (dueDate > today) {
+            flags.isNextActionDueDateRed = true;
         }
-    
+    }
+
+    return flags;
+}
+
+      const highlightFlags = this.getHighlightFlags(row);
+
+     let cellClass = '';
+            if (column.column_id === 'NextActionDueDate__c') {
+                if (highlightFlags.isNextActionDueDateRed) {
+                    cellClass = 'highlight-red';
+                } else if ([null, '', undefined].includes(fieldValue)) {
+                    cellClass = 'highlight-yellow';
+                }
+            }
+
+            if (column.column_id === 'NextAction__c') {
+                if (highlightFlags.isNextActionDueDateRed) {
+                    cellClass = 'highlight-red';
+                } else if ([null, '', undefined].includes(fieldValue)) {
+                    cellClass = 'highlight-yellow';
+                }
+            }
