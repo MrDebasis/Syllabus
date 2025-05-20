@@ -1,46 +1,16 @@
-import LightningDatatable from 'lightning/datatable';
-import picklistTemplate from './customPicklistCell.html';
-
-export default class CustomPicklistCell extends LightningDatatable {
-    static customTypes = {
-        picklist: {
-            template: picklistTemplate,
-            typeAttributes: ['value', 'options', 'rowKey']
-        }
-    };
-}
-
-
-<template>
-    <lightning-combobox
-        value={typeAttributes.value}
-        options={typeAttributes.options}
-        data-id={typeAttributes.rowKey}
-        onchange={handleChange}>
-    </lightning-combobox>
-</template>
-
-<template>
-    <lightning-card title="Data Table with Picklist">
-        <c-custom-picklist-cell
-            key-field="Id"
-            data={tableData}
-            columns={columns}
-            oncellchange={handleCellChange}>
-        </c-custom-picklist-cell>
-    </lightning-card>
-</template>
-
-    handleCellChange(event) {
-        const rowId = event.target.dataset.id;
-        const newValue = event.detail.value;
-
-        // Update the tableData
-        this.tableData = this.tableData.map(row => {
-            if (row.Id === rowId) {
-                return { ...row, Status: newValue };
-            }
-            return row;
-        });
-    }
-
+  <lightning-datatable
+                            key-field="Id"
+                            data={travelDates.data}
+                            columns={travelDates.columns}
+                            draft-values={travelDates.draftValues}
+                            onsave={handleSave}
+                            onsort={handleSort}
+                            sorted-by={travelDates.sortedBy}
+                            sorted-direction={travelDates.sortedDirection}
+                            hide-checkbox-column
+                            data-obj="Trip__c"
+                            resize-column-disabled
+                            show-row-number-column="false">
+                        </lightning-datatable>
+                    </div>
+                </template>
