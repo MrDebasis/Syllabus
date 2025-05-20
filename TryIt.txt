@@ -19,3 +19,14 @@ export default class CustomPicklistCell extends LightningDatatable {
         onchange={handleChange}>
     </lightning-combobox>
 </template>
+
+<template>
+    <lightning-card title="Data Table with Picklist">
+        <c-custom-picklist-cell
+            key-field="Id"
+            data={tableData}
+            columns={columns}
+            oncellchange={handleCellChange}>
+        </c-custom-picklist-cell>
+    </lightning-card>
+</template>
