@@ -30,3 +30,17 @@ export default class CustomPicklistCell extends LightningDatatable {
         </c-custom-picklist-cell>
     </lightning-card>
 </template>
+
+    handleCellChange(event) {
+        const rowId = event.target.dataset.id;
+        const newValue = event.detail.value;
+
+        // Update the tableData
+        this.tableData = this.tableData.map(row => {
+            if (row.Id === rowId) {
+                return { ...row, Status: newValue };
+            }
+            return row;
+        });
+    }
+
