@@ -1,58 +1,13 @@
-async  handleSave(event) {
-        this.showSpinner = true;
-        this.spinnerEvent();
-        const objectName = event.target.dataset.obj;
-        const draftValues = event.detail.draftValues;
-        console.log(`Saving for ${objectName}:`, draftValues);
+ // ✅ Access column config
+    const columnConfig = this.tables[objectName].columns;
 
-          // Add objectApiName to each record
-    const payloadList = draftValues.map(d => ({
-        ...d,
-        objectApiName: objectName
-    }));
-
-    try {
-        await saveRecord({ payloadList });
-        this.showSpinner = false;
-        this.spinnerEvent();
-        this.showToastAfterSaving('success', `Record saved successfully.`); 
-    } catch (error) {
-        this.showSpinner = false;
-        this.spinnerEvent();
-        this.showToastAfterSaving('error', `Error saving record. Details: ${
-            error.message || (error.body && error.body.message) || JSON.stringify(error)
-        }`);
-        console.error('Error saving records:', error);
-    }
-        this.tables[objectName].data = this.tables[objectName].data.map(row => {
-            const draft = draftValues.find(d => d.Id === row.Id);
-            return draft ? { ...row, ...draft } : row;
+    // Example: log each updated field label with value
+    draftValues.forEach(draft => {
+        Object.keys(draft).forEach(field => {
+            if (field !== 'Id') {
+                const columnMeta = columnConfig.find(col => col.fieldName === field);
+                const label = columnMeta?.label || field;
+                console.log(`Updating field ${label} (${field}) with value: ${draft[field]}`);
+            }
         });
-
-        this.tables[objectName].draftValues = [];
-    }
-
-  <template if:true={getCaseComment}>
-            <div class="pss-list-view-container">
-                <div class="font-style1 slds-m-bottom_small">Case Comments</div>
-                <template if:false={isCaseCommentTableRecords}>
-                    <div class="slds-m-horizontal_large slds-m-bottom_large slds-align_absolute-center"><b><i>{noRecordsFound}</i></b></div>
-                </template>   
-                <template if:true={isCaseCommentTableRecords}>         
-                    <div>
-                        <lightning-datatable
-                            key-field="Id"
-                            data={getCaseComment.data}
-                            columns={getCaseComment.columns}
-                            draft-values={getCaseComment.draftValues}
-                            onsave={handleSave}
-                            onsort={handleSort}
-                            sorted-by={getCaseComment.sortedBy}
-                            sorted-direction={getCaseComment.sortedDirection}
-                            hide-checkbox-column
-                            data-obj="CaseComment"
-                            resize-column-disabled
-                            show-row-number-column>
-                        </lightning-datatable>
-                    </div>
-                </template>
+    });
