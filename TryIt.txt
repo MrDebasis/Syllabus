@@ -1,58 +1,12 @@
-customDataTable1.js
+ picklistOptions = [
+        { label: 'Planned', value: 'Planned' },
+        { label: 'Confirmed', value: 'Confirmed' },
+        { label: 'Cancelled', value: 'Cancelled' }
+    ];
 
-import LightningDatatable from 'lightning/datatable';
-import customPicklistTemplate from './picklistCell.html';
-
-export default class CustomDataTable1 extends LightningDatatable {
-    static customTypes = {
-        customPicklist: {
-            template: customPicklistTemplate,
-            typeAttributes: ['options', 'value']
-        }
-    };
-}
-
-picklistCell.html
-
-<template>
-    <lightning-combobox
-        value={value}
-        options={options}
-        onchange={handleChange}>
-    </lightning-combobox>
-</template>
-
-picklistCell.js
-import { LightningElement, api } from 'lwc';
-
-export default class PicklistCell extends LightningElement {
-    @api value;
-    @api options = [];
-
-    handleChange(event) {
-        // Bubble the new value
-        this.dispatchEvent(new CustomEvent('cellchange', {
-            detail: {
-                value: event.detail.value
-            },
-            bubbles: true,
-            composed: true
-        }));
-    }
-}
-
-
-<c-custom-data-table1
-    key-field="Id"
-    data={travelDates.data}
-    columns={travelDates.columns}
-    draft-values={travelDates.draftValues}
-    onsave={handleSave}
-    onsort={handleSort}
-    sorted-by={travelDates.sortedBy}
-    sorted-direction={travelDates.sortedDirection}
-    hide-checkbox-column
-    data-obj="Trip__c"
-    resize-column-disabled
-    show-row-number-column="false">
-</c-custom-data-table1>
+typeAttributes: {
+                placeholder: 'Choose status',
+                options: this.picklistOptions,
+                value: { fieldName: 'Status__c' },
+                context: { fieldName: 'Id' }
+            }
