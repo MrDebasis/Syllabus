@@ -1,129 +1,40 @@
-@track showSpinner = false;
+  @AuraEnabled(cacheable=true)
+    public static List<Map<String, Object>> getPSPTrackerConfig(String objectName) {
+        // Get the logged-in user's role
+        User userRec = [SELECT UserRole.DeveloperName FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        String userRole = userRec.UserRole != null ? userRec.UserRole.DeveloperName : null;
 
-function getNextActionStyles(nextAction, nextActionDueDate) {
-    const isEmpty = val => val === null || val === undefined || val === '';
+        // Query PSPTrackerConfig__mdt records dynamically based on the object name
+        List<PSPTrackerConfig__mdt> configs = [
+            SELECT TableName__c, ColumnName__c, Label__c, DataType__c, Visible__c, Editable__c, ColumnWidth__c,PSSViewColumnOrder__c,
+                   IsSortingApplied__c, SortDirection__c, IsASCSortDirection__c, IsDESCSortDirection__c,
+                   PickListValues__c, IsString__c, IsNumber__c, IsDate__c, IsPickList__c, UserRole__c
+            FROM PSPTrackerConfig__mdt
+            WHERE TableName__c = :objectName AND UserRole__c LIKE :('%' + userRole + '%')
+        ];
 
-    const now = new Date();
-    const dueDate = nextActionDueDate ? new Date(nextActionDueDate) : null;
-    const isFutureDate = dueDate ? dueDate > now : false;
-    const isPastOrToday = dueDate ? dueDate <= now : false;
+        // Transform the data into the required format
+        List<Map<String, Object>> columnConfig = new List<Map<String, Object>>();
+        for (PSPTrackerConfig__mdt config : configs) {
+            Map<String, Object> column = new Map<String, Object>();
+            column.put('column_id', config.ColumnName__c);
+            column.put('label', config.Label__c);
+            column.put('data_type', config.DataType__c);
+            column.put('visible', config.Visible__c);
+            column.put('editable', config.Editable__c);
+            column.put('isString', config.IsString__c);
+            column.put('isNumber', config.IsNumber__c);
+            column.put('isDate', config.IsDate__c);
+            column.put('isPicklist', config.IsPickList__c);
+            column.put('picklist_values', config.PickListValues__c != null ? config.PickListValues__c.split(';') : null);
+            column.put('isSortingApplied', config.IsSortingApplied__c);
+            column.put('sortDirection', config.SortDirection__c);
+            column.put('IsAscsortDirection', config.IsASCSortDirection__c);
+            column.put('IsDescsortDirection', config.IsDESCSortDirection__c);
+            column.put('PSSViewColumnOrder', config.PSSViewColumnOrder__c);
+            column.put('ColumnWidth', config.ColumnWidth__c);
+            columnConfig.add(column);
+        }
 
-    let nextActionClass = '';
-    let nextActionDueDateClass = '';
-
-    if (isEmpty(nextAction) && isEmpty(nextActionDueDate)) {
-        nextActionClass = 'highlight-yellow';
-        nextActionDueDateClass = 'highlight-yellow';
+        return columnConfig;
     }
-    else if (!isEmpty(nextAction) && isEmpty(nextActionDueDate)) {
-        nextActionClass = '';
-        nextActionDueDateClass = 'highlight-yellow';
-    }
-    else if (isEmpty(nextAction) && isFutureDate) {
-        nextActionClass = 'highlight-red';
-        nextActionDueDateClass = 'highlight-red';
-    }
-    else if (!isEmpty(nextAction) && isFutureDate) {
-        nextActionClass = 'highlight-red';
-        nextActionDueDateClass = 'highlight-red';
-    }
-    else if (isEmpty(nextAction) && isPastOrToday) {
-        nextActionClass = 'highlight-yellow';
-        nextActionDueDateClass = '';
-    }
-    else if (!isEmpty(nextAction) && isPastOrToday) {
-        nextActionClass = '';
-        nextActionDueDateClass = '';
-    }
-
-    return {
-        nextActionClass,
-        nextActionDueDateClass
-    };
-}
-
-async handleSave(event) {
-    this.showSpinner = true;
-    const rowId = event.target.dataset.id;
-
-    const updatedRow = this.processedCases.find(row => row.Id === rowId);
-    if (!updatedRow) {
-        console.warn(`No row found with rowId: ${rowId}`);
-        this.showSpinner = false;
-        return;
-    }
-
-    const updatedValues = this.editedValues[rowId];
-
-    if (!updatedValues || Object.keys(updatedValues).length === 0) {
-        this.handleCancel(event);
-        this.showSpinner = false;
-        this.showToastAfterSaving('success', `Record saved successfully.`);
-        return;
-    }
-
-    const payload = {
-        recordId: rowId,
-        objectApiName: updatedRow.objectApiName || 'Case',
-        fieldName: Object.keys(updatedValues)[0],
-        updatedValue: updatedValues[Object.keys(updatedValues)[0]]
-    };
-
-    console.log('Payload to send to backend:', JSON.stringify(payload));
-
-    try {
-        await saveRecord({ payload });
-
-        console.log(`Record saved successfully.`);
-
-        // After save, get the updated field values (merge new values with existing row data)
-        const newNextAction = updatedValues.NextAction__c ?? updatedRow.NextAction__c;
-        const newNextActionDueDate = updatedValues.NextActionDueDate__c ?? updatedRow.NextActionDueDate__c;
-
-        // Get updated CSS classes according to scenarios
-        const { nextActionClass, nextActionDueDateClass } = getNextActionStyles(newNextAction, newNextActionDueDate);
-
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                return {
-                    ...row,
-                    isEditing: false,
-                    detailRowKeyForSaveAndCancel: null,
-                    // Update columns with new values and cellClass for next action fields
-                    columns: row.columns.map(col => {
-                        let updatedValue = updatedValues[col.field] ?? col.value;
-                        let updatedClass = col.cellClass;
-
-                        if (col.field === 'NextAction__c') {
-                            updatedClass = nextActionClass;
-                        } else if (col.field === 'NextActionDueDate__c') {
-                            updatedClass = nextActionDueDateClass;
-                        } else if (col.field === Object.keys(updatedValues)[0]) {
-                            // For any other updated field reset class
-                            updatedClass = '';
-                        }
-
-                        return {
-                            ...col,
-                            value: updatedValue,
-                            isEditing: false,
-                            cellClass: updatedClass
-                        };
-                    })
-                };
-            }
-            return row;
-        });
-
-        delete this.editedValues[rowId];
-        this.showSpinner = false;
-        this.showToastAfterSaving('success', `Record saved successfully.`);
-
-    } catch (error) {
-        this.showSpinner = false;
-        this.showToastAfterSaving('error', `Error saving record. Details: ${
-            error.message || (error.body && error.body.message) || JSON.stringify(error)
-        }`);
-        console.error(`Error saving record with rowId: ${rowId}`, error);
-    }
-}
