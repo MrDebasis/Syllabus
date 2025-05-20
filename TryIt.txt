@@ -1,1 +1,28 @@
-userRole == '' ? : config.PickListValues__c != null ? config.PickListValues__c.split(';') : null);
+  customSortByNextActionFields(cases) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+        
+            const isEmpty = val => val === null || val === undefined || String(val).trim() === '';
+        
+            const getPriority = (record) => {
+                const actionEmpty = isEmpty(record.NextAction__c);
+                const dueDateEmpty = isEmpty(record.NextActionDueDate__c);
+                const dueDate = dueDateEmpty ? null : new Date(record.NextActionDueDate__c);
+        
+                if (actionEmpty && dueDateEmpty) {
+                    return 2; // Highest priority
+                } else if (actionEmpty || dueDateEmpty) {
+                    return 3;
+                } else if (dueDate < today) {
+                    return 1;
+                } else {
+                    return 4; // Lowest priority
+                }
+            };
+        
+            return cases.sort((a, b) => {
+                const priorityA = getPriority(a);
+                const priorityB = getPriority(b);
+                return priorityA - priorityB;
+            });
+        }
