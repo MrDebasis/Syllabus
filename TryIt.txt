@@ -1,28 +1,68 @@
-updateNextActionHighlight(objectName, draftValues) {
-    this.tables[objectName].data = this.tables[objectName].data.map(row => {
-        const draft = draftValues.find(d => d.Id === row.Id);
-        const mergedRow = { ...row, ...draft };
+ @track showSpinner = false;
+    async handleSave(event) {
+        this.showSpinner = true;
+        const rowId = event.target.dataset.id;  // Get recordId from the event
 
-        const nextAction = mergedRow['NextAction__c'];
-        const dueDateStr = mergedRow['NextActionDueDate__c'];
-        const dueDate = dueDateStr ? new Date(dueDateStr) : null;
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) {
+            console.warn(`No row found with rowId: ${rowId}`);
+            this.showSpinner = false;
+            return;
+        }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const updatedValues = this.editedValues[rowId];
 
-        // Update columns array with correct class for NextAction__c
-        const updatedColumns = row.columns.map(cell => {
-            if (cell.field === 'nextaction__c') {
-                if ([null, '', undefined].includes(nextAction)) {
-                    if (dueDate && dueDate > today) {
-                        return { ...cell, cellClass: 'highlight-yellow' };
-                    }
+        if(!updatedValues || Object.keys(updatedValues).length === 0) {
+            this.handleCancel(event);
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`);
+            return;
+        }
+
+        // Prepare the payload for the Apex method
+        const payload = {
+            recordId: rowId,
+            objectApiName: updatedRow.objectApiName || 'Case',  // Use the objectApiName dynamically
+            fieldName: Object.keys(updatedValues)[0],  // Get the first field to update (can be expanded to multiple fields)
+            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  // Get the updated value
+        };
+
+        console.log('Payload to send to backend:', JSON.stringify(payload));
+
+        try {
+            // Call Apex method to update the record
+            await saveRecord({ payload });
+
+            console.log(`Record saved successfully.`);
+
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`); 
+            // Update the UI after successful save
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    return {
+                        ...row,
+                        isEditing: false,  // Exit editing mode
+                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
+                            isEditing: false,  // Reset editing state
+                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass // Reset cellClass only for the updated field
+                        }))
+                    };
                 }
-                return { ...cell, cellClass: '' }; // Clear the class otherwise
-            }
-            return cell;
-        });
+                return row;
+            });
 
-        return { ...mergedRow, columns: updatedColumns };
-    });
-}
+            // Remove the edited values after save
+            delete this.editedValues[rowId];
+
+        } catch (error) {
+            this.showSpinner = false;
+            this.showToastAfterSaving('error', `Error saving record. Details: ${
+                error.message || (error.body && error.body.message) || JSON.stringify(error)
+            }`);
+            console.error(`Error saving record with rowId: ${rowId}`, error);
+        }
+    }
