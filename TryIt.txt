@@ -1,13 +1,12 @@
- // ✅ Access column config
-    const columnConfig = this.tables[objectName].columns;
-
-    // Example: log each updated field label with value
-    draftValues.forEach(draft => {
-        Object.keys(draft).forEach(field => {
-            if (field !== 'Id') {
-                const columnMeta = columnConfig.find(col => col.fieldName === field);
-                const label = columnMeta?.label || field;
-                console.log(`Updating field ${label} (${field}) with value: ${draft[field]}`);
-            }
+  draftValues.forEach(draft => {
+            Object.keys(draft).forEach(field => {
+                if (field !== 'Id') {
+                    const columnMeta = columnConfig.find(col => col.fieldName === field);
+                    const label = columnMeta?.label || field;
+                    console.log(`Updating field ${label} (${field}) with value: ${draft[field]}`);
+                    if(objectName == 'Trip__c' && field == 'Lodging_Arranged_by__c' && [null, '', undefined].includes(draft[field]) && !['PSP'].includes(draft[field])) {
+                       this.travelPickListValueError = 'Available values are ';
+                    }
+                }
+            });
         });
-    });
