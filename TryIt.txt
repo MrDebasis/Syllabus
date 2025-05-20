@@ -1,26 +1,48 @@
-updateNextActionStyling(row) {
-    const nextActionCol = row.columns.find(col => col.field === 'nextaction__c');
-    const dueDateCol = row.columns.find(col => col.field === 'nextactionduedate__c');
+updateNextActionHighlighting(processedCases) {
+    return processedCases.map(row => {
+        let dueDate = null;
+        let nextActionValue = null;
 
-    if (!nextActionCol || !dueDateCol) return row;
+        // Extract values for logic
+        row.columns.forEach(col => {
+            if (col.field === 'nextactionduedate__c') {
+                dueDate = col.value ? new Date(col.value) : null;
+            }
+            if (col.field === 'nextaction__c') {
+                nextActionValue = col.value;
+            }
+        });
 
-    const dueDate = dueDateCol.value ? new Date(dueDateCol.value) : null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    if (dueDate && dueDate > today) {
-        // Future date
-        dueDateCol.cellClass = 'highlight-red';
-        nextActionCol.cellClass = 'highlight-red';
-    } else {
-        // Due date is today or past
-        dueDateCol.cellClass = ''; // no class
-        if ([null, '', undefined].includes(nextActionCol.value)) {
-            nextActionCol.cellClass = 'highlight-yellow';
-        } else {
-            nextActionCol.cellClass = ''; // filled
-        }
-    }
+        const isFutureDate = dueDate && dueDate > today;
+        const isNextActionEmpty = [null, '', undefined].includes(nextActionValue);
 
-    return row;
+        return {
+            ...row,
+            columns: row.columns.map(col => {
+                let cellClass = col.cellClass;
+
+                if (col.field === 'nextactionduedate__c') {
+                    cellClass = isFutureDate ? 'highlight-red' : '';
+                }
+
+                if (col.field === 'nextaction__c') {
+                    if (isFutureDate) {
+                        cellClass = 'highlight-red';
+                    } else if (isNextActionEmpty) {
+                        cellClass = 'highlight-yellow';
+                    } else {
+                        cellClass = '';
+                    }
+                }
+
+                return {
+                    ...col,
+                    cellClass
+                };
+            })
+        };
+    });
 }
