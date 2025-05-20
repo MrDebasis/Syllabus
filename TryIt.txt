@@ -1,68 +1,19 @@
- @track showSpinner = false;
-    async handleSave(event) {
-        this.showSpinner = true;
-        const rowId = event.target.dataset.id;  // Get recordId from the event
+ updatedRow = this.updateNextActionCellHighlight(updatedRow);
 
-        const updatedRow = this.processedCases.find(row => row.Id === rowId);
-        if (!updatedRow) {
-            console.warn(`No row found with rowId: ${rowId}`);
-            this.showSpinner = false;
-            return;
-        }
+updateNextActionCellHighlight(row) {
+    const nextActionCol = row.columns.find(col => col.field === 'nextaction__c');
+    const dueDateCol = row.columns.find(col => col.field === 'nextactionduedate__c');
 
-        const updatedValues = this.editedValues[rowId];
+    if (!nextActionCol || !dueDateCol) return row;
 
-        if(!updatedValues || Object.keys(updatedValues).length === 0) {
-            this.handleCancel(event);
-            this.showSpinner = false;
-            this.showToastAfterSaving('success', `Record saved successfully.`);
-            return;
-        }
+    const dueDate = dueDateCol.value ? new Date(dueDateCol.value) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        // Prepare the payload for the Apex method
-        const payload = {
-            recordId: rowId,
-            objectApiName: updatedRow.objectApiName || 'Case',  // Use the objectApiName dynamically
-            fieldName: Object.keys(updatedValues)[0],  // Get the first field to update (can be expanded to multiple fields)
-            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  // Get the updated value
-        };
+    const isFutureDue = dueDate && dueDate > today;
+    const isNextActionBlank = [null, '', undefined].includes(nextActionCol.value);
 
-        console.log('Payload to send to backend:', JSON.stringify(payload));
+    nextActionCol.cellClass = (isFutureDue && isNextActionBlank) ? 'highlight-yellow' : '';
 
-        try {
-            // Call Apex method to update the record
-            await saveRecord({ payload });
-
-            console.log(`Record saved successfully.`);
-
-            this.showSpinner = false;
-            this.showToastAfterSaving('success', `Record saved successfully.`); 
-            // Update the UI after successful save
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    return {
-                        ...row,
-                        isEditing: false,  // Exit editing mode
-                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
-                        columns: row.columns.map(col => ({
-                            ...col,
-                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
-                            isEditing: false,  // Reset editing state
-                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass // Reset cellClass only for the updated field
-                        }))
-                    };
-                }
-                return row;
-            });
-
-            // Remove the edited values after save
-            delete this.editedValues[rowId];
-
-        } catch (error) {
-            this.showSpinner = false;
-            this.showToastAfterSaving('error', `Error saving record. Details: ${
-                error.message || (error.body && error.body.message) || JSON.stringify(error)
-            }`);
-            console.error(`Error saving record with rowId: ${rowId}`, error);
-        }
-    }
+    return row;
+}
