@@ -1,4 +1,12 @@
 get caseTable() {
-        this.isCaseTableRecords = this.tables['Case'] && this.tables['Case'].data.length > 0;
-        return this.tables['Case'];
+    const caseTable = this.tables['Case'];
+    if (caseTable && caseTable.data.length > 0) {
+        // Check if at least one record has any field (other than Id) with a non-empty value
+        this.isCaseTableRecords = caseTable.data.some(record => {
+            return Object.keys(record).some(key => key !== 'Id' && record[key] !== null && record[key] !== undefined && String(record[key]).trim() !== '');
+        });
+    } else {
+        this.isCaseTableRecords = false;
     }
+    return caseTable;
+}
