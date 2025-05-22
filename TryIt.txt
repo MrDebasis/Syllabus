@@ -1,3 +1,11 @@
- const valDate = new Date(value);
-                const [start, end] = filter.value.map(v => new Date(v));
-                return valDate >= start && valDate <= end;
+const valDate = new Date(value); // e.g., value = "2023-12-12"
+
+// Convert all values in filter.value to Date objects
+const dateArray = filter.value.map(v => new Date(v));
+
+// Find the earliest and latest dates
+const start = new Date(Math.min(...dateArray));
+const end = new Date(Math.max(...dateArray));
+
+// Compare valDate with the start and end range
+return valDate >= start && valDate <= end;
