@@ -1,210 +1,115 @@
-<template>
-    <div class="survey-container">
+ @track editedValues = {}; // Stores temp edits
+    handleRowAction(event) {
+        const rowId = event.target.dataset.id;
+        this.processedCases = this.processedCases.map(row => ({
+            ...row,
+            isExpanded: row.Id === rowId ? !row.isExpanded : row.isExpanded,
+            showContent: row.Id === rowId ? !row.showContent : row.showContent
+        }));
+    }
+    
+    handleEditClick(event) {
+        const rowId = event.target.dataset.id;
+        const field = event.target.dataset.field;
 
-        <!-- Date Inputs -->
-        <template if:true={showDateInputs}>
-            <template for:each={renderedDateQuestions} for:item="q">
-                <lightning-input
-                    key={q.id}
-                    type={q.type}
-                    name={q.id}
-                    label={q.label}
-                    value={q.value}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
-            </template>
-        </template>
-
-        <!-- Yes/No Question -->
-        <template if:true={showYesNo}>
-            <lightning-radio-group
-                label={yesNoLabel}
-                name="yesno"
-                options={yesNoOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
-        </template>
-
-        <!-- Multiple Choice Question -->
-        <template if:true={showMultipleChoice}>
-            <lightning-radio-group
-                label={multipleChoiceLabel}
-                name="multiplechoice"
-                options={multipleChoiceOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
-        </template>
-
-        <!-- Thank You Message -->
-        <template if:true={showMessage}>
-            <div class="thank-you">{messageLabel}</div>
-        </template>
-
-        <!-- Next Button -->
-        <lightning-button
-            class="slds-m-top_medium"
-            variant="brand"
-            label="Next"
-            onclick={handleNext}
-            disabled={isNextButtonDisabled}>
-        </lightning-button>
-    </div>
-</template>
-
-
-import { LightningElement, track } from 'lwc';
-
-const surveyConfig = {
-    apheresis: {
-        steps: {
-            start: {
-                type: 'dateInputs',
-                questions: [
-                    { id: 'dob', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
-                    { id: 'lastVisit', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
-                    { id: 'nextVisit', label: 'What day should the patient depart?*', type: 'date', required: true }
-                ],
-                next: 'question1'
-            },
-            question1: {
-                type: 'yesNo',
-                questionId: 'serviceHelpful',
-                label: 'Was the service helpful?',
-                required: true,
-                options: ['Yes', 'No'],
-                next: 'question2'
-            },
-            question2: {
-                type: 'multipleChoice',
-                questionId: 'futureVisit',
-                label: 'Would you like to visit again?',
-                required: true,
-                options: ['Yes', 'No', 'Not Sure Yet'],
-                next: 'end'
-            },
-            end: {
-                type: 'message',
-                label: 'Thank you for completing the survey.'
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                return {
+                    ...row,
+                    isEditing: true, // Set row to editing mode
+                    detailRowKeyForSaveAndCancel: `${row.Id}-save-cancel`, // Add key for Save and Cancel row
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        isEditing: col.field === field
+                    }))
+                };
             }
-        }
-    }
-};
-
-export default class PspSurveyLWCComponent extends LightningElement {
-
-    @track currentStep = 'start';
-    @track answers = {};
-    @track selectedOption = '';
-
-    @track showDateInputs = false;
-    @track showYesNo = false;
-    @track showMultipleChoice = false;
-    @track showMessage = false;
-    @track isNextButtonDisabled = true;
-
-    @track renderedDateQuestions = [];
-    @track yesNoLabel = '';
-    @track yesNoOptions = [];
-    @track multipleChoiceLabel = '';
-    @track multipleChoiceOptions = [];
-    @track messageLabel = '';
-
-    connectedCallback() {
-        this.updateUIFlags();
-    }
-
-    get stepConfig() {
-        return surveyConfig.apheresis.steps[this.currentStep];
-    }
-
-    updateUIFlags() {
-        const step = this.stepConfig;
-
-        // Reset flags
-        this.showDateInputs = false;
-        this.showYesNo = false;
-        this.showMultipleChoice = false;
-        this.showMessage = false;
-        this.isNextButtonDisabled = true;
-        this.renderedDateQuestions = [];
-        this.yesNoLabel = '';
-        this.yesNoOptions = [];
-        this.multipleChoiceLabel = '';
-        this.multipleChoiceOptions = [];
-        this.messageLabel = '';
-
-        switch (step.type) {
-            case 'dateInputs':
-                this.showDateInputs = true;
-                this.renderedDateQuestions = step.questions.map(q => ({
-                    ...q,
-                    value: this.answers[q.id] || ''
-                }));
-                break;
-            case 'yesNo':
-                this.showYesNo = true;
-                this.yesNoLabel = step.label;
-                this.yesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'multipleChoice':
-                this.showMultipleChoice = true;
-                this.multipleChoiceLabel = step.label;
-                this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'message':
-                this.showMessage = true;
-                this.messageLabel = step.label;
-                break;
-        }
-
-        this.updateNextButtonState();
-    }
-
-    handleInputChange(event) {
-        const { name, value } = event.target;
-        this.answers[name] = value;
-
-        // Update renderedDateQuestions for value binding
-        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
-            return q.id === name ? { ...q, value } : q;
+            return {
+                ...row,
+                isEditing: false, // Ensure other rows are not in editing mode
+                detailRowKeyForSaveAndCancel: null, // Clear Save and Cancel row key for other rows
+                columns: row.columns.map(col => ({
+                    ...col,
+                    isEditing: false
+                }))
+            };
         });
-
-        this.updateNextButtonState();
     }
-
-    handleOptionChange(event) {
-        this.selectedOption = event.detail.value;
-        const step = this.stepConfig;
-        this.answers[step.questionId] = this.selectedOption;
-
-        this.updateNextButtonState();
+    
+    handleInputChange(event) {
+        const rowId = event.target.dataset.id;
+        const field = event.target.dataset.field;
+        const value = event.target.value;
+    
+        if (!this.editedValues[rowId]) {
+            this.editedValues[rowId] = {};
+        }
+        this.editedValues[rowId][field] = value;
     }
+    
+    @track showSpinner = false;
+    async handleSave(event) {
+        this.showSpinner = true;
+        const rowId = event.target.dataset.id;  // Get recordId from the event
 
-    updateNextButtonState() {
-        const step = this.stepConfig;
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) {
+            this.showSpinner = false;
+            return;
+        }
 
-        switch (step.type) {
-            case 'dateInputs':
-                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
-                break;
-            case 'yesNo':
-            case 'multipleChoice':
-                this.isNextButtonDisabled = !this.selectedOption;
-                break;
-            default:
-                this.isNextButtonDisabled = false;
-                break;
+        const updatedValues = this.editedValues[rowId];
+
+        if(!updatedValues || Object.keys(updatedValues).length === 0) {
+            this.handleCancel(event);
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`);
+            return;
+        }
+
+        // Prepare the payload for the Apex method
+        const payload = {
+            recordId: rowId,
+            objectApiName: updatedRow.objectApiName || 'Case',  // Use the objectApiName dynamically
+            fieldName: Object.keys(updatedValues)[0],  // Get the first field to update (can be expanded to multiple fields)
+            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  // Get the updated value
+        };
+
+
+        try {
+            // Call Apex method to update the record
+            await saveRecord({ payload });
+
+
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`); 
+            // Update the UI after successful save
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    let updatedRow = {
+                        ...row,
+                        isEditing: false,  // Exit editing mode
+                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
+                            isEditing: false,  // Reset editing state
+                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass // Reset cellClass only for the updated field
+                        }))
+                    };
+                    updatedRow = this.updateNextActionStyling(updatedRow);
+                    return updatedRow;
+                }
+                return row;
+            });
+            // Remove the edited values after save
+            delete this.editedValues[rowId];
+
+        } catch (error) {
+            this.showSpinner = false;
+            this.showToastAfterSaving('error', `Error saving record. Details: ${
+                error.message || (error.body && error.body.message) || JSON.stringify(error)
+            }`);
         }
     }
-
-    handleNext() {
-        this.selectedOption = '';
-        this.currentStep = this.stepConfig.next;
-        this.updateUIFlags();
-    }
-}
+ 
