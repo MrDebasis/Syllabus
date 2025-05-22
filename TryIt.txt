@@ -1,48 +1,151 @@
-handleEditClick(event) {
-    const rowId = event.target.dataset.id;
-    const field = event.target.dataset.field;
-
-    // Step 1: Flush pending edited values into UI before switching
-    const pendingEdits = this.editedValues[rowId];
-    if (pendingEdits) {
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                return {
-                    ...row,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        value: pendingEdits[col.field] !== undefined ? pendingEdits[col.field] : col.value
-                    }))
-                };
+import { LightningElement ,track} from 'lwc';
+const surveyConfig = {
+    apheresis: {
+        steps: {
+            start: {
+                type: 'date',
+                questions: [
+                    { id: 'Apheresis-Q1-P1', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
+                    { id: 'Apheresis-Q2-P1', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
+                    { id: 'Apheresis-Q3-P1', label: 'What day should the patient depart?*', type: 'date', required: true }
+                ],
+                next: 'screen2'
+            },
+            screen2: {
+                id: 'Apheresis-P2',
+                type: 'yesNo',
+                questionId: 'serviceHelpful',
+                label: 'Are the dates provided related to CARVYKTI® treatment?*',
+                required: true,
+                options: ['Yes', 'No'],
+                next: 'screen3'
+            },
+            screen3: {
+                type: 'multipleChoice',
+                questionId: 'futureVisit',
+                label: 'Will the patient receive bridging therapy at your certified treatment center?*',
+                required: true,
+                options: ['Yes', 'No', 'Not Sure Yet'],
+                next: 'end'
+            },
+            end: {
+                type: 'message',
+                label: 'Thank you for completing the survey.'
             }
-            return row;
-        });
+        }
+    }
+};
+export default class PspSurveyLWCComponent extends LightningElement {
+   
 
-        // Optional: Clear editedValues after flush if you want to discard old edits
-        // delete this.editedValues[rowId];
+    @track currentStep = 'start';
+    @track answers = {};
+    @track selectedOption = '';
+
+    @track showDateInputs = false;
+    @track showYesNo = false;
+    @track showMultipleChoice = false;
+    @track showMessage = false;
+    @track isNextButtonDisabled = true;
+
+    @track renderedDateQuestions = [];
+    @track yesNoLabel = '';
+    @track yesNoOptions = [];
+    @track multipleChoiceLabel = '';
+    @track multipleChoiceOptions = [];
+    @track messageLabel = '';
+
+    connectedCallback() {
+        this.updateUIFlags();
     }
 
-    // Step 2: Now apply the new editing state
-    this.processedCases = this.processedCases.map(row => {
-        if (row.Id === rowId) {
-            return {
-                ...row,
-                isEditing: true,
-                detailRowKeyForSaveAndCancel: `${row.Id}-save-cancel`,
-                columns: row.columns.map(col => ({
-                    ...col,
-                    isEditing: col.field === field
-                }))
-            };
+    get stepConfig() {
+        return surveyConfig.apheresis.steps[this.currentStep];
+    }
+
+    updateUIFlags() {
+        const step = this.stepConfig;
+
+        // Reset flags
+        this.showDateInputs = false;
+        this.showYesNo = false;
+        this.showMultipleChoice = false;
+        this.showMessage = false;
+        this.isNextButtonDisabled = true;
+        this.renderedDateQuestions = [];
+        this.yesNoLabel = '';
+        this.yesNoOptions = [];
+        this.multipleChoiceLabel = '';
+        this.multipleChoiceOptions = [];
+        this.messageLabel = '';
+
+        switch (step.type) {
+            case 'date':
+                this.showDateInputs = true;
+                this.renderedDateQuestions = step.questions.map(q => ({
+                    ...q,
+                    value: this.answers[q.id] || ''
+                }));
+                break;
+            case 'yesNo':
+                this.showYesNo = true;
+                this.yesNoLabel = step.label;
+                this.yesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
+                break;
+            case 'multipleChoice':
+                this.showMultipleChoice = true;
+                this.multipleChoiceLabel = step.label;
+                this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
+                break;
+            case 'message':
+                this.showMessage = true;
+                this.messageLabel = step.label;
+                break;
         }
-        return {
-            ...row,
-            isEditing: false,
-            detailRowKeyForSaveAndCancel: null,
-            columns: row.columns.map(col => ({
-                ...col,
-                isEditing: false
-            }))
-        };
-    });
+
+        this.updateNextButtonState();
+    }
+
+    handleInputChange(event) {
+        const { name, value } = event.target;
+        this.answers[name] = value;
+
+        // Update renderedDateQuestions for value binding
+        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
+            return q.id === name ? { ...q, value } : q;
+        });
+        console.log('this.renderedDateQuestions', JSON.stringify(this.renderedDateQuestions));
+        this.updateNextButtonState();
+    }
+
+    handleOptionChange(event) {
+        this.selectedOption = event.detail.value;
+        const step = this.stepConfig;
+        this.answers[step.questionId] = this.selectedOption;
+
+        this.updateNextButtonState();
+    }
+
+    updateNextButtonState() {
+        const step = this.stepConfig;
+
+        switch (step.type) {
+            case 'date':
+                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
+                break;
+            case 'yesNo':
+            case 'multipleChoice':
+                this.isNextButtonDisabled = !this.selectedOption;
+                break;
+            default:
+                this.isNextButtonDisabled = false;
+                break;
+        }
+    }
+
+    handleNext() {
+        this.selectedOption = '';
+        this.currentStep = this.stepConfig.next;
+        this.updateUIFlags();
+    }
 }
