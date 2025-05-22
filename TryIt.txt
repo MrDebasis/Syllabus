@@ -1,208 +1,855 @@
-<template>
-    <div class="survey-container">
+import { LightningElement,wire,track,api} from 'lwc';
+import FORM_FACTOR from '@salesforce/client/formFactor';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import myResource from '@salesforce/resourceUrl/Patient_Portal';
+import saveExpense from '@salesforce/apex/AddExpenseController.saveExpense';
+import getAuditFlagDetailsFromCase from '@salesforce/apex/PortalAddExpenseController.getAuditFlagDetailsFromCase';
+import renameFileTitle from '@salesforce/apex/PortalAddExpenseController.renameFileTitle';
+import PATIENT_PORTAL_CSS from '@salesforce/resourceUrl/PatientPortal';
+import { loadStyle } from 'lightning/platformResourceLoader';
+import { labels } from 'c/pspCustomLabelsLWCComponent';
+import { refreshApex } from '@salesforce/apex';
 
-        <!-- Date Inputs -->
-        <template if:true={showDateInputs}>
-            <template for:each={renderedDateQuestions} for:item="q">
-                <lightning-input
-                    key={q.id}
-                    type={q.type}
-                    name={q.id}
-                    label={q.label}
-                    value={q.value}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
-            </template>
-        </template>
+const showReceiptScreenCategories = {
+    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen', width: 'slds-progress-bar__value percentage0', btnName : 'Next'},
+    2: { bool: 'enableTwentyDollerScr' , value: 'valuesFromTwentyDollerScreen', width: 'slds-progress-bar__value percentage25', btnName : 'Next'},
+    3: { bool: 'enableReceiptScreen' , value: 'valuesFromReceiptScreen', width: 'slds-progress-bar__value percentage50', btnName : 'Next'},
+    4: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen', width: 'slds-progress-bar__value percentage75', btnName : 'Add expense' }
+};
+const showWithOutReceiptScreenCategories = {
+    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen',width: 'slds-progress-bar__value percentage0',btnName : 'Next'},
+    2: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen',width: 'slds-progress-bar__value percentage50' ,btnName : 'Add expense'}
+};
+const showSubCategoryWithReceiptScreenCategories = {
+    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen',width: 'slds-progress-bar__value percentage0', btnName : 'Next'},
+    2: { bool: 'enableSubCategoryScreen', value: 'valuesFromSubCategoryScreen',width: 'slds-progress-bar__value percentage40', btnName : 'Next' },
+    3: { bool: 'enableTwentyDollerScr' , value: 'valuesFromTwentyDollerScreen', width: 'slds-progress-bar__value percentage20', btnName : 'Next'},
+    4: { bool: 'enableReceiptScreen', value: 'valuesFromReceiptScreen',width: 'slds-progress-bar__value percentage60', btnName : 'Next' },
+    5: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen',width: 'slds-progress-bar__value percentage80', btnName : 'Add expense' }
+};
 
-        <!-- Yes/No Question -->
-        <template if:true={showYesNo}>
-            <lightning-radio-group
-                label={yesNoLabel}
-                name="yesno"
-                options={yesNoOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
-        </template>
+const LESS_THEN_20 = 'LESS_THEN_20';
+const GREATER_THEN_20 = 'GREATER_THEN_20';
 
-        <!-- Multiple Choice Question -->
-        <template if:true={showMultipleChoice}>
-            <lightning-radio-group
-                label={multipleChoiceLabel}
-                name="multiplechoice"
-                options={multipleChoiceOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
-        </template>
+export default class Psp_AddExpense_LWCComponent extends LightningElement {
+    labelsList = labels;
+    blueCrossIcon = `${myResource}/icons/BlueCrossIcon.svg`;
 
-        <!-- Thank You Message -->
-        <template if:true={showMessage}>
-            <div class="thank-you">{messageLabel}</div>
-        </template>
+    @track currentScreenIndex =1;
+    @track totalScreenIndex = 4;
+    @track nextClicked = 0;
+    @track backClicked = 0;
+    @track enableReceiptScreen =false;
+    @track enableTwentyDollerScr= false;
+    @track enableBydefultFirstScreen =false;
+    @track enableSubCategoryScreen =false;
+    @track enableExpenseDetailsScreen =false;
+    @track selectedExpenseCategory ='Meals and Supplies';
+    @track nextbuttonDisabled = true;
+    @track flowScreens = 
+    {
+        'Airline Fees' : showReceiptScreenCategories,
+        'Car Rental' : showReceiptScreenCategories,
+        'Hotel Fees' : showReceiptScreenCategories,
+        'Internet/Online' : showReceiptScreenCategories,
+        'Long Term Public Transportation (Rail/Bus)' : showReceiptScreenCategories,
+        'Meals and Supplies' : showReceiptScreenCategories,
+        'Miscellaneous' : showReceiptScreenCategories,
+        'Non Reimbursable Expense' : showReceiptScreenCategories,
+        'Parking' : showReceiptScreenCategories,
+        'Personal Car Expenses' : showReceiptScreenCategories,
+        'Public Transport':showReceiptScreenCategories,
+        'Taxi or Ride Share': showReceiptScreenCategories,
+        'Tips/Gratuities': showWithOutReceiptScreenCategories,
+        'Personal Car Mileage' : showWithOutReceiptScreenCategories,
+        'Laundry' : showSubCategoryWithReceiptScreenCategories,
+        'Tolls': showSubCategoryWithReceiptScreenCategories
+    }
 
-        <!-- Next Button -->
-        <lightning-button
-            class="slds-m-top_medium"
-            variant="brand"
-            label="Next"
-            onclick={handleNext}
-            disabled={isNextButtonDisabled}>
-        </lightning-button>
-    </div>
-</template>
-import { LightningElement ,track} from 'lwc';
-const surveyConfig = {
-    apheresis: {
-        steps: {
-            start: {
-                type: 'date',
-                questions: [
-                    { id: 'Apheresis-Q1-P1', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
-                    { id: 'Apheresis-Q2-P1', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
-                    { id: 'Apheresis-Q3-P1', label: 'What day should the patient depart?*', type: 'date', required: true }
-                ],
-                next: 'screen2'
-            },
-            screen2: {
-                id: 'Apheresis-P2',
-                type: 'yesNo',
-                questionId: 'serviceHelpful',
-                label: 'Are the dates provided related to CARVYKTI® treatment?*',
-                required: true,
-                options: ['Yes', 'No'],
-                next: 'screen3'
-            },
-            screen3: {
-                type: 'multipleChoice',
-                questionId: 'futureVisit',
-                label: 'Will the patient receive bridging therapy at your certified treatment center?*',
-                required: true,
-                options: ['Yes', 'No', 'Not Sure Yet'],
-                next: 'end'
-            },
-            end: {
-                type: 'message',
-                label: 'Thank you for completing the survey.'
+    options = [
+        { label: 'Meals or supplies', value: 'Meals and Supplies' },
+        { label: 'Parking', value: 'Parking' },
+        { label: 'Taxi or ride share', value: 'Taxi or Ride Share' },
+        { label: 'Cash tip', value: 'Tips/Gratuities' },
+        { label: 'Hotel fee', value: 'Hotel Fees' },
+        { label: 'Laundry', value: 'Laundry' },
+        { label: 'Toll', value: 'Tolls' },
+        { label: 'Public transportation', value: 'Public Transport' },
+        { label: 'Airline fees', value: 'Airline Fees' },
+        { label: 'Mileage', value: 'Personal Car Mileage' },
+        { label: 'Miscellaneous', value: 'Miscellaneous' }
+    ];
+
+    //Screen Values holding back or Next
+    @track valuesFromReceiptScreen;
+    @track valuesFromTwentyDollerScreen;
+    @track valuesFromSubCategoryScreen;
+    @track valuesFromExpenseDetailsScreen;
+
+    /**SubCategory value for Tolls/Laundry  2nd Screen*/
+    @track expenseSubCategory;
+    @track expenseCategory;
+    @track expenseDate;
+    @track cityOfPurchage;
+    @track vendor;
+    @track expenseAmount;
+    @track expenseFor;
+    @track receiptValue;
+    @track description;
+    @track destinationPatientZipcodePostcode; 
+    @track destinationPatientStateRegionProvince;
+    @track destinationPatientCityTown;
+    @track destinationPatientAddressLine;
+    @track departurePatientPortalZIPPostcode;
+    @track departurePatientPortalState;
+    @track departurePatientPortalCity;
+    @track departureStreetAddress;
+    @track Departure_Address_R51__c;
+    @track Destination_Address_R51__c;
+    @track ADD_EXPENSE;
+    @track RECEPT_ADDED;
+    @track IS_LESSTHEN_TWENTY;
+    /**SubCategory value for Tolls/Laundry */
+
+    @track showMissingReceptScreen = false;
+    @track isAuditFlagTrue = 'false';
+    @track hideHeader = false;
+    @track hideFooter =false;
+    @track showBack =true;
+    isPopUpOpen = false;
+    dynamicBarWidth;
+    @track caseId;    
+    mobileView;
+  
+    wiredAuditFlagDetailsResult;
+    @wire(getAuditFlagDetailsFromCase)
+    wiredAuditFlagDetails(result) {
+        this.isLoading = true;
+        this.wiredAuditFlagDetailsResult = result; 
+        const { data, error } = result;
+        if (data) {
+            this.caseId = data['CaseId'] ? data['CaseId'] : null;
+            this.isAuditFlagTrue = data['AllReceiptsRequired'] !== undefined && data['AllReceiptsRequired'] !== null 
+                ? data['AllReceiptsRequired'] 
+                : 'false';
+            if (this.isAuditFlagTrue == 'true') {
+                this.remove20DollarScreen();
+                this.isPopUpOpen =true;
+                this.isLoading = false;
+        }else if(this.isAuditFlagTrue == 'false'){
+            this.isPopUpOpen =true;
+            this.isLoading = false;
+        }
+    }else if(error){
+        this.isPopUpOpen =true;
+        this.isLoading = false;
+    }
+        }
+
+    connectedCallback(){
+        this.enableBydefultFirstScreen =true;
+        if(this.currentScreenIndex === 1){
+            this.showBack =false;
+        }
+        this.nextbuttonDisabled = this.enableNextBtnForFirstScreen();
+        this.mobileView =FORM_FACTOR == 'Small' ? true : false;
+        Promise.all([
+            loadStyle(this, PATIENT_PORTAL_CSS)]);
+            this.removeBackgroundScroll();
+            refreshApex(this.wiredAuditFlagDetailsResult);
+    }
+
+    remove20DollarScreen() {
+        let categoryScreens = { ...this.flowScreens[this.selectedExpenseCategory] };
+        let screenToDeleteIndex = this.deleteScreenWhenAuditFlagIsTrue(categoryScreens);
+        if (screenToDeleteIndex !== null) {
+            delete categoryScreens[screenToDeleteIndex];
+        }
+    
+        let newCategoryScreens = this.reindexScreens(categoryScreens);
+        this.flowScreens[this.selectedExpenseCategory] = newCategoryScreens;
+    }
+    
+    deleteScreenWhenAuditFlagIsTrue(categoryScreens) {
+        for (let key in categoryScreens) {
+            if (categoryScreens.hasOwnProperty(key) && categoryScreens[key].bool === 'enableTwentyDollerScr') {
+                return key;
             }
         }
-    }
-};
-export default class PspSurveyLWCComponent extends LightningElement {
-   
-
-    @track currentStep = 'start';
-    @track answers = {};
-    @track selectedOption = '';
-
-    @track showDateInputs = false;
-    @track showYesNo = false;
-    @track showMultipleChoice = false;
-    @track showMessage = false;
-    @track isNextButtonDisabled = true;
-
-    @track renderedDateQuestions = [];
-    @track yesNoLabel = '';
-    @track yesNoOptions = [];
-    @track multipleChoiceLabel = '';
-    @track multipleChoiceOptions = [];
-    @track messageLabel = '';
-
-    connectedCallback() {
-        this.updateUIFlags();
+        return null;
     }
 
-    get stepConfig() {
-        return surveyConfig.apheresis.steps[this.currentStep];
-    }
-
-    updateUIFlags() {
-        const step = this.stepConfig;
-
-        // Reset flags
-        this.showDateInputs = false;
-        this.showYesNo = false;
-        this.showMultipleChoice = false;
-        this.showMessage = false;
-        this.isNextButtonDisabled = true;
-        this.renderedDateQuestions = [];
-        this.yesNoLabel = '';
-        this.yesNoOptions = [];
-        this.multipleChoiceLabel = '';
-        this.multipleChoiceOptions = [];
-        this.messageLabel = '';
-
-        switch (step.type) {
-            case 'date':
-                this.showDateInputs = true;
-                this.renderedDateQuestions = step.questions.map(q => ({
-                    ...q,
-                    value: this.answers[q.id] || ''
-                }));
-                break;
-            case 'yesNo':
-                this.showYesNo = true;
-                this.yesNoLabel = step.label;
-                this.yesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'multipleChoice':
-                this.showMultipleChoice = true;
-                this.multipleChoiceLabel = step.label;
-                this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'message':
-                this.showMessage = true;
-                this.messageLabel = step.label;
-                break;
-        }
-
-        this.updateNextButtonState();
-    }
-
-    handleInputChange(event) {
-        const { name, value } = event.target;
-        this.answers[name] = value;
-
-        // Update renderedDateQuestions for value binding
-        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
-            return q.id === name ? { ...q, value } : q;
-        });
-        console.log('this.renderedDateQuestions', JSON.stringify(this.renderedDateQuestions));
-        this.updateNextButtonState();
-    }
-
-    handleOptionChange(event) {
-        this.selectedOption = event.detail.value;
-        const step = this.stepConfig;
-        this.answers[step.questionId] = this.selectedOption;
-
-        this.updateNextButtonState();
-    }
-
-    updateNextButtonState() {
-        const step = this.stepConfig;
-
-        switch (step.type) {
-            case 'date':
-                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
-                break;
-            case 'yesNo':
-            case 'multipleChoice':
-                this.isNextButtonDisabled = !this.selectedOption;
-                break;
-            default:
-                this.isNextButtonDisabled = false;
-                break;
+    handleChange(event) {
+        const fieldName = event.target.dataset.label;
+        const value = event.target.value;
+        switch(fieldName) {
+            case 'Expense Category':
+                this.selectedExpenseCategory = value;
+                if(this.selectedExpenseCategory ==='Tips/Gratuities' ||  this.selectedExpenseCategory === 'Personal Car Mileage'){
+                    this.IS_LESSTHEN_TWENTY = false;
+                }
+                this.currentScreenIndex =1;
+                this.dynamicBarWidth ='slds-progress-bar__value percentage0';
+                this.nextbuttonDisabled = this.enableNextBtnForFirstScreen();
+                this.updateScreen();
+        break;
         }
     }
 
-    handleNext() {
-        this.selectedOption = '';
-        this.currentStep = this.stepConfig.next;
-        this.updateUIFlags();
+    handleNext(){
+        if(this.movedBackToAddReceipt){
+            this.nextbuttonDisabled = true;
+        }
+        /*if its screen 1 then pass validation*/
+        if(this.currentScreenIndex ===1 || this.currentScreenIndex === 0 ){ 
+            this.currentScreenIndex ++;
+            this.nextbuttonDisabled = true;
+            this.closeScreens();
+            this.updateScreen();
+        }else{
+            this.nextClicked ++;
+        }
+    }
+
+    isUndefinedVal = false;
+    screenSuccess(value){
+        refreshApex(this.wiredAuditFlagDetailsResult);
+        
+        /*Storing values in a veriable 2 and 3 and 4th screen*/
+        if(value.detail != null) {
+                let setValues = JSON.parse(value.detail);
+                    for(let key in setValues){
+                        this[key] = setValues[key];
+                    }
+            }
+
+        if(this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value === 'valuesFromReceiptScreen'){
+            /**Added for to handle delete/Undelete Operation for 2nd screen */
+            this.deleteFileId = null;
+            this.isUndefinedVal = this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] === undefined || !Array.isArray(this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value]) ? true : false;
+            if(this.isUndefinedVal){
+                this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] =[];  
+            }
+                let parsedArray = JSON.parse(value.detail);
+                if(parsedArray.length !== 0) {
+                parsedArray.forEach(element => {
+                    this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push(element);
+                }); 
+            }
+        }else{
+            this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] = value.detail; 
+        }
+        this.closeScreens();
+
+        /*save Expense Part */
+        if(this.ADD_EXPENSE === 'ADD_EXPENSE'){
+            if(this.RECEPT_ADDED === 'RECEPT_ADDED'){
+                this.saveExpense();
+            }
+            /* show Missing receipt part */
+            else{
+                this.showMissingReceptScreen =true;
+                this.hideHeader =true;
+                this.hideFooter =true;
+                this.removeBackgroundScroll();
+            }
+        }else{
+            this.currentScreenIndex ++;
+            this.updateScreen(); 
+            this.nextbuttonDisabled = true;//this should be re-enabled from the next screen
+        } 
+    }
+
+    handleBackClicked(){
+        /*if its screen 1 then pass validation*/
+        if(this.currentScreenIndex === 0 || this.currentScreenIndex === 1){
+            this.showBack =false;
+            this.nextbuttonDisabled = false;
+            this.closeScreens();
+            return;
+        }
+        this.backClicked++;
+    }
+
+    /*called from child as a custom event, saves the currently selected values.*/
+    backSuccess(value){
+        /*1. direct values should not be saved because it might not be validated. So only saving for retention.
+            2. value needs to be set before the index is decremented*/
+        try{
+            if(this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value === 'valuesFromReceiptScreen'){
+                this.isUndefinedVal = this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] === undefined || !Array.isArray(this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value]) ? true : false;
+                if(this.isUndefinedVal){
+                    this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] =[];  
+                }
+                    let parsedArray = JSON.parse(value.detail);
+                    if(parsedArray.length !== 0) {
+                    parsedArray.forEach(element => {
+                        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push(element);
+                    }); 
+                }
+            }else{
+                this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] = value.detail;
+            }
+        }catch(e){
+            const currentCategory = this.selectedExpenseCategory;
+            const currentCategoryScreens = this.flowScreens[currentCategory];
+            const numScreens = Object.keys(currentCategoryScreens).length;
+            if (this.currentScreenIndex > numScreens) {
+                /* current category has changed, update currentScreenIndex */
+                this.currentScreenIndex = numScreens;
+            }
+        }
+        this.handleBack();
+    }
+
+    /* called from backSuccess. This just checks for the condition and opens the right screen. */
+    handleBack(){
+        if(this.movedBackToAddReceipt){
+            this.nextbuttonDisabled = true;
+        }
+        this.closeScreens();
+        this.currentScreenIndex--;
+        /*first screen sets the flow, so need to add that one condition manually.*/
+        if(this.currentScreenIndex === 1){
+            this.updateScreen();
+            this.nextbuttonDisabled = false;
+            this.showBack =false;
+        }else{
+            this.closeScreens();
+            this.updateScreen();
+        }
+        /**Added for to handle delete/Undelete Operation for 2nd screen */
+        this.deleteFileId = null;
+    }
+
+    /* Disable all screens by default */
+    closeScreens(){
+        for(let item in this.flowScreens[this.selectedExpenseCategory]){
+            this[this.flowScreens[this.selectedExpenseCategory][item].bool] = false;
+            }
+    }
+
+    @track nextButtonName = 'Next';
+    /*make next screen bool to true. */
+    @track dynamicCssForFooter = 'split-end';
+    updateScreen(){
+        refreshApex(this.wiredAuditFlagDetailsResult);
+        if(this.isAuditFlagTrue == 'true'){
+            this.remove20DollarScreen();
+        }
+        let array = this.flowScreens[this.selectedExpenseCategory];
+        this.totalScreenIndex = Object.keys(array).length;
+        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].bool] = true;
+        this.dynamicBarWidth = this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].width;
+        this.nextButtonName = this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].btnName;
+        if(this.currentScreenIndex === 1){
+            this.showBack =false;
+        }else{
+            this.showBack =true;
+        }
+        this.dynamicCssForFooter = this.currentScreenIndex === 1 ? 'split-end' : 'split-between';
+    }
+
+    @track showDeletionPopUp =false;
+    @track deleteFileId;
+    deleteImage(event){
+        this.closeScreens();
+        this.showDeletionPopUp =true;
+        this.deleteFileId =event.detail;
+        this.updateScreen();
+    }
+
+    async deleteEventFromWarningPopUp(){
+        await renameFileTitle({documentId : this.deleteFileId })
+        this.hideHeader =false;
+        this.hideFooter =false;
+        this.showDeletionPopUp =false;
+        this.valuesFromReceiptScreen = Array.isArray(this.valuesFromReceiptScreen) ? this.valuesFromReceiptScreen.flat(Infinity) : [];
+        if(this.valuesFromReceiptScreen !==null && this.valuesFromReceiptScreen !== undefined ){
+            for(let i=0; i< this.valuesFromReceiptScreen.length; i++){
+                if(this.valuesFromReceiptScreen[i] === this.deleteFileId){
+                    this.valuesFromReceiptScreen.splice(i, 1);
+                    break;
+                }
+            }
+        }
+        this.deleteFileId = null;
+        this.closeScreens();
+        this.updateScreen();
+    }
+
+    @track movedBackToAddReceipt =false;
+    addReceipt(){
+        if(this.selectedExpenseCategory !=='Tips/Gratuities' && this.selectedExpenseCategory !== 'Personal Car Mileage'){
+        this.nextButtonName = 'Next';
+        this.movedBackToAddReceipt =true;
+        this.ADD_EXPENSE ='';
+        this.closeScreens();
+        this.showMissingReceptScreen =false;
+        this.hideHeader =false;
+        this.hideFooter =false;
+
+        this.currentScreenIndex = this.getReceiptIndexValue();
+        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].bool] = true;
+        this.updateScreen();
     }
 }
+
+    /*To get the index of the screen with 'enableReceiptScreen' */
+    getReceiptIndexValue() {
+        let screenIndex = null;
+        let categoryScreens = this.flowScreens[this.selectedExpenseCategory];
+        for (let key in categoryScreens) {
+            if (categoryScreens.hasOwnProperty(key) && categoryScreens[key].bool === 'enableReceiptScreen') {
+                screenIndex = parseInt(key);
+                break;
+            }
+        }
+        return screenIndex;
+    }
+
+    updateCurrentIndex(event){
+        this.currentScreenIndex =event.detail;
+    }
+
+    isValidSalesforceDate(dateString) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        return dateRegex.test(dateString);
+    }
+
+   @track isLoading = false;
+   async saveExpense(){
+        let transientObj = {
+            "attributes": {
+            "type": "Transient__c"
+            },
+            "CaseIdForPatientPortal__c": this.caseId,
+            "Expense_Category_R1__c": this.expenseCategory,
+            "PatientPortalExpenseDate__c": this.isValidSalesforceDate(this.expenseDate) ? this.expenseDate : this.normalizeDate(this.expenseDate),
+            "City_of_Purchase_R1__c": this.IS_LESSTHEN_TWENTY ? '' : this.cityOfPurchage,
+            "Expense_Amount_R1__c": this.expenseAmount,
+            "Description_R1__c": this.description,
+            "Incurred_By_R1__c": this.getIncurredByValue(this.expenseFor),
+            ...(this.expenseCategory !== 'Tips/Gratuities' ? { "Vendor_R1__c":  this.vendor} :{}),
+            ...(this.expenseCategory === 'Tolls' || this.expenseCategory === 'Laundry' ? {"PatientPortalExpenseSubcategory__c" : this.expenseSubCategory} :{}),
+            ...(this.expenseCategory === 'Tips/Gratuities' ? {"PatientPortalRecipient__c" :  this.receiptValue} :{}),
+            ...(this.expenseCategory === 'Personal Car Mileage' ? {
+            "Destination_Address_R51__c": this.Destination_Address_R51__c,
+            "Departure_Address_R51__c": this.Departure_Address_R51__c,
+            "PatientPortalStreetAddress__c": this.departureStreetAddress,
+            "PatientPortalCity__c": this.departurePatientPortalCity,
+            "PatientPortalState__c": this.departurePatientPortalState,
+            "PatientPortalZIPPostcode__c": this.departurePatientPortalZIPPostcode,
+            "PatientAddressLine1__c": this.destinationPatientAddressLine,
+            "PatientCityTown__c": this.destinationPatientCityTown,
+            "PatientZipcodePostcode__c": this.destinationPatientZipcodePostcode,
+            "PatientStateRegionProvince__c": this.destinationPatientStateRegionProvince
+            } : {}),
+            ...( (this.expenseCategory === 'Tolls' && this.expenseSubCategory === 'Cash Toll') || (this.expenseCategory === 'Laundry' && this.expenseSubCategory === 'Self Service') ? {"Receipt_Uploaded_R1__c" : 'Yes'} :{})
+        };
+        this.isLoading =true;
+        try{
+            this.valuesFromReceiptScreen = Array.isArray(this.valuesFromReceiptScreen) ? this.valuesFromReceiptScreen.flat(Infinity) : [];
+            this.valuesFromReceiptScreen = this.expenseCategory === 'Tips/Gratuities'  || this.expenseCategory === 'Personal Car Mileage'? [] : this.valuesFromReceiptScreen;
+          const result =  await saveExpense({jsonString: JSON.stringify(transientObj), listOfDocumentIds:  this.valuesFromReceiptScreen});
+          if(result){
+                this.hideHeader =true;
+                this.hideFooter =true;
+                this.isPopUpOpen = false;
+                this.restoreBackgroundScroll();
+                this.closeScreens();
+                this.showToast();
+                this.dispatchEvent(new CustomEvent('expensecreation' , {detail: true})); 
+                this.isLoading = false;
+          }else{
+            this.isLoading = false;
+            this.handleClose();
+          }
+        }catch(e){
+            this.isLoading = false;
+            this.handleClose();
+        } 
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+        const year = utcDate.getUTCFullYear();
+        const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(utcDate.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+
+    /**Added this function because OCR gives different formate of date Values. So irrespictive of any date formate it will convert it to 2018-05-05 */
+    normalizeDate(dateStr) {
+        try{
+            if (!dateStr || typeof dateStr !== 'string') {
+                return null;
+            }
+        
+            let cleanedDateStr = dateStr
+                .trim()
+                .replace(/[,]/g, '')  // Ex: "December 8, 2024" → "December 8 2024"
+                .replace(/(\d{1,2})[st|nd|rd|th]/gi, '$1') // Ex: "8th December 2024" → "8 December 2024"
+                .replace(/(\d+)(?:\s+|-|\/)([A-Za-z]+)(?:\s+|-|\/)(\d+)/, '$2 $1, $3');  // Converts "08-Dec-2024" → "2024-12-08"
+
+            let date = new Date(cleanedDateStr + ' UTC'); // Forces UTC parsing
+
+            if (isNaN(date.getTime())) {
+                return null;
+            }
+
+            let year = date.getUTCFullYear();
+            let month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
+            let day = String(date.getUTCDate()).padStart(2, '0'); 
+
+            return `${year}-${month}-${day}`;
+        }catch(error){
+            return null;
+     }
+    }
+
+
+    getIncurredByValue(expenseFor) {
+        let incurredBy = '';
+        if (expenseFor.includes('Patient') && expenseFor.includes('Caregiver')) {
+            incurredBy = 'Both';
+        } else if (expenseFor.includes('Patient')) {
+            incurredBy = 'Patient';
+        } else if (expenseFor.includes('Caregiver')) {
+            incurredBy = 'Caregiver';
+        }
+        return incurredBy;
+    }
+
+    handleClose(){
+        this.isPopUpOpen =false;
+        this.restoreBackgroundScroll();
+        this.dispatchEvent(new CustomEvent('close' , {detail: true}));
+    }
+
+    enableNextBtnForFirstScreen(){
+        return this.currentScreenIndex === 1 ? false :true;
+    }
+
+    assignSubCategoryValue(event){
+        this.expenseSubCategory = event.detail;
+    }
+
+    assignExpenseCategoryValue(event){
+        this.selectedExpenseCategory = event.detail;
+        this.dynamicBarWidth = this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].width;
+        let array = this.flowScreens[this.selectedExpenseCategory];
+        this.totalScreenIndex = Object.keys(array).length;
+    }
+
+    handleNextButtonChange(value){
+        this.nextbuttonDisabled = !value.detail;
+    } 
+
+    showToast() {
+        const event = new ShowToastEvent({
+            title: 'Success',
+            message: 'New expense added',
+            variant: 'success'
+        });
+        this.dispatchEvent(event);
+    }
+
+    notDeleteEventFromWarningPopUp(){
+        this.hideHeader =false;
+        this.hideFooter =false;
+        this.showDeletionPopUp =false; 
+        this.closeScreens();
+        this.updateScreen();
+    }
+
+    closePopUpFromMissingReceiptScreen(){
+        this.isPopUpOpen = false;
+        this.restoreBackgroundScroll();
+    }
+
+    continueWithOutReceipt(){
+        this.saveExpense();
+    }
+    removeBackgroundScroll(){
+        const element = document.querySelector('.slds-no-wcag');
+            if(element){
+                element.style.overflowY = 'hidden';
+            }
+      }
+    restoreBackgroundScroll(){
+    const element = document.querySelector('.slds-no-wcag');
+        if(element){
+            element.style.overflowY = '';
+        }
+    }
+
+    updateContentDocId(value){
+        if(value !== null && value !== undefined && value !== '' && value.detail !== null && value.detail !== undefined && value.detail !== ''){
+            this.valuesFromReceiptScreen.push(value.detail);
+        }
+    }
+
+    ocrValues(event){
+        if(event !== null && event !== undefined && event !=='' && event.detail !== null && event.detail !== undefined && event.detail !== ''){
+            this.valuesFromExpenseDetailsScreen = event.detail;
+        }
+        
+    }
+
+    /* Update the screen based on the selected expense category lessThen/ greater then20 dollar*/
+        updateScreens(event) {
+            if (this.isValidEvent(event) && this.isValidExpenseCategory(this.selectedExpenseCategory)) {
+                    switch (event.detail) {
+                        case LESS_THEN_20:
+                            this.handleLessThan20();
+                            break;
+                        case GREATER_THEN_20:
+                            this.assignScreensForGreaterThan20Dollar();
+                            break;
+                        default:
+                            break;
+                    }
+                    // Update total screen index
+                    this.totalScreenIndex = Object.keys(this.flowScreens[this.selectedExpenseCategory]).length;
+            }
+        }
+        
+        isValidEvent(event) {
+            return event !== null && event !== undefined && event !== '' && event.detail !== null && event.detail !== undefined && event.detail !== '';
+        }
+        
+        isValidExpenseCategory(category) {
+            return category !== 'Tips/Gratuities' && category !== 'Personal Car Mileage';
+        }
+        
+        handleLessThan20() {
+            let categoryScreens = { ...this.flowScreens[this.selectedExpenseCategory] };
+        
+            let screenToDeleteIndex = this.findScreenToDelete(categoryScreens);
+        
+            if (screenToDeleteIndex !== null) {
+                delete categoryScreens[screenToDeleteIndex];
+            }
+        
+            let newCategoryScreens = this.reindexScreens(categoryScreens);
+        
+            this.flowScreens[this.selectedExpenseCategory] = newCategoryScreens;
+        }
+        
+        findScreenToDelete(categoryScreens) {
+            for (let key in categoryScreens) {
+                if (categoryScreens.hasOwnProperty(key) && categoryScreens[key].bool === 'enableReceiptScreen') {
+                    return key;
+                }
+            }
+            return null;
+        }
+        
+        reindexScreens(categoryScreens) {
+            let newCategoryScreens = {};
+            let index = 1;
+            for (let key in categoryScreens) {
+                if (categoryScreens.hasOwnProperty(key)) {
+                    newCategoryScreens[index] = categoryScreens[key];
+                    index++;
+                }
+            }
+            return newCategoryScreens;
+        }
+        
+        assignScreensForGreaterThan20Dollar() {
+            let screenCategory;
+            if (this.isValidExpenseCategory(this.selectedExpenseCategory)) {
+                screenCategory = (this.selectedExpenseCategory === 'Laundry' || this.selectedExpenseCategory === 'Tolls') 
+                    ? showSubCategoryWithReceiptScreenCategories 
+                    : showReceiptScreenCategories;
+            } else {
+                screenCategory = showWithOutReceiptScreenCategories;
+            }
+            this.flowScreens[this.selectedExpenseCategory] = screenCategory;
+        }
+}
+<template>
+    <template if:true={isLoading}>
+    <div class="loading">
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </div> 
+</template>   
+
+<template if:false={isLoading}>
+<template if:true={isPopUpOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+            <div class="mycontainer">
+
+        <!--Header Start...-->
+        <template if:false={hideHeader}>
+            <div class="slds-modal__header">
+                <template if:true={mobileView}>
+                    <div class="slds-grid slds-grid_vertical-align-center slds-size_12-of-12 mobile-heading">
+                        <div class="slds-grid slds-grid_vertical-align-center slds-size_2-of-12 font-style6" onclick={handleClose}>
+                          <lightning-icon icon-name="utility:chevronleft" alternative-text="chevronleft" title="chevronleft" size="small" class="chevron-left"></lightning-icon>
+                          <span class="slds-p-left_x-small">{labelsList.BackClick}</span>
+                        </div>
+                        <h1 class="slds-size_9-of-12 slds-col font-style4 align-center padding-right">{labelsList.PortalAddExpense}</h1>
+                      </div>               
+                </template>
+                <template if:false={mobileView}>
+                    <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate font-style1" tabindex="-1">{labelsList.PortalAddExpense}</h1>
+                    <div class="crossIcon">
+                        <a onclick={handleClose} href="#" class="back-link">
+                            <img class="crossIcon" src={blueCrossIcon} alt="crossIcon"><P class="headerTitle"></P>
+                        </a>
+                    </div>        
+                </template>
+            </div>
+        </template>
+        <!--Header Ends...-->
+
+            <!--Perecentage Steps Start...-->
+            <div class="slds-modal__content slds-p-around_medium scroolEnable" id="modal-content-id-1">
+                <div class="leftRightMargin">
+
+                <template if:false={hideHeader}>
+                    <div class="slds-grid slds-grid_align-spread slds-p-bottom_small stepNumberIndicatorDesktop">
+                        <h1 class="font-style1">{labelsList.PortalStep}&nbsp;{currentScreenIndex} of {totalScreenIndex}</h1>
+                    </div>
+                    <div class="slds-progress-bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="progress-bar-label-id-5" role="progressbar">
+                    <span class={dynamicBarWidth}></span></div> 
+                </template>
+            <!--Perecentage Steps Ends...-->
+
+            <!--First Screen-->
+            <template if:true={enableBydefultFirstScreen}>
+            <div class="slds-grid slds-grid_align-spread stepNumberSubMessageDesktop">
+                <h1 class="font-style2">{labelsList.PortalSelectExpenseCategory}</h1>
+            </div>            
+                <lightning-radio-group data-label="Expense Category" name="radioGroup"
+                options={options}
+                value={selectedExpenseCategory}
+                type="radio"
+                onchange={handleChange}
+                class="radioGroupMobile expenseCategoryRadioGroup">
+                </lightning-radio-group>
+            </template>
+            <!--First Screen Ends-->
+
+            <template if:true={enableTwentyDollerScr}>
+                <c-psp-add-expense-less-then-twenty-dollar-scr
+                returning-values={valuesFromTwentyDollerScreen}
+                onenablenextbutton={handleNextButtonChange}
+                next-button-clicked={nextClicked}
+                back-button-clicked={backClicked}
+                onback={backSuccess}
+                onsuccess={screenSuccess}
+                onupdatescreen={updateScreens}>
+                </c-psp-add-expense-less-then-twenty-dollar-scr>
+            </template>
+
+            <!--Recept Screen Starts-->
+            <template if:true={enableReceiptScreen}>
+                <c-psp_-add-expense-second-screen_-l-w-c-component 
+                onenablenextbutton={handleNextButtonChange}
+                next-button-clicked={nextClicked}
+                back-button-clicked={backClicked}
+                onback={backSuccess}
+                onsuccess={screenSuccess}
+                ondeleteimage={deleteImage}
+                content-document-ids ={deleteFileId}
+                show-deletion-pop-up-screen ={showDeletionPopUp}
+                ondelete={deleteEventFromWarningPopUp}
+                onnodelete={notDeleteEventFromWarningPopUp}>
+            </c-psp_-add-expense-second-screen_-l-w-c-component>
+            </template>
+             <!--Recept Screen Ends-->
+
+            <!--SubCategory Screen Starts-->
+            <template if:true={enableSubCategoryScreen}>
+                <c-psp_-add-expense-sub-category_-l-w-c-component 
+                returning-values={valuesFromSubCategoryScreen}
+                expense-sub-category ={expenseSubCategory}
+                onsubcategory={assignSubCategoryValue}
+                onenablenextbutton={handleNextButtonChange} 
+                expense-category-selected-val={selectedExpenseCategory}
+                next-button-clicked={nextClicked}
+                back-button-clicked={backClicked}
+                onback={backSuccess}
+                onsuccess={screenSuccess}>>
+            </c-psp_-add-expense-sub-category_-l-w-c-component>
+            </template>
+            <!--SubCategory Screen Ends-->
+
+            <!--Expense Details Screen Starts-->
+            <template if:true={enableExpenseDetailsScreen}>
+                <div class="third-screen-container">
+                    <c-psp_-add-expense-third-screen_-l-w-c-component 
+                    options={options} 
+                    onexpensecategory={assignExpenseCategoryValue}
+                    onsubcategory={assignSubCategoryValue}
+                    returning-values={valuesFromExpenseDetailsScreen}
+                    expense-sub-category ={expenseSubCategory}
+                    expense-category-selected-val={selectedExpenseCategory}
+                    content-document-ids ={valuesFromReceiptScreen}
+                    flow-screens={flowScreens}
+                    onaddreceipt={addReceipt}
+                    ondeleteimage={deleteImage}
+                    oncurrentscreenindex={updateCurrentIndex}
+                    onenablenextbutton={handleNextButtonChange}
+                    next-button-clicked={nextClicked}
+                    back-button-clicked={backClicked}
+                    onback={backSuccess}
+                    onsuccess={screenSuccess}
+                    onimageupload={updateContentDocId}
+                    onocrvalues={ocrValues}
+                    show-deletion-pop-up-screen ={showDeletionPopUp}
+                    ondelete={deleteEventFromWarningPopUp}
+                    onnodelete={notDeleteEventFromWarningPopUp}
+                    is-less-then20-dollars={IS_LESSTHEN_TWENTY}>
+                    </c-psp_-add-expense-third-screen_-l-w-c-component>    
+                </div>
+            </template>
+            <!--Expense Details Screen Ends-->
+
+             <!--Missing Recept Screen Starts-->
+             <template if:true={showMissingReceptScreen}>
+                <c-psp_-missing-receipt_-l-w-c-component 
+                onclosepopup={closePopUpFromMissingReceiptScreen}
+                oncontinuewithoutreceipt={continueWithOutReceipt}
+                onaddreceipt={addReceipt}
+                onenablenextbutton={handleNextButtonChange}>
+            </c-psp_-missing-receipt_-l-w-c-component>
+            </template>
+            <!--Missing Recept Screen Ends-->
+            </div>
+        </div>
+
+        <!--Footer Starts-->
+        <template if:false={hideFooter}>
+        <div class="slds-modal__footer">
+            <div class="adjustFooterBtn">
+                <div class="slds-size_6-of-6">
+                    <c-psp_-custom-screen-footer_-l-w-c-component 
+                    next-disabled={nextbuttonDisabled} 
+                    onnext={handleNext} 
+                    onback={handleBackClicked}
+                    back-button-name= "Previous" 
+                    show-back ={showBack} 
+                    show-next="true" 
+                    next-button-name={nextButtonName}
+                    dynamic-css={dynamicCssForFooter}>
+                    </c-psp_-custom-screen-footer_-l-w-c-component>        
+                </div>
+            </div>
+        </div>
+    </template>
+     <!--Footer Ends-->
+        </div>
+    </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+</template>
+</template>
+</template>
