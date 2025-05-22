@@ -1,15 +1,13 @@
-// surveyTestA.js
-import { LightningElement, track } from 'lwc';
-
-const surveyConfig = {
-    testA: {
+import { LightningElement ,track} from 'lwc';
+ const surveyConfig = {
+    apheresis: {
         steps: {
             start: {
                 type: 'dateInputs',
                 questions: [
-                    { id: 'dob', label: 'Date of Birth', type: 'date', required: true },
-                    { id: 'lastVisit', label: 'Last Visit Date', type: 'date', required: true },
-                    { id: 'nextVisit', label: 'Next Scheduled Visit', type: 'date', required: true }
+                    { id: 'dob', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
+                    { id: 'lastVisit', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
+                    { id: 'nextVisit', label: 'What day should the patient depart?*', type: 'date', required: true }
                 ],
                 next: 'question1'
             },
@@ -36,8 +34,9 @@ const surveyConfig = {
         }
     }
 };
+export default class PspSurveyLWCComponent extends LightningElement {
+   
 
-export default class SurveyTestA extends LightningElement {
     @track currentStep = 'start';
     @track answers = {};
     @track selectedOption = '';
@@ -53,7 +52,7 @@ export default class SurveyTestA extends LightningElement {
     }
 
     get stepConfig() {
-        return surveyConfig.testA.steps[this.currentStep];
+        return surveyConfig.apheresis.steps[this.currentStep];
     }
 
     updateFlags() {
@@ -73,10 +72,13 @@ export default class SurveyTestA extends LightningElement {
         this.updateNextButtonState();
     }
 
+    //its not printing the below consoles check
     handleInputChange(event) {
         const { name, value } = event.target;
         this.answers[name] = value;
         this.questionValues[name] = value;
+        console.log('this.questionValues', this.questionValues);
+        console.log('this.answers', this.answers);
         this.updateNextButtonState();
     }
 
@@ -86,6 +88,7 @@ export default class SurveyTestA extends LightningElement {
         this.updateNextButtonState();
     }
 
+    //use switch block here 
     updateNextButtonState() {
         const step = this.stepConfig;
         if (step.type === 'dateInputs') {
@@ -112,7 +115,6 @@ export default class SurveyTestA extends LightningElement {
     }
 }
 
-
 <template>
     <div class="survey-container">
         <template if:true={showDateInputs}>
@@ -122,7 +124,7 @@ export default class SurveyTestA extends LightningElement {
                     type="date"
                     name={q.id}
                     label={q.label}
-                    value={answers[q.id]}
+                    
                     onchange={handleInputChange}
                     required={q.required}>
                 </lightning-input>
