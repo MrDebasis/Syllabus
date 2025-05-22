@@ -45,6 +45,8 @@ export default class SurveyTestA extends LightningElement {
     @track showYesNo = false;
     @track showMultipleChoice = false;
     @track showMessage = false;
+    @track isNextButtonEnabled = false;
+    @track questionValues = {}; // Store question-specific values for binding
 
     connectedCallback() {
         this.updateFlags();
@@ -60,27 +62,39 @@ export default class SurveyTestA extends LightningElement {
         this.showYesNo = type === 'yesNo';
         this.showMultipleChoice = type === 'multipleChoice';
         this.showMessage = type === 'message';
+
+        // Pre-populate question values
+        if (this.stepConfig.questions) {
+            this.stepConfig.questions.forEach(q => {
+                this.questionValues[q.id] = this.answers[q.id] || '';
+            });
+        }
+
+        this.updateNextButtonState();
     }
 
     handleInputChange(event) {
         const { name, value } = event.target;
         this.answers[name] = value;
+        this.questionValues[name] = value;
+        this.updateNextButtonState();
     }
 
     handleOptionChange(event) {
         this.selectedOption = event.detail.value;
         this.answers[this.stepConfig.questionId] = this.selectedOption;
+        this.updateNextButtonState();
     }
 
-    get isNextEnabled() {
+    updateNextButtonState() {
         const step = this.stepConfig;
         if (step.type === 'dateInputs') {
-            return step.questions.every(q => this.answers[q.id]);
+            this.isNextButtonEnabled = step.questions.every(q => this.answers[q.id]);
+        } else if (step.type === 'yesNo' || step.type === 'multipleChoice') {
+            this.isNextButtonEnabled = !!this.selectedOption;
+        } else {
+            this.isNextButtonEnabled = true;
         }
-        if (step.type === 'yesNo' || step.type === 'multipleChoice') {
-            return !!this.selectedOption;
-        }
-        return true;
     }
 
     handleNext() {
@@ -97,6 +111,7 @@ export default class SurveyTestA extends LightningElement {
         return this.stepConfig.options.map(o => ({ label: o, value: o }));
     }
 }
+
 
 <template>
     <div class="survey-container">
@@ -140,14 +155,12 @@ export default class SurveyTestA extends LightningElement {
             <div class="thank-you">{stepConfig.label}</div>
         </template>
 
-        <template if:true={stepConfig.next}>
-            <lightning-button
-                class="slds-m-top_medium"
-                variant="brand"
-                label="Next"
-                onclick={handleNext}
-                disabled={!isNextEnabled}>
-            </lightning-button>
-        </template>
+        <lightning-button
+    class="slds-m-top_medium"
+    variant="brand"
+    label="Next"
+    onclick={handleNext}
+    disabled={isNextButtonDisabled}>
+</lightning-button>
     </div>
 </template>
