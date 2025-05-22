@@ -1,67 +1,3 @@
-<template>
-    <template if:true={stepConfig}>
-        <div class="survey-container">
-            <template if:true={stepConfig.type}>
-
-                <!-- Step 1: Date Input Questions -->
-                <template if:true={stepConfig.type === 'dateInputs'}>
-                    <template for:each={stepConfig.questions} for:item="q">
-                        <lightning-input
-                            key={q.id}
-                            type="date"
-                            name={q.id}
-                            label={q.label}
-                            value={answers[q.id]}
-                            onchange={handleInputChange}
-                            required={q.required}>
-                        </lightning-input>
-                    </template>
-                </template>
-
-                <!-- Step 2: Yes/No Question -->
-                <template if:true={stepConfig.type === 'yesNo'}>
-                    <lightning-radio-group
-                        label={stepConfig.label}
-                        name="yesno"
-                        options={yesNoOptions}
-                        value={selectedOption}
-                        type="radio"
-                        onchange={handleOptionChange}>
-                    </lightning-radio-group>
-                </template>
-
-                <!-- Step 3: Multiple Choice -->
-                <template if:true={stepConfig.type === 'multipleChoice'}>
-                    <lightning-radio-group
-                        label={stepConfig.label}
-                        name="multiplechoice"
-                        options={multipleChoiceOptions}
-                        value={selectedOption}
-                        type="radio"
-                        onchange={handleOptionChange}>
-                    </lightning-radio-group>
-                </template>
-
-                <!-- End Screen -->
-                <template if:true={stepConfig.type === 'message'}>
-                    <div class="thank-you">{stepConfig.label}</div>
-                </template>
-
-                <template if:true={stepConfig.next}>
-                    <lightning-button
-                        class="slds-m-top_medium"
-                        variant="brand"
-                        label="Next"
-                        onclick={handleNext}
-                        disabled={!isNextEnabled}>
-                    </lightning-button>
-                </template>
-            </template>
-        </div>
-    </template>
-</template>
-
-
 // surveyTestA.js
 import { LightningElement, track } from 'lwc';
 
@@ -105,9 +41,25 @@ export default class SurveyTestA extends LightningElement {
     @track currentStep = 'start';
     @track answers = {};
     @track selectedOption = '';
+    @track showDateInputs = false;
+    @track showYesNo = false;
+    @track showMultipleChoice = false;
+    @track showMessage = false;
+
+    connectedCallback() {
+        this.updateFlags();
+    }
 
     get stepConfig() {
         return surveyConfig.testA.steps[this.currentStep];
+    }
+
+    updateFlags() {
+        const type = this.stepConfig.type;
+        this.showDateInputs = type === 'dateInputs';
+        this.showYesNo = type === 'yesNo';
+        this.showMultipleChoice = type === 'multipleChoice';
+        this.showMessage = type === 'message';
     }
 
     handleInputChange(event) {
@@ -134,6 +86,7 @@ export default class SurveyTestA extends LightningElement {
     handleNext() {
         this.selectedOption = '';
         this.currentStep = this.stepConfig.next;
+        this.updateFlags();
     }
 
     get yesNoOptions() {
@@ -145,16 +98,56 @@ export default class SurveyTestA extends LightningElement {
     }
 }
 
-.survey-container {
-    padding: 1rem;
-    background: #f4f6f9;
-    border-radius: 8px;
-}
+<template>
+    <div class="survey-container">
+        <template if:true={showDateInputs}>
+            <template for:each={stepConfig.questions} for:item="q">
+                <lightning-input
+                    key={q.id}
+                    type="date"
+                    name={q.id}
+                    label={q.label}
+                    value={answers[q.id]}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </template>
+        </template>
 
-.thank-you {
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-align: center;
-    margin: 2rem 0;
-    color: #2e844a;
-}
+        <template if:true={showYesNo}>
+            <lightning-radio-group
+                label={stepConfig.label}
+                name="yesno"
+                options={yesNoOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+        <template if:true={showMultipleChoice}>
+            <lightning-radio-group
+                label={stepConfig.label}
+                name="multiplechoice"
+                options={multipleChoiceOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+        <template if:true={showMessage}>
+            <div class="thank-you">{stepConfig.label}</div>
+        </template>
+
+        <template if:true={stepConfig.next}>
+            <lightning-button
+                class="slds-m-top_medium"
+                variant="brand"
+                label="Next"
+                onclick={handleNext}
+                disabled={!isNextEnabled}>
+            </lightning-button>
+        </template>
+    </div>
+</template>
