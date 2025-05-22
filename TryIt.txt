@@ -1,855 +1,357 @@
-import { LightningElement,wire,track,api} from 'lwc';
-import FORM_FACTOR from '@salesforce/client/formFactor';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import myResource from '@salesforce/resourceUrl/Patient_Portal';
-import saveExpense from '@salesforce/apex/AddExpenseController.saveExpense';
-import getAuditFlagDetailsFromCase from '@salesforce/apex/PortalAddExpenseController.getAuditFlagDetailsFromCase';
-import renameFileTitle from '@salesforce/apex/PortalAddExpenseController.renameFileTitle';
-import PATIENT_PORTAL_CSS from '@salesforce/resourceUrl/PatientPortal';
-import { loadStyle } from 'lightning/platformResourceLoader';
-import { labels } from 'c/pspCustomLabelsLWCComponent';
-import { refreshApex } from '@salesforce/apex';
+ @AuraEnabled(cacheable=false)
+    public static void saveRecord(Map<String, Object> payload) {
+        try {
+            // Extract recordId, objectApiName, fieldName, and updatedValue from the payload
+            String recordId = (String) payload.get('recordId');
+            String objectApiName = (String) payload.get('objectApiName');
+            String fieldName = (String) payload.get('fieldName');
+            Object updatedValue = payload.get('updatedValue');
 
-const showReceiptScreenCategories = {
-    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen', width: 'slds-progress-bar__value percentage0', btnName : 'Next'},
-    2: { bool: 'enableTwentyDollerScr' , value: 'valuesFromTwentyDollerScreen', width: 'slds-progress-bar__value percentage25', btnName : 'Next'},
-    3: { bool: 'enableReceiptScreen' , value: 'valuesFromReceiptScreen', width: 'slds-progress-bar__value percentage50', btnName : 'Next'},
-    4: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen', width: 'slds-progress-bar__value percentage75', btnName : 'Add expense' }
-};
-const showWithOutReceiptScreenCategories = {
-    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen',width: 'slds-progress-bar__value percentage0',btnName : 'Next'},
-    2: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen',width: 'slds-progress-bar__value percentage50' ,btnName : 'Add expense'}
-};
-const showSubCategoryWithReceiptScreenCategories = {
-    1: { bool: 'enableBydefultFirstScreen' , value: 'valuesFromFirstScreen',width: 'slds-progress-bar__value percentage0', btnName : 'Next'},
-    2: { bool: 'enableSubCategoryScreen', value: 'valuesFromSubCategoryScreen',width: 'slds-progress-bar__value percentage40', btnName : 'Next' },
-    3: { bool: 'enableTwentyDollerScr' , value: 'valuesFromTwentyDollerScreen', width: 'slds-progress-bar__value percentage20', btnName : 'Next'},
-    4: { bool: 'enableReceiptScreen', value: 'valuesFromReceiptScreen',width: 'slds-progress-bar__value percentage60', btnName : 'Next' },
-    5: { bool: 'enableExpenseDetailsScreen', value: 'valuesFromExpenseDetailsScreen',width: 'slds-progress-bar__value percentage80', btnName : 'Add expense' }
-};
+            System.debug('Received Payload: ' + payload);
+            System.debug('RecordId: ' + recordId + ', ObjectApiName: ' + objectApiName + ', FieldName: ' + fieldName + ', UpdatedValue: ' + updatedValue);
 
-const LESS_THEN_20 = 'LESS_THEN_20';
-const GREATER_THEN_20 = 'GREATER_THEN_20';
-
-export default class Psp_AddExpense_LWCComponent extends LightningElement {
-    labelsList = labels;
-    blueCrossIcon = `${myResource}/icons/BlueCrossIcon.svg`;
-
-    @track currentScreenIndex =1;
-    @track totalScreenIndex = 4;
-    @track nextClicked = 0;
-    @track backClicked = 0;
-    @track enableReceiptScreen =false;
-    @track enableTwentyDollerScr= false;
-    @track enableBydefultFirstScreen =false;
-    @track enableSubCategoryScreen =false;
-    @track enableExpenseDetailsScreen =false;
-    @track selectedExpenseCategory ='Meals and Supplies';
-    @track nextbuttonDisabled = true;
-    @track flowScreens = 
-    {
-        'Airline Fees' : showReceiptScreenCategories,
-        'Car Rental' : showReceiptScreenCategories,
-        'Hotel Fees' : showReceiptScreenCategories,
-        'Internet/Online' : showReceiptScreenCategories,
-        'Long Term Public Transportation (Rail/Bus)' : showReceiptScreenCategories,
-        'Meals and Supplies' : showReceiptScreenCategories,
-        'Miscellaneous' : showReceiptScreenCategories,
-        'Non Reimbursable Expense' : showReceiptScreenCategories,
-        'Parking' : showReceiptScreenCategories,
-        'Personal Car Expenses' : showReceiptScreenCategories,
-        'Public Transport':showReceiptScreenCategories,
-        'Taxi or Ride Share': showReceiptScreenCategories,
-        'Tips/Gratuities': showWithOutReceiptScreenCategories,
-        'Personal Car Mileage' : showWithOutReceiptScreenCategories,
-        'Laundry' : showSubCategoryWithReceiptScreenCategories,
-        'Tolls': showSubCategoryWithReceiptScreenCategories
-    }
-
-    options = [
-        { label: 'Meals or supplies', value: 'Meals and Supplies' },
-        { label: 'Parking', value: 'Parking' },
-        { label: 'Taxi or ride share', value: 'Taxi or Ride Share' },
-        { label: 'Cash tip', value: 'Tips/Gratuities' },
-        { label: 'Hotel fee', value: 'Hotel Fees' },
-        { label: 'Laundry', value: 'Laundry' },
-        { label: 'Toll', value: 'Tolls' },
-        { label: 'Public transportation', value: 'Public Transport' },
-        { label: 'Airline fees', value: 'Airline Fees' },
-        { label: 'Mileage', value: 'Personal Car Mileage' },
-        { label: 'Miscellaneous', value: 'Miscellaneous' }
-    ];
-
-    //Screen Values holding back or Next
-    @track valuesFromReceiptScreen;
-    @track valuesFromTwentyDollerScreen;
-    @track valuesFromSubCategoryScreen;
-    @track valuesFromExpenseDetailsScreen;
-
-    /**SubCategory value for Tolls/Laundry  2nd Screen*/
-    @track expenseSubCategory;
-    @track expenseCategory;
-    @track expenseDate;
-    @track cityOfPurchage;
-    @track vendor;
-    @track expenseAmount;
-    @track expenseFor;
-    @track receiptValue;
-    @track description;
-    @track destinationPatientZipcodePostcode; 
-    @track destinationPatientStateRegionProvince;
-    @track destinationPatientCityTown;
-    @track destinationPatientAddressLine;
-    @track departurePatientPortalZIPPostcode;
-    @track departurePatientPortalState;
-    @track departurePatientPortalCity;
-    @track departureStreetAddress;
-    @track Departure_Address_R51__c;
-    @track Destination_Address_R51__c;
-    @track ADD_EXPENSE;
-    @track RECEPT_ADDED;
-    @track IS_LESSTHEN_TWENTY;
-    /**SubCategory value for Tolls/Laundry */
-
-    @track showMissingReceptScreen = false;
-    @track isAuditFlagTrue = 'false';
-    @track hideHeader = false;
-    @track hideFooter =false;
-    @track showBack =true;
-    isPopUpOpen = false;
-    dynamicBarWidth;
-    @track caseId;    
-    mobileView;
-  
-    wiredAuditFlagDetailsResult;
-    @wire(getAuditFlagDetailsFromCase)
-    wiredAuditFlagDetails(result) {
-        this.isLoading = true;
-        this.wiredAuditFlagDetailsResult = result; 
-        const { data, error } = result;
-        if (data) {
-            this.caseId = data['CaseId'] ? data['CaseId'] : null;
-            this.isAuditFlagTrue = data['AllReceiptsRequired'] !== undefined && data['AllReceiptsRequired'] !== null 
-                ? data['AllReceiptsRequired'] 
-                : 'false';
-            if (this.isAuditFlagTrue == 'true') {
-                this.remove20DollarScreen();
-                this.isPopUpOpen =true;
-                this.isLoading = false;
-        }else if(this.isAuditFlagTrue == 'false'){
-            this.isPopUpOpen =true;
-            this.isLoading = false;
-        }
-    }else if(error){
-        this.isPopUpOpen =true;
-        this.isLoading = false;
-    }
-        }
-
-    connectedCallback(){
-        this.enableBydefultFirstScreen =true;
-        if(this.currentScreenIndex === 1){
-            this.showBack =false;
-        }
-        this.nextbuttonDisabled = this.enableNextBtnForFirstScreen();
-        this.mobileView =FORM_FACTOR == 'Small' ? true : false;
-        Promise.all([
-            loadStyle(this, PATIENT_PORTAL_CSS)]);
-            this.removeBackgroundScroll();
-            refreshApex(this.wiredAuditFlagDetailsResult);
-    }
-
-    remove20DollarScreen() {
-        let categoryScreens = { ...this.flowScreens[this.selectedExpenseCategory] };
-        let screenToDeleteIndex = this.deleteScreenWhenAuditFlagIsTrue(categoryScreens);
-        if (screenToDeleteIndex !== null) {
-            delete categoryScreens[screenToDeleteIndex];
-        }
-    
-        let newCategoryScreens = this.reindexScreens(categoryScreens);
-        this.flowScreens[this.selectedExpenseCategory] = newCategoryScreens;
-    }
-    
-    deleteScreenWhenAuditFlagIsTrue(categoryScreens) {
-        for (let key in categoryScreens) {
-            if (categoryScreens.hasOwnProperty(key) && categoryScreens[key].bool === 'enableTwentyDollerScr') {
-                return key;
+            // Get SObject Type dynamically from the objectApiName
+            SObjectType sObjectType = Schema.getGlobalDescribe().get(objectApiName);
+            if (sObjectType == null) {
+                throw new IllegalArgumentException('Invalid objectApiName: ' + objectApiName);
             }
-        }
-        return null;
-    }
 
-    handleChange(event) {
-        const fieldName = event.target.dataset.label;
-        const value = event.target.value;
-        switch(fieldName) {
-            case 'Expense Category':
-                this.selectedExpenseCategory = value;
-                if(this.selectedExpenseCategory ==='Tips/Gratuities' ||  this.selectedExpenseCategory === 'Personal Car Mileage'){
-                    this.IS_LESSTHEN_TWENTY = false;
+            SObject recordToUpdate = sObjectType.newSObject(recordId);
+            Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
+
+            // Ensure that the field exists
+            if (!fieldMap.containsKey(fieldName)) {
+                throw new IllegalArgumentException('Field does not exist: ' + fieldName);
+            }
+
+            // Update the field based on its type
+            Schema.SObjectField field = fieldMap.get(fieldName);
+            Schema.DisplayType fieldType = field.getDescribe().getType();
+
+            if (updatedValue == null) {
+                throw new IllegalArgumentException('Updated value cannot be null.');
+            }
+
+            switch on fieldType {
+                when DATE {
+                    recordToUpdate.put(fieldName, Date.valueOf((String) updatedValue));
                 }
-                this.currentScreenIndex =1;
-                this.dynamicBarWidth ='slds-progress-bar__value percentage0';
-                this.nextbuttonDisabled = this.enableNextBtnForFirstScreen();
-                this.updateScreen();
-        break;
+                when DATETIME {
+                    recordToUpdate.put(fieldName, DateTime.valueOf((String) updatedValue));
+                }
+                when BOOLEAN {
+                    recordToUpdate.put(fieldName, Boolean.valueOf((String) updatedValue));
+                }
+                when INTEGER {
+                    recordToUpdate.put(fieldName, Integer.valueOf((String) updatedValue));
+                }
+                when DOUBLE {
+                    recordToUpdate.put(fieldName, Double.valueOf((String) updatedValue));
+                }
+                when CURRENCY {
+                    recordToUpdate.put(fieldName, Decimal.valueOf((String) updatedValue));
+                }
+                when else {
+                    recordToUpdate.put(fieldName, updatedValue);
+                }
+            }
+
+            // Update the record
+            update recordToUpdate;
+
+        } catch (Exception e) {
+            System.debug('Error updating record: ' + e.getMessage());
+            throw new AuraHandledException('Error updating record: ' + e.getMessage());
         }
     }
 
-    handleNext(){
-        if(this.movedBackToAddReceipt){
-            this.nextbuttonDisabled = true;
-        }
-        /*if its screen 1 then pass validation*/
-        if(this.currentScreenIndex ===1 || this.currentScreenIndex === 0 ){ 
-            this.currentScreenIndex ++;
-            this.nextbuttonDisabled = true;
-            this.closeScreens();
-            this.updateScreen();
-        }else{
-            this.nextClicked ++;
-        }
+ @track editedValues = {}; // Stores temp edits
+    handleRowAction(event) {
+        const rowId = event.target.dataset.id;
+        this.processedCases = this.processedCases.map(row => ({
+            ...row,
+            isExpanded: row.Id === rowId ? !row.isExpanded : row.isExpanded,
+            showContent: row.Id === rowId ? !row.showContent : row.showContent
+        }));
     }
+    
+    handleEditClick(event) {
+        const rowId = event.target.dataset.id;
+        const field = event.target.dataset.field;
 
-    isUndefinedVal = false;
-    screenSuccess(value){
-        refreshApex(this.wiredAuditFlagDetailsResult);
-        
-        /*Storing values in a veriable 2 and 3 and 4th screen*/
-        if(value.detail != null) {
-                let setValues = JSON.parse(value.detail);
-                    for(let key in setValues){
-                        this[key] = setValues[key];
-                    }
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                return {
+                    ...row,
+                    isEditing: true, // Set row to editing mode
+                    detailRowKeyForSaveAndCancel: `${row.Id}-save-cancel`, // Add key for Save and Cancel row
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        isEditing: col.field === field
+                    }))
+                };
             }
-
-        if(this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value === 'valuesFromReceiptScreen'){
-            /**Added for to handle delete/Undelete Operation for 2nd screen */
-            this.deleteFileId = null;
-            this.isUndefinedVal = this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] === undefined || !Array.isArray(this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value]) ? true : false;
-            if(this.isUndefinedVal){
-                this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] =[];  
-            }
-                let parsedArray = JSON.parse(value.detail);
-                if(parsedArray.length !== 0) {
-                parsedArray.forEach(element => {
-                    this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push(element);
-                }); 
-            }
-        }else{
-            this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] = value.detail; 
-        }
-        this.closeScreens();
-
-        /*save Expense Part */
-        if(this.ADD_EXPENSE === 'ADD_EXPENSE'){
-            if(this.RECEPT_ADDED === 'RECEPT_ADDED'){
-                this.saveExpense();
-            }
-            /* show Missing receipt part */
-            else{
-                this.showMissingReceptScreen =true;
-                this.hideHeader =true;
-                this.hideFooter =true;
-                this.removeBackgroundScroll();
-            }
-        }else{
-            this.currentScreenIndex ++;
-            this.updateScreen(); 
-            this.nextbuttonDisabled = true;//this should be re-enabled from the next screen
-        } 
+            return {
+                ...row,
+                isEditing: false, // Ensure other rows are not in editing mode
+                detailRowKeyForSaveAndCancel: null, // Clear Save and Cancel row key for other rows
+                columns: row.columns.map(col => ({
+                    ...col,
+                    isEditing: false
+                }))
+            };
+        });
     }
+    
+    handleInputChange(event) {
+        const rowId = event.target.dataset.id;
+        const field = event.target.dataset.field;
+        const value = event.target.value;
+    
+        if (!this.editedValues[rowId]) {
+            this.editedValues[rowId] = {};
+        }
+        this.editedValues[rowId][field] = value;
+    }
+    
+    @track showSpinner = false;
+    async handleSave(event) {
+        this.showSpinner = true;
+        const rowId = event.target.dataset.id;  // Get recordId from the event
+        // const objectName = event.target.dataset.obj; 
 
-    handleBackClicked(){
-        /*if its screen 1 then pass validation*/
-        if(this.currentScreenIndex === 0 || this.currentScreenIndex === 1){
-            this.showBack =false;
-            this.nextbuttonDisabled = false;
-            this.closeScreens();
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) {
+            console.warn(`No row found with rowId: ${rowId}`);
+            this.showSpinner = false;
             return;
         }
-        this.backClicked++;
-    }
 
-    /*called from child as a custom event, saves the currently selected values.*/
-    backSuccess(value){
-        /*1. direct values should not be saved because it might not be validated. So only saving for retention.
-            2. value needs to be set before the index is decremented*/
-        try{
-            if(this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value === 'valuesFromReceiptScreen'){
-                this.isUndefinedVal = this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] === undefined || !Array.isArray(this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value]) ? true : false;
-                if(this.isUndefinedVal){
-                    this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] =[];  
-                }
-                    let parsedArray = JSON.parse(value.detail);
-                    if(parsedArray.length !== 0) {
-                    parsedArray.forEach(element => {
-                        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value].push(element);
-                    }); 
-                }
-            }else{
-                this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].value] = value.detail;
-            }
-        }catch(e){
-            const currentCategory = this.selectedExpenseCategory;
-            const currentCategoryScreens = this.flowScreens[currentCategory];
-            const numScreens = Object.keys(currentCategoryScreens).length;
-            if (this.currentScreenIndex > numScreens) {
-                /* current category has changed, update currentScreenIndex */
-                this.currentScreenIndex = numScreens;
-            }
+        const updatedValues = this.editedValues[rowId];
+
+        if(!updatedValues || Object.keys(updatedValues).length === 0) {
+            this.handleCancel(event);
+            this.showSpinner = false;
+            this.showToastAfterSaving('success', `Record saved successfully.`);
+            return;
         }
-        this.handleBack();
-    }
 
-    /* called from backSuccess. This just checks for the condition and opens the right screen. */
-    handleBack(){
-        if(this.movedBackToAddReceipt){
-            this.nextbuttonDisabled = true;
-        }
-        this.closeScreens();
-        this.currentScreenIndex--;
-        /*first screen sets the flow, so need to add that one condition manually.*/
-        if(this.currentScreenIndex === 1){
-            this.updateScreen();
-            this.nextbuttonDisabled = false;
-            this.showBack =false;
-        }else{
-            this.closeScreens();
-            this.updateScreen();
-        }
-        /**Added for to handle delete/Undelete Operation for 2nd screen */
-        this.deleteFileId = null;
-    }
-
-    /* Disable all screens by default */
-    closeScreens(){
-        for(let item in this.flowScreens[this.selectedExpenseCategory]){
-            this[this.flowScreens[this.selectedExpenseCategory][item].bool] = false;
-            }
-    }
-
-    @track nextButtonName = 'Next';
-    /*make next screen bool to true. */
-    @track dynamicCssForFooter = 'split-end';
-    updateScreen(){
-        refreshApex(this.wiredAuditFlagDetailsResult);
-        if(this.isAuditFlagTrue == 'true'){
-            this.remove20DollarScreen();
-        }
-        let array = this.flowScreens[this.selectedExpenseCategory];
-        this.totalScreenIndex = Object.keys(array).length;
-        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].bool] = true;
-        this.dynamicBarWidth = this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].width;
-        this.nextButtonName = this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].btnName;
-        if(this.currentScreenIndex === 1){
-            this.showBack =false;
-        }else{
-            this.showBack =true;
-        }
-        this.dynamicCssForFooter = this.currentScreenIndex === 1 ? 'split-end' : 'split-between';
-    }
-
-    @track showDeletionPopUp =false;
-    @track deleteFileId;
-    deleteImage(event){
-        this.closeScreens();
-        this.showDeletionPopUp =true;
-        this.deleteFileId =event.detail;
-        this.updateScreen();
-    }
-
-    async deleteEventFromWarningPopUp(){
-        await renameFileTitle({documentId : this.deleteFileId })
-        this.hideHeader =false;
-        this.hideFooter =false;
-        this.showDeletionPopUp =false;
-        this.valuesFromReceiptScreen = Array.isArray(this.valuesFromReceiptScreen) ? this.valuesFromReceiptScreen.flat(Infinity) : [];
-        if(this.valuesFromReceiptScreen !==null && this.valuesFromReceiptScreen !== undefined ){
-            for(let i=0; i< this.valuesFromReceiptScreen.length; i++){
-                if(this.valuesFromReceiptScreen[i] === this.deleteFileId){
-                    this.valuesFromReceiptScreen.splice(i, 1);
-                    break;
-                }
-            }
-        }
-        this.deleteFileId = null;
-        this.closeScreens();
-        this.updateScreen();
-    }
-
-    @track movedBackToAddReceipt =false;
-    addReceipt(){
-        if(this.selectedExpenseCategory !=='Tips/Gratuities' && this.selectedExpenseCategory !== 'Personal Car Mileage'){
-        this.nextButtonName = 'Next';
-        this.movedBackToAddReceipt =true;
-        this.ADD_EXPENSE ='';
-        this.closeScreens();
-        this.showMissingReceptScreen =false;
-        this.hideHeader =false;
-        this.hideFooter =false;
-
-        this.currentScreenIndex = this.getReceiptIndexValue();
-        this[this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].bool] = true;
-        this.updateScreen();
-    }
-}
-
-    /*To get the index of the screen with 'enableReceiptScreen' */
-    getReceiptIndexValue() {
-        let screenIndex = null;
-        let categoryScreens = this.flowScreens[this.selectedExpenseCategory];
-        for (let key in categoryScreens) {
-            if (categoryScreens.hasOwnProperty(key) && categoryScreens[key].bool === 'enableReceiptScreen') {
-                screenIndex = parseInt(key);
-                break;
-            }
-        }
-        return screenIndex;
-    }
-
-    updateCurrentIndex(event){
-        this.currentScreenIndex =event.detail;
-    }
-
-    isValidSalesforceDate(dateString) {
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        return dateRegex.test(dateString);
-    }
-
-   @track isLoading = false;
-   async saveExpense(){
-        let transientObj = {
-            "attributes": {
-            "type": "Transient__c"
-            },
-            "CaseIdForPatientPortal__c": this.caseId,
-            "Expense_Category_R1__c": this.expenseCategory,
-            "PatientPortalExpenseDate__c": this.isValidSalesforceDate(this.expenseDate) ? this.expenseDate : this.normalizeDate(this.expenseDate),
-            "City_of_Purchase_R1__c": this.IS_LESSTHEN_TWENTY ? '' : this.cityOfPurchage,
-            "Expense_Amount_R1__c": this.expenseAmount,
-            "Description_R1__c": this.description,
-            "Incurred_By_R1__c": this.getIncurredByValue(this.expenseFor),
-            ...(this.expenseCategory !== 'Tips/Gratuities' ? { "Vendor_R1__c":  this.vendor} :{}),
-            ...(this.expenseCategory === 'Tolls' || this.expenseCategory === 'Laundry' ? {"PatientPortalExpenseSubcategory__c" : this.expenseSubCategory} :{}),
-            ...(this.expenseCategory === 'Tips/Gratuities' ? {"PatientPortalRecipient__c" :  this.receiptValue} :{}),
-            ...(this.expenseCategory === 'Personal Car Mileage' ? {
-            "Destination_Address_R51__c": this.Destination_Address_R51__c,
-            "Departure_Address_R51__c": this.Departure_Address_R51__c,
-            "PatientPortalStreetAddress__c": this.departureStreetAddress,
-            "PatientPortalCity__c": this.departurePatientPortalCity,
-            "PatientPortalState__c": this.departurePatientPortalState,
-            "PatientPortalZIPPostcode__c": this.departurePatientPortalZIPPostcode,
-            "PatientAddressLine1__c": this.destinationPatientAddressLine,
-            "PatientCityTown__c": this.destinationPatientCityTown,
-            "PatientZipcodePostcode__c": this.destinationPatientZipcodePostcode,
-            "PatientStateRegionProvince__c": this.destinationPatientStateRegionProvince
-            } : {}),
-            ...( (this.expenseCategory === 'Tolls' && this.expenseSubCategory === 'Cash Toll') || (this.expenseCategory === 'Laundry' && this.expenseSubCategory === 'Self Service') ? {"Receipt_Uploaded_R1__c" : 'Yes'} :{})
+        // Prepare the payload for the Apex method
+        const payload = {
+            recordId: rowId,
+            objectApiName: updatedRow.objectApiName || 'Case',  // Use the objectApiName dynamically
+            fieldName: Object.keys(updatedValues)[0],  // Get the first field to update (can be expanded to multiple fields)
+            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  // Get the updated value
         };
-        this.isLoading =true;
-        try{
-            this.valuesFromReceiptScreen = Array.isArray(this.valuesFromReceiptScreen) ? this.valuesFromReceiptScreen.flat(Infinity) : [];
-            this.valuesFromReceiptScreen = this.expenseCategory === 'Tips/Gratuities'  || this.expenseCategory === 'Personal Car Mileage'? [] : this.valuesFromReceiptScreen;
-          const result =  await saveExpense({jsonString: JSON.stringify(transientObj), listOfDocumentIds:  this.valuesFromReceiptScreen});
-          if(result){
-                this.hideHeader =true;
-                this.hideFooter =true;
-                this.isPopUpOpen = false;
-                this.restoreBackgroundScroll();
-                this.closeScreens();
-                this.showToast();
-                this.dispatchEvent(new CustomEvent('expensecreation' , {detail: true})); 
-                this.isLoading = false;
-          }else{
-            this.isLoading = false;
-            this.handleClose();
-          }
-        }catch(e){
-            this.isLoading = false;
-            this.handleClose();
-        } 
-    }
 
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-        const year = utcDate.getUTCFullYear();
-        const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(utcDate.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
+        console.log('Payload to send to backend:', JSON.stringify(payload));
 
+        try {
+            // Call Apex method to update the record
+            await saveRecord({ payload });
 
-    /**Added this function because OCR gives different formate of date Values. So irrespictive of any date formate it will convert it to 2018-05-05 */
-    normalizeDate(dateStr) {
-        try{
-            if (!dateStr || typeof dateStr !== 'string') {
-                return null;
-            }
-        
-            let cleanedDateStr = dateStr
-                .trim()
-                .replace(/[,]/g, '')  // Ex: "December 8, 2024" → "December 8 2024"
-                .replace(/(\d{1,2})[st|nd|rd|th]/gi, '$1') // Ex: "8th December 2024" → "8 December 2024"
-                .replace(/(\d+)(?:\s+|-|\/)([A-Za-z]+)(?:\s+|-|\/)(\d+)/, '$2 $1, $3');  // Converts "08-Dec-2024" → "2024-12-08"
+            console.log(`Record saved successfully.`);
 
-            let date = new Date(cleanedDateStr + ' UTC'); // Forces UTC parsing
-
-            if (isNaN(date.getTime())) {
-                return null;
-            }
-
-            let year = date.getUTCFullYear();
-            let month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
-            let day = String(date.getUTCDate()).padStart(2, '0'); 
-
-            return `${year}-${month}-${day}`;
-        }catch(error){
-            return null;
-     }
-    }
-
-
-    getIncurredByValue(expenseFor) {
-        let incurredBy = '';
-        if (expenseFor.includes('Patient') && expenseFor.includes('Caregiver')) {
-            incurredBy = 'Both';
-        } else if (expenseFor.includes('Patient')) {
-            incurredBy = 'Patient';
-        } else if (expenseFor.includes('Caregiver')) {
-            incurredBy = 'Caregiver';
-        }
-        return incurredBy;
-    }
-
-    handleClose(){
-        this.isPopUpOpen =false;
-        this.restoreBackgroundScroll();
-        this.dispatchEvent(new CustomEvent('close' , {detail: true}));
-    }
-
-    enableNextBtnForFirstScreen(){
-        return this.currentScreenIndex === 1 ? false :true;
-    }
-
-    assignSubCategoryValue(event){
-        this.expenseSubCategory = event.detail;
-    }
-
-    assignExpenseCategoryValue(event){
-        this.selectedExpenseCategory = event.detail;
-        this.dynamicBarWidth = this.flowScreens[this.selectedExpenseCategory][this.currentScreenIndex].width;
-        let array = this.flowScreens[this.selectedExpenseCategory];
-        this.totalScreenIndex = Object.keys(array).length;
-    }
-
-    handleNextButtonChange(value){
-        this.nextbuttonDisabled = !value.detail;
-    } 
-
-    showToast() {
-        const event = new ShowToastEvent({
-            title: 'Success',
-            message: 'New expense added',
-            variant: 'success'
-        });
-        this.dispatchEvent(event);
-    }
-
-    notDeleteEventFromWarningPopUp(){
-        this.hideHeader =false;
-        this.hideFooter =false;
-        this.showDeletionPopUp =false; 
-        this.closeScreens();
-        this.updateScreen();
-    }
-
-    closePopUpFromMissingReceiptScreen(){
-        this.isPopUpOpen = false;
-        this.restoreBackgroundScroll();
-    }
-
-    continueWithOutReceipt(){
-        this.saveExpense();
-    }
-    removeBackgroundScroll(){
-        const element = document.querySelector('.slds-no-wcag');
-            if(element){
-                element.style.overflowY = 'hidden';
-            }
-      }
-    restoreBackgroundScroll(){
-    const element = document.querySelector('.slds-no-wcag');
-        if(element){
-            element.style.overflowY = '';
-        }
-    }
-
-    updateContentDocId(value){
-        if(value !== null && value !== undefined && value !== '' && value.detail !== null && value.detail !== undefined && value.detail !== ''){
-            this.valuesFromReceiptScreen.push(value.detail);
-        }
-    }
-
-    ocrValues(event){
-        if(event !== null && event !== undefined && event !=='' && event.detail !== null && event.detail !== undefined && event.detail !== ''){
-            this.valuesFromExpenseDetailsScreen = event.detail;
-        }
-        
-    }
-
-    /* Update the screen based on the selected expense category lessThen/ greater then20 dollar*/
-        updateScreens(event) {
-            if (this.isValidEvent(event) && this.isValidExpenseCategory(this.selectedExpenseCategory)) {
-                    switch (event.detail) {
-                        case LESS_THEN_20:
-                            this.handleLessThan20();
-                            break;
-                        case GREATER_THEN_20:
-                            this.assignScreensForGreaterThan20Dollar();
-                            break;
-                        default:
-                            break;
-                    }
-                    // Update total screen index
-                    this.totalScreenIndex = Object.keys(this.flowScreens[this.selectedExpenseCategory]).length;
-            }
-        }
-        
-        isValidEvent(event) {
-            return event !== null && event !== undefined && event !== '' && event.detail !== null && event.detail !== undefined && event.detail !== '';
-        }
-        
-        isValidExpenseCategory(category) {
-            return category !== 'Tips/Gratuities' && category !== 'Personal Car Mileage';
-        }
-        
-        handleLessThan20() {
-            let categoryScreens = { ...this.flowScreens[this.selectedExpenseCategory] };
-        
-            let screenToDeleteIndex = this.findScreenToDelete(categoryScreens);
-        
-            if (screenToDeleteIndex !== null) {
-                delete categoryScreens[screenToDeleteIndex];
-            }
-        
-            let newCategoryScreens = this.reindexScreens(categoryScreens);
-        
-            this.flowScreens[this.selectedExpenseCategory] = newCategoryScreens;
-        }
-        
-        findScreenToDelete(categoryScreens) {
-            for (let key in categoryScreens) {
-                if (categoryScreens.hasOwnProperty(key) && categoryScreens[key].bool === 'enableReceiptScreen') {
-                    return key;
+            this.showSpinner = false;
+            // this.updateNextActionHighlight();
+            this.showToastAfterSaving('success', `Record saved successfully.`); 
+            // Update the UI after successful save
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === rowId) {
+                    let updatedRow = {
+                        ...row,
+                        isEditing: false,  // Exit editing mode
+                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
+                            isEditing: false,  // Reset editing state
+                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass // Reset cellClass only for the updated field
+                        }))
+                    };
+                    updatedRow = this.updateNextActionStyling(updatedRow);
+                    return updatedRow;
                 }
-            }
-            return null;
+                return row;
+            });
+            // Remove the edited values after save
+            delete this.editedValues[rowId];
+
+        } catch (error) {
+            this.showSpinner = false;
+            this.showToastAfterSaving('error', `Error saving record. Details: ${
+                error.message || (error.body && error.body.message) || JSON.stringify(error)
+            }`);
+            console.error(`Error saving record with rowId: ${rowId}`, error);
         }
-        
-        reindexScreens(categoryScreens) {
-            let newCategoryScreens = {};
-            let index = 1;
-            for (let key in categoryScreens) {
-                if (categoryScreens.hasOwnProperty(key)) {
-                    newCategoryScreens[index] = categoryScreens[key];
-                    index++;
-                }
-            }
-            return newCategoryScreens;
-        }
-        
-        assignScreensForGreaterThan20Dollar() {
-            let screenCategory;
-            if (this.isValidExpenseCategory(this.selectedExpenseCategory)) {
-                screenCategory = (this.selectedExpenseCategory === 'Laundry' || this.selectedExpenseCategory === 'Tolls') 
-                    ? showSubCategoryWithReceiptScreenCategories 
-                    : showReceiptScreenCategories;
-            } else {
-                screenCategory = showWithOutReceiptScreenCategories;
-            }
-            this.flowScreens[this.selectedExpenseCategory] = screenCategory;
-        }
-}
-<template>
-    <template if:true={isLoading}>
-    <div class="loading">
-        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-    </div> 
-</template>   
+    }
 
-<template if:false={isLoading}>
-<template if:true={isPopUpOpen}>
-        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
-            <div class="slds-modal__container">
-            <div class="mycontainer">
-
-        <!--Header Start...-->
-        <template if:false={hideHeader}>
-            <div class="slds-modal__header">
-                <template if:true={mobileView}>
-                    <div class="slds-grid slds-grid_vertical-align-center slds-size_12-of-12 mobile-heading">
-                        <div class="slds-grid slds-grid_vertical-align-center slds-size_2-of-12 font-style6" onclick={handleClose}>
-                          <lightning-icon icon-name="utility:chevronleft" alternative-text="chevronleft" title="chevronleft" size="small" class="chevron-left"></lightning-icon>
-                          <span class="slds-p-left_x-small">{labelsList.BackClick}</span>
-                        </div>
-                        <h1 class="slds-size_9-of-12 slds-col font-style4 align-center padding-right">{labelsList.PortalAddExpense}</h1>
-                      </div>               
-                </template>
-                <template if:false={mobileView}>
-                    <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate font-style1" tabindex="-1">{labelsList.PortalAddExpense}</h1>
-                    <div class="crossIcon">
-                        <a onclick={handleClose} href="#" class="back-link">
-                            <img class="crossIcon" src={blueCrossIcon} alt="crossIcon"><P class="headerTitle"></P>
-                        </a>
-                    </div>        
-                </template>
-            </div>
-        </template>
-        <!--Header Ends...-->
-
-            <!--Perecentage Steps Start...-->
-            <div class="slds-modal__content slds-p-around_medium scroolEnable" id="modal-content-id-1">
-                <div class="leftRightMargin">
-
-                <template if:false={hideHeader}>
-                    <div class="slds-grid slds-grid_align-spread slds-p-bottom_small stepNumberIndicatorDesktop">
-                        <h1 class="font-style1">{labelsList.PortalStep}&nbsp;{currentScreenIndex} of {totalScreenIndex}</h1>
-                    </div>
-                    <div class="slds-progress-bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="progress-bar-label-id-5" role="progressbar">
-                    <span class={dynamicBarWidth}></span></div> 
-                </template>
-            <!--Perecentage Steps Ends...-->
-
-            <!--First Screen-->
-            <template if:true={enableBydefultFirstScreen}>
-            <div class="slds-grid slds-grid_align-spread stepNumberSubMessageDesktop">
-                <h1 class="font-style2">{labelsList.PortalSelectExpenseCategory}</h1>
-            </div>            
-                <lightning-radio-group data-label="Expense Category" name="radioGroup"
-                options={options}
-                value={selectedExpenseCategory}
-                type="radio"
-                onchange={handleChange}
-                class="radioGroupMobile expenseCategoryRadioGroup">
-                </lightning-radio-group>
-            </template>
-            <!--First Screen Ends-->
-
-            <template if:true={enableTwentyDollerScr}>
-                <c-psp-add-expense-less-then-twenty-dollar-scr
-                returning-values={valuesFromTwentyDollerScreen}
-                onenablenextbutton={handleNextButtonChange}
-                next-button-clicked={nextClicked}
-                back-button-clicked={backClicked}
-                onback={backSuccess}
-                onsuccess={screenSuccess}
-                onupdatescreen={updateScreens}>
-                </c-psp-add-expense-less-then-twenty-dollar-scr>
-            </template>
-
-            <!--Recept Screen Starts-->
-            <template if:true={enableReceiptScreen}>
-                <c-psp_-add-expense-second-screen_-l-w-c-component 
-                onenablenextbutton={handleNextButtonChange}
-                next-button-clicked={nextClicked}
-                back-button-clicked={backClicked}
-                onback={backSuccess}
-                onsuccess={screenSuccess}
-                ondeleteimage={deleteImage}
-                content-document-ids ={deleteFileId}
-                show-deletion-pop-up-screen ={showDeletionPopUp}
-                ondelete={deleteEventFromWarningPopUp}
-                onnodelete={notDeleteEventFromWarningPopUp}>
-            </c-psp_-add-expense-second-screen_-l-w-c-component>
-            </template>
-             <!--Recept Screen Ends-->
-
-            <!--SubCategory Screen Starts-->
-            <template if:true={enableSubCategoryScreen}>
-                <c-psp_-add-expense-sub-category_-l-w-c-component 
-                returning-values={valuesFromSubCategoryScreen}
-                expense-sub-category ={expenseSubCategory}
-                onsubcategory={assignSubCategoryValue}
-                onenablenextbutton={handleNextButtonChange} 
-                expense-category-selected-val={selectedExpenseCategory}
-                next-button-clicked={nextClicked}
-                back-button-clicked={backClicked}
-                onback={backSuccess}
-                onsuccess={screenSuccess}>>
-            </c-psp_-add-expense-sub-category_-l-w-c-component>
-            </template>
-            <!--SubCategory Screen Ends-->
-
-            <!--Expense Details Screen Starts-->
-            <template if:true={enableExpenseDetailsScreen}>
-                <div class="third-screen-container">
-                    <c-psp_-add-expense-third-screen_-l-w-c-component 
-                    options={options} 
-                    onexpensecategory={assignExpenseCategoryValue}
-                    onsubcategory={assignSubCategoryValue}
-                    returning-values={valuesFromExpenseDetailsScreen}
-                    expense-sub-category ={expenseSubCategory}
-                    expense-category-selected-val={selectedExpenseCategory}
-                    content-document-ids ={valuesFromReceiptScreen}
-                    flow-screens={flowScreens}
-                    onaddreceipt={addReceipt}
-                    ondeleteimage={deleteImage}
-                    oncurrentscreenindex={updateCurrentIndex}
-                    onenablenextbutton={handleNextButtonChange}
-                    next-button-clicked={nextClicked}
-                    back-button-clicked={backClicked}
-                    onback={backSuccess}
-                    onsuccess={screenSuccess}
-                    onimageupload={updateContentDocId}
-                    onocrvalues={ocrValues}
-                    show-deletion-pop-up-screen ={showDeletionPopUp}
-                    ondelete={deleteEventFromWarningPopUp}
-                    onnodelete={notDeleteEventFromWarningPopUp}
-                    is-less-then20-dollars={IS_LESSTHEN_TWENTY}>
-                    </c-psp_-add-expense-third-screen_-l-w-c-component>    
-                </div>
-            </template>
-            <!--Expense Details Screen Ends-->
-
-             <!--Missing Recept Screen Starts-->
-             <template if:true={showMissingReceptScreen}>
-                <c-psp_-missing-receipt_-l-w-c-component 
-                onclosepopup={closePopUpFromMissingReceiptScreen}
-                oncontinuewithoutreceipt={continueWithOutReceipt}
-                onaddreceipt={addReceipt}
-                onenablenextbutton={handleNextButtonChange}>
-            </c-psp_-missing-receipt_-l-w-c-component>
-            </template>
-            <!--Missing Recept Screen Ends-->
-            </div>
+  <div class="table-edit-container">
+            <table class="slds-table slds-table_bordered slds-table_col-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col"></th> <!-- Toggle icon column -->
+                        <template for:each={columnConfig} for:item="column">
+                            <template if:true={column.visible}>
+                                <th key={column.column_id} scope="col" class={column.ColumnWidth}>
+                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                        <span class="font-style3 slds-m-right_xx-small">{column.label}</span>
+                                        <template if:true={column.isSortingApplied}>
+                                            <template if:true={column.IsAscsortDirection}>
+                                                <lightning-button-icon
+                                                    icon-name="utility:arrowup"
+                                                    variant="bare"
+                                                    size="small"
+                                                    alternative-text="Sort Ascending"
+                                                    data-column-id={column.column_id}
+                                                    onclick={handleSort}>
+                                                </lightning-button-icon>
+                                            </template>
+                                            <template if:true={column.IsDescsortDirection}>
+                                                <lightning-button-icon
+                                                    icon-name="utility:arrowdown"
+                                                    variant="bare"
+                                                    size="small"
+                                                    alternative-text="Sort Descending"
+                                                    data-column-id={column.column_id}
+                                                    onclick={handleSort}>
+                                                </lightning-button-icon>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </th>
+                            </template>
+                        </template>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={processedCases} for:item="row">
+                        <tr key={row.Id}>
+                            <td>
+                                <template if:true={row.isExpanded}>
+                                    <lightning-button-icon
+                                        icon-name="utility:dash"
+                                        variant="bare"
+                                        alternative-text="Collapse Details"
+                                        data-id={row.Id}
+                                        onclick={handleRowAction}>
+                                    </lightning-button-icon>
+                                </template>
+                                <template if:false={row.isExpanded}>
+                                    <lightning-button-icon
+                                        icon-name="utility:add"
+                                        variant="bare"
+                                        alternative-text="Expand Details"
+                                        data-id={row.Id}
+                                        onclick={handleRowAction}>
+                                    </lightning-button-icon>
+                                </template>
+                            </td>
+                            <template for:each={row.columns} for:item="column">
+                                <td key={column.field} class={column.cellClass}>
+                                    <template if:true={column.isEditable}>
+                                        <template if:true={column.isEditing}>
+                                            <template if:true={column.isString}>
+                                                <lightning-textarea
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onchange={handleInputChange}
+                                                    variant="label-hidden"
+                                                >
+                                                </lightning-textarea>
+                                            </template>
+                                            <template if:true={column.isNumber}>
+                                                <lightning-input
+                                                    type="number"
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onchange={handleInputChange}
+                                                    variant="label-hidden"
+                                                >
+                                                </lightning-input>
+                                            </template>
+                                            <template if:true={column.isDate}>
+                                                <lightning-input
+                                                    type="date"
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    onchange={handleInputChange}
+                                                    variant="label-hidden"
+                                                    >
+                                                </lightning-input>
+                                            </template>
+                                            <template if:true={column.isPicklist}>
+                                                <lightning-combobox
+                                                    value={column.value}
+                                                    data-id={row.Id}
+                                                    data-field={column.field}
+                                                    options={column.options}
+                                                    onchange={handleInputChange}
+                                                    variant="label-hidden"
+                                                >
+                                                </lightning-combobox>
+                                            </template>
+                                        </template>
+                                    </template>
+                                    <template if:false={column.isEditing}>
+                                        <template if:true={column.isHyperlink}>
+                                            <lightning-formatted-rich-text class="link-style" value={column.value}></lightning-formatted-rich-text>
+                                        </template>
+                                        <template if:false={column.isHyperlink}>
+                                            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                                <lightning-formatted-rich-text class="editable-cell" value={column.value}></lightning-formatted-rich-text>
+                                                <!-- <span class="editable-cell">{column.value}</span>   -->
+                                                <template if:true={column.isEditable}>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:edit"
+                                                        variant="bare"
+                                                        class="slds-float_right"
+                                                        alternative-text="Edit"
+                                                        data-id={row.Id}
+                                                        data-field={column.field}
+                                                        onclick={handleEditClick}>
+                                                    </lightning-button-icon>
+                                                </template>                                              
+                                            </div>
+                                        </template>
+                                    </template>
+                                </td>
+                            </template>
+                        </tr>
+                        <template if:true={row.isEditing}>
+                            <tr key={row.detailRowKeyForSaveAndCancel} class="save-cancel-row">
+                                <td colspan={}>
+                                    <div class="">
+                                        <lightning-button
+                                            label="Save"
+                                            data-id={row.Id}
+                                            onclick={handleSave}>
+                                        </lightning-button>
+                                        <lightning-button
+                                            label="Cancel"
+                                            data-id={row.Id}
+                                            onclick={handleCancel}
+                                            class="slds-m-left_small">
+                                        </lightning-button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <template if:true={row.showContent}>
+                            <tr key={row.detailRowKey} class="case-detail-row">
+                                <td colspan="1">
+                                    <div>
+                                       
+                                       <!-- <c-dynamic-datatable-debasis record-id={row.Id}></c-dynamic-datatable-debasis>-->
+                                        <c-psp_-p-s-s-tracker-data-table-l-w-c-comp case-id={row.Id} onspin={loadSpinner}></c-psp_-p-s-s-tracker-data-table-l-w-c-comp>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
+                </tbody>
+            </table>
         </div>
-
-        <!--Footer Starts-->
-        <template if:false={hideFooter}>
-        <div class="slds-modal__footer">
-            <div class="adjustFooterBtn">
-                <div class="slds-size_6-of-6">
-                    <c-psp_-custom-screen-footer_-l-w-c-component 
-                    next-disabled={nextbuttonDisabled} 
-                    onnext={handleNext} 
-                    onback={handleBackClicked}
-                    back-button-name= "Previous" 
-                    show-back ={showBack} 
-                    show-next="true" 
-                    next-button-name={nextButtonName}
-                    dynamic-css={dynamicCssForFooter}>
-                    </c-psp_-custom-screen-footer_-l-w-c-component>        
-                </div>
-            </div>
-        </div>
-    </template>
-     <!--Footer Ends-->
-        </div>
-    </div>
-    </section>
-    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
-</template>
-</template>
-</template>
