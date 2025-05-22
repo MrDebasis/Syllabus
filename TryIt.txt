@@ -1,3 +1,60 @@
+<template>
+    <div class="survey-container">
+
+        <!-- Date Inputs -->
+        <template if:true={showDateInputs}>
+            <template for:each={renderedDateQuestions} for:item="q">
+                <lightning-input
+                    key={q.id}
+                    type={q.type}
+                    name={q.id}
+                    label={q.label}
+                    value={q.value}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </template>
+        </template>
+
+        <!-- Yes/No Question -->
+        <template if:true={showYesNo}>
+            <lightning-radio-group
+                label={yesNoLabel}
+                name="yesno"
+                options={yesNoOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+        <!-- Multiple Choice Question -->
+        <template if:true={showMultipleChoice}>
+            <lightning-radio-group
+                label={multipleChoiceLabel}
+                name="multiplechoice"
+                options={multipleChoiceOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+        <!-- Thank You Message -->
+        <template if:true={showMessage}>
+            <div class="thank-you">{messageLabel}</div>
+        </template>
+
+        <!-- Next Button -->
+        <lightning-button
+            class="slds-m-top_medium"
+            variant="brand"
+            label="Next"
+            onclick={handleNext}
+            disabled={isNextButtonDisabled}>
+        </lightning-button>
+    </div>
+</template>
 import { LightningElement ,track} from 'lwc';
 const surveyConfig = {
     apheresis: {
