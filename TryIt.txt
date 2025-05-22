@@ -1,115 +1,48 @@
- @track editedValues = {}; // Stores temp edits
-    handleRowAction(event) {
-        const rowId = event.target.dataset.id;
-        this.processedCases = this.processedCases.map(row => ({
-            ...row,
-            isExpanded: row.Id === rowId ? !row.isExpanded : row.isExpanded,
-            showContent: row.Id === rowId ? !row.showContent : row.showContent
-        }));
-    }
-    
-    handleEditClick(event) {
-        const rowId = event.target.dataset.id;
-        const field = event.target.dataset.field;
+handleEditClick(event) {
+    const rowId = event.target.dataset.id;
+    const field = event.target.dataset.field;
 
+    // Step 1: Flush pending edited values into UI before switching
+    const pendingEdits = this.editedValues[rowId];
+    if (pendingEdits) {
         this.processedCases = this.processedCases.map(row => {
             if (row.Id === rowId) {
                 return {
                     ...row,
-                    isEditing: true, // Set row to editing mode
-                    detailRowKeyForSaveAndCancel: `${row.Id}-save-cancel`, // Add key for Save and Cancel row
                     columns: row.columns.map(col => ({
                         ...col,
-                        isEditing: col.field === field
+                        value: pendingEdits[col.field] !== undefined ? pendingEdits[col.field] : col.value
                     }))
                 };
             }
+            return row;
+        });
+
+        // Optional: Clear editedValues after flush if you want to discard old edits
+        // delete this.editedValues[rowId];
+    }
+
+    // Step 2: Now apply the new editing state
+    this.processedCases = this.processedCases.map(row => {
+        if (row.Id === rowId) {
             return {
                 ...row,
-                isEditing: false, // Ensure other rows are not in editing mode
-                detailRowKeyForSaveAndCancel: null, // Clear Save and Cancel row key for other rows
+                isEditing: true,
+                detailRowKeyForSaveAndCancel: `${row.Id}-save-cancel`,
                 columns: row.columns.map(col => ({
                     ...col,
-                    isEditing: false
+                    isEditing: col.field === field
                 }))
             };
-        });
-    }
-    
-    handleInputChange(event) {
-        const rowId = event.target.dataset.id;
-        const field = event.target.dataset.field;
-        const value = event.target.value;
-    
-        if (!this.editedValues[rowId]) {
-            this.editedValues[rowId] = {};
         }
-        this.editedValues[rowId][field] = value;
-    }
-    
-    @track showSpinner = false;
-    async handleSave(event) {
-        this.showSpinner = true;
-        const rowId = event.target.dataset.id;  // Get recordId from the event
-
-        const updatedRow = this.processedCases.find(row => row.Id === rowId);
-        if (!updatedRow) {
-            this.showSpinner = false;
-            return;
-        }
-
-        const updatedValues = this.editedValues[rowId];
-
-        if(!updatedValues || Object.keys(updatedValues).length === 0) {
-            this.handleCancel(event);
-            this.showSpinner = false;
-            this.showToastAfterSaving('success', `Record saved successfully.`);
-            return;
-        }
-
-        // Prepare the payload for the Apex method
-        const payload = {
-            recordId: rowId,
-            objectApiName: updatedRow.objectApiName || 'Case',  // Use the objectApiName dynamically
-            fieldName: Object.keys(updatedValues)[0],  // Get the first field to update (can be expanded to multiple fields)
-            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  // Get the updated value
+        return {
+            ...row,
+            isEditing: false,
+            detailRowKeyForSaveAndCancel: null,
+            columns: row.columns.map(col => ({
+                ...col,
+                isEditing: false
+            }))
         };
-
-
-        try {
-            // Call Apex method to update the record
-            await saveRecord({ payload });
-
-
-            this.showSpinner = false;
-            this.showToastAfterSaving('success', `Record saved successfully.`); 
-            // Update the UI after successful save
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    let updatedRow = {
-                        ...row,
-                        isEditing: false,  // Exit editing mode
-                        detailRowKeyForSaveAndCancel: null,  // Clear Save/Cancel row key
-                        columns: row.columns.map(col => ({
-                            ...col,
-                            value: updatedValues[col.field] ?? col.value,  // Update column value with the new data
-                            isEditing: false,  // Reset editing state
-                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass // Reset cellClass only for the updated field
-                        }))
-                    };
-                    updatedRow = this.updateNextActionStyling(updatedRow);
-                    return updatedRow;
-                }
-                return row;
-            });
-            // Remove the edited values after save
-            delete this.editedValues[rowId];
-
-        } catch (error) {
-            this.showSpinner = false;
-            this.showToastAfterSaving('error', `Error saving record. Details: ${
-                error.message || (error.body && error.body.message) || JSON.stringify(error)
-            }`);
-        }
-    }
- 
+    });
+}
