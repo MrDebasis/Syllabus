@@ -1,11 +1,22 @@
-const valDate = new Date(value); // e.g., value = "2023-12-12"
+this.cases = this.cases.map(row => {
 
-// Convert all values in filter.value to Date objects
-const dateArray = filter.value.map(v => new Date(v));
+    if (row.Id === rowId) {
 
-// Find the earliest and latest dates
-const start = new Date(Math.min(...dateArray));
-const end = new Date(Math.max(...dateArray));
+        // Create a new object with the same order as the original row
 
-// Compare valDate with the start and end range
-return valDate >= start && valDate <= end;
+        const updatedField = Object.keys(updatedValues)[0]; // Get the field being updated
+
+        const updatedRow = { ...row }; // Clone the original row
+ 
+        // Update the specific field with the new value
+
+        updatedRow[updatedField] = updatedValues[updatedField];
+ 
+        return updatedRow; // Return the updated row
+
+    }
+
+    return row; // Return the row unchanged if it doesn't match the rowId
+
+});
+ 
