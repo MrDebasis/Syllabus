@@ -1,22 +1,18 @@
 this.cases = this.cases.map(row => {
-
     if (row.Id === rowId) {
+        const updatedField = Object.keys(updatedValues)[0];
+        const updatedValue = updatedValues[updatedField];
+        const updatedRow = { ...row };
 
-        // Create a new object with the same order as the original row
+        // Find the actual key in the row that matches, ignoring case
+        const targetKey = Object.keys(row).find(key => key.toLowerCase() === updatedField.toLowerCase());
 
-        const updatedField = Object.keys(updatedValues)[0]; // Get the field being updated
+        if (targetKey) {
+            updatedRow[targetKey] = updatedValue; // Update the matching field
+        }
 
-        const updatedRow = { ...row }; // Clone the original row
- 
-        // Update the specific field with the new value
-
-        updatedRow[updatedField] = updatedValues[updatedField];
- 
-        return updatedRow; // Return the updated row
-
+        return updatedRow;
     }
 
-    return row; // Return the row unchanged if it doesn't match the rowId
-
+    return row; // Unchanged row
 });
- 
