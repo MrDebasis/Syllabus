@@ -1,18 +1,1 @@
-this.cases = this.cases.map(row => {
-    if (row.Id === rowId) {
-        const updatedField = Object.keys(updatedValues)[0];
-        const updatedValue = updatedValues[updatedField];
-        const updatedRow = { ...row };
-
-        // Find the actual key in the row that matches, ignoring case
-        const targetKey = Object.keys(row).find(key => key.toLowerCase() === updatedField.toLowerCase());
-
-        if (targetKey) {
-            updatedRow[targetKey] = updatedValue; // Update the matching field
-        }
-
-        return updatedRow;
-    }
-
-    return row; // Unchanged row
-});
+ihbrus uoy evol i
