@@ -1,215 +1,213 @@
-Duplicate id in list: 50023000003stVbAAI"
-
-@AuraEnabled
-public static void saveRecord(List<Map<String, Object>> payloadList) {
-    // Map to merge field updates by record Id
-    Map<String, SObject> recordMap = new Map<String, SObject>();
-    Map<String, SObjectType> sObjectTypeMap = Schema.getGlobalDescribe();
-
-    for (Map<String, Object> payload : payloadList) {
-        try {
-            String recordId = (String) payload.get('recordId');
-            String objectApiName = (String) payload.get('objectApiName');
-            String fieldName = (String) payload.get('fieldName');
-            Object updatedValue = payload.get('updatedValue');
-
-            if (String.isEmpty(recordId) || String.isEmpty(objectApiName) || String.isEmpty(fieldName)) continue;
-
-            SObjectType sObjectType = sObjectTypeMap.get(objectApiName);
-            if (sObjectType == null) continue;
-
-            Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
-            if (!fieldMap.containsKey(fieldName)) continue;
-
-            Schema.SObjectField field = fieldMap.get(fieldName);
-            Schema.DisplayType fieldType = field.getDescribe().getType();
-
-            // Reuse or create a single SObject instance per recordId
-            SObject record = recordMap.containsKey(recordId) 
-                ? recordMap.get(recordId) 
-                : sObjectType.newSObject(recordId);
-
-            // Type-safe field assignment
-            switch on fieldType {
-                when DATE {
-                    record.put(fieldName, Date.valueOf((String) updatedValue));
-                }
-                when DATETIME {
-                    record.put(fieldName, DateTime.valueOf((String) updatedValue));
-                }
-                when BOOLEAN {
-                    record.put(fieldName, Boolean.valueOf((String) updatedValue));
-                }
-                when INTEGER {
-                    record.put(fieldName, Integer.valueOf((String) updatedValue));
-                }
-                when DOUBLE {
-                    record.put(fieldName, Double.valueOf((String) updatedValue));
-                }
-                when CURRENCY {
-                    record.put(fieldName, Decimal.valueOf((String) updatedValue));
-                }
-                when else {
-                    record.put(fieldName, updatedValue);
-                }
-            }
-
-            recordMap.put(recordId, record); // Add or update in map
-
-        } catch (Exception ex) {
-            System.debug('Skipping payload due to error: ' + ex.getMessage());
-            continue;
-        }
-    }
-
-    if (!recordMap.isEmpty()) {
-        update recordMap.values();
-    }
-}===============================================================
-
-@AuraEnabled
-public static void saveRecord(List<Map<String, Object>> payloadList) {
-    try {
-        Map<String, SObject> recordMap = new Map<String, SObject>();
-
-        for (Map<String, Object> payload : payloadList) {
-            String recordId = (String) payload.get('recordId');
-            String objectApiName = (String) payload.get('objectApiName');
-            String fieldName = (String) payload.get('fieldName');
-            Object updatedValue = payload.get('updatedValue');
-
-            if (String.isBlank(recordId) || String.isBlank(objectApiName) || String.isBlank(fieldName)) {
-                continue;
-            }
-
-            SObjectType sObjectType = Schema.getGlobalDescribe().get(objectApiName);
-            if (sObjectType == null) continue;
-
-            if (!recordMap.containsKey(recordId)) {
-                recordMap.put(recordId, sObjectType.newSObject(recordId));
-            }
-
-            SObject sObj = recordMap.get(recordId);
-            Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
-            if (!fieldMap.containsKey(fieldName)) {
-                continue;
-            }
-
-            Schema.SObjectField field = fieldMap.get(fieldName);
-            Schema.DisplayType fieldType = field.getDescribe().getType();
-
-            switch on fieldType {
-                when DATE {
-                    sObj.put(fieldName, Date.valueOf((String) updatedValue));
-                }
-                when DATETIME {
-                    sObj.put(fieldName, DateTime.valueOf((String) updatedValue));
-                }
-                when BOOLEAN {
-                    sObj.put(fieldName, Boolean.valueOf((String) updatedValue));
-                }
-                when INTEGER {
-                    sObj.put(fieldName, Integer.valueOf((String) updatedValue));
-                }
-                when DOUBLE {
-                    sObj.put(fieldName, Double.valueOf((String) updatedValue));
-                }
-                when CURRENCY {
-                    sObj.put(fieldName, Decimal.valueOf((String) updatedValue));
-                }
-                when else {
-                    sObj.put(fieldName, updatedValue);
-                }
+import { LightningElement ,track} from 'lwc';
+const surveyConfig = {
+    apheresis: {
+        steps: {
+            start: {
+                type: 'date',
+                questions: [
+                    { id: 'Apheresis-Q1-P1', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
+                    { id: 'Apheresis-Q2-P1', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
+                    { id: 'Apheresis-Q3-P1', label: 'What day should the patient depart?*', type: 'date', required: true }
+                ],
+                next: 'screen2'
+            },
+            screen2: {
+                id: 'Apheresis-P2',
+                type: 'yesNo',
+                questionId: 'serviceHelpful',
+                label: 'Are the dates provided related to CARVYKTI® treatment?*',
+                required: true,
+                options: ['Yes', 'No'],
+                next: 'screen3'
+            },
+            screen3: {
+                type: 'multipleChoice',
+                questionId: 'futureVisit',
+                label: 'Will the patient receive bridging therapy at your certified treatment center?*',
+                required: true,
+                options: ['Yes', 'No', 'Not Sure Yet'],
+                next: 'end'
+            },
+            end: {
+                type: 'message',
+                label: 'Thank you for completing the survey.'
             }
         }
+    }
+};
 
-        if (!recordMap.isEmpty()) {
-            update recordMap.values();
+
+export default class PspSurveyLWCComponent extends LightningElement {
+   
+
+    @track currentStep = 'start';
+  
+    @track answers = {};
+    @track selectedOption = '';
+
+    @track showDateInputs = false;
+    @track showYesNo = false;
+    @track showMultipleChoice = false;
+    @track showMessage = false;
+    @track isNextButtonDisabled = true;
+
+    @track renderedDateQuestions = [];
+    @track yesNoLabel = '';
+    @track yesNoOptions = [];
+    @track multipleChoiceLabel = '';
+    @track multipleChoiceOptions = [];
+    @track messageLabel = '';
+
+    connectedCallback() {
+        this.updateUIFlags();
+    }
+
+    get stepConfig() {
+        return surveyConfig.apheresis.steps[this.currentStep];
+    }
+
+    updateUIFlags() {
+        const step = this.stepConfig;
+
+        // Reset flags
+        this.showDateInputs = false;
+        this.showYesNo = false;
+        this.showMultipleChoice = false;
+        this.showMessage = false;
+        this.isNextButtonDisabled = true;
+        this.renderedDateQuestions = [];
+        this.yesNoLabel = '';
+        this.yesNoOptions = [];
+        this.multipleChoiceLabel = '';
+        this.multipleChoiceOptions = [];
+        this.messageLabel = '';
+
+        switch (step.type) {
+            case 'date':
+                this.showDateInputs = true;
+                this.renderedDateQuestions = step.questions.map(q => ({
+                    ...q,
+                    value: this.answers[q.id] || ''
+                }));
+                break;
+            case 'yesNo':
+                this.showYesNo = true;
+                this.yesNoLabel = step.label;
+                this.yesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
+                break;
+            case 'multipleChoice':
+                this.showMultipleChoice = true;
+                this.multipleChoiceLabel = step.label;
+                this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
+                break;
+            case 'message':
+                this.showMessage = true;
+                this.messageLabel = step.label;
+                break;
         }
-    } catch (Exception e) {
-        System.debug('Error during saveRecord: ' + e.getMessage());
-        throw new AuraHandledException('Error saving records: ' + e.getMessage());
-    }
-}
-@track showSpinner = false;
 
-async handleSave(event) {
-    this.showSpinner = true;
-
-    const rowId = event.target.dataset.id;
-
-    const updatedRow = this.processedCases.find(row => row.Id === rowId);
-    if (!updatedRow) {
-        console.warn(`No row found with rowId: ${rowId}`);
-        this.showSpinner = false;
-        return;
+        this.updateNextButtonState();
     }
 
-    const updatedValues = this.editedValues[rowId]; // ONLY this row's edited fields
+    handleInputChange(event) {
+        const { name, value } = event.target;
+        this.answers[name] = value;
 
-    if (!updatedValues || Object.keys(updatedValues).length === 0) {
-        this.handleCancel(event);
-        this.showSpinner = false;
-        this.showToastAfterSaving('success', `Record saved successfully.`);
-        return;
-    }
-
-    // Build bulk payload with multiple fields for just this rowId
-    const payloadList = Object.entries(updatedValues).map(([fieldName, updatedValue]) => ({
-        recordId: rowId,
-        objectApiName: updatedRow.objectApiName || 'Case',
-        fieldName,
-        updatedValue
-    }));
-
-    try {
-        console.log('Sending payloadList to Apex:', JSON.stringify(payloadList));
-        await saveRecord({ payloadList });
-
-        // ✅ Update local UI state
-        this.processedCases = this.processedCases.map(row => {
-            if (row.Id === rowId) {
-                let updatedRow = {
-                    ...row,
-                    isEditing: false,
-                    detailRowKeyForSaveAndCancel: null,
-                    columns: row.columns.map(col => ({
-                        ...col,
-                        value: updatedValues[col.field] ?? col.value,
-                        isEditing: false,
-                        cellClass: updatedValues[col.field] !== undefined ? '' : col.cellClass
-                    }))
-                };
-                updatedRow = this.updateNextActionStyling(updatedRow);
-                return updatedRow;
-            }
-            return row;
+        // Update renderedDateQuestions for value binding
+        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
+            return q.id === name ? { ...q, value } : q;
         });
-
-        this.cases = this.cases.map(row => {
-            if (row.Id === rowId) {
-                const updatedRow = { ...row };
-                Object.keys(updatedValues).forEach(field => {
-                    const matchKey = Object.keys(row).find(key => key.toLowerCase() === field.toLowerCase());
-                    if (matchKey) {
-                        updatedRow[matchKey] = updatedValues[field];
-                    }
-                });
-                return updatedRow;
-            }
-            return row;
-        });
-
-        delete this.editedValues[rowId];
-        this.showToastAfterSaving('success', `Record saved successfully.`);
-    } catch (error) {
-        this.showToastAfterSaving('error', `Error saving record. Details: ${
-            error.message || (error.body && error.body.message) || JSON.stringify(error)
-        }`);
-        console.error('Error in handleSave:', error);
-    } finally {
-        this.showSpinner = false;
+        console.log('this.renderedDateQuestions', JSON.stringify(this.renderedDateQuestions));
+        this.updateNextButtonState();
     }
+
+    handleOptionChange(event) {
+        this.selectedOption = event.detail.value;
+        const step = this.stepConfig;
+        this.answers[step.questionId] = this.selectedOption;
+
+        this.updateNextButtonState();
+    }
+
+    updateNextButtonState() {
+        const step = this.stepConfig;
+
+        switch (step.type) {
+            case 'date':
+                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
+                break;
+            case 'yesNo':
+            case 'multipleChoice':
+                this.isNextButtonDisabled = !this.selectedOption;
+                break;
+            default:
+                this.isNextButtonDisabled = false;
+                break;
+        }
+    }
+
+    handleNext() {
+        this.selectedOption = '';
+        this.currentStep = this.stepConfig.next;
+        this.updateUIFlags();
+    } 
 }
 
 
+<template>
+
+    <div class="survey-container">
+
+        <template if:true={showDateInputs}>
+            <template for:each={renderedDateQuestions} for:item="q">
+                <lightning-input
+                    key={q.id}
+                    type={q.type}
+                    name={q.id}
+                    label={q.label}
+                    value={q.value}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </template>
+        </template>
+
+       
+        <template if:true={showYesNo}>
+            <lightning-radio-group
+                label={yesNoLabel}
+                name="yesno"
+                options={yesNoOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+        
+        <template if:true={showMultipleChoice}>
+            <lightning-radio-group
+                label={multipleChoiceLabel}
+                name="multiplechoice"
+                options={multipleChoiceOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+    
+        <template if:true={showMessage}>
+            <div class="thank-you">{messageLabel}</div>
+        </template>
+
+       
+        <lightning-button
+            class="slds-m-top_medium"
+            variant="brand"
+            label="Next"
+            onclick={handleNext}
+            disabled={isNextButtonDisabled}>
+        </lightning-button>
+    </div>
+</template>
