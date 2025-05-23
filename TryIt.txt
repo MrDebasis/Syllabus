@@ -1,31 +1,38 @@
-import { LightningElement, track } from 'lwc';
-
+// surveyConfig.js
 const surveyConfig = {
     apheresis: {
         steps: {
             start: {
                 type: 'date',
                 questions: [
-                    { id: 'Q1', label: 'Apheresis appointment date?', type: 'date', required: true },
-                    { id: 'Q2', label: 'Patient arrival date?', type: 'date', required: true }
+                    { id: 'Q1', label: 'When is the apheresis appointment?', type: 'date', required: true },
+                    { id: 'Q2', label: 'What day should the patient arrive?', type: 'date', required: true },
+                    { id: 'Q3', label: 'What day should the patient depart?', type: 'date', required: true }
                 ],
                 next: 'screen2'
             },
             screen2: {
-                type: 'yesNo',
-                questionId: 'relatedToTreatment',
-                label: 'Are the dates related to treatment?',
-                required: true,
-                options: ['Yes', 'No'],
-                next: 'screen3'
-            },
-            screen3: {
                 type: 'multipleChoice',
-                questionId: 'bridgingTherapy',
-                label: 'Will bridging therapy be provided?',
+                questionId: 'futureVisit',
+                label: 'Will the patient receive bridging therapy?',
                 required: true,
                 options: ['Yes', 'No', 'Not Sure Yet'],
-                next: 'end'
+                followUp: {
+                    Yes: {
+                        type: 'date',
+                        label: 'Please select the bridging therapy start date',
+                        id: 'FollowUpDate'
+                    },
+                    No: {
+                        next: 'end'
+                    },
+                    'Not Sure Yet': {
+                        type: 'text',
+                        label: 'Please provide more information',
+                        id: 'FollowUpText'
+                    }
+                },
+                next: null
             },
             end: {
                 type: 'message',
@@ -35,87 +42,74 @@ const surveyConfig = {
     }
 };
 
+
+// pspSurveyLWCComponent.js
+import { LightningElement, track } from 'lwc';
+import surveyConfig from './surveyConfig';
+
 export default class PspSurveyLWCComponent extends LightningElement {
     @track currentStep = 'start';
     @track answers = {};
     @track selectedOption = '';
+
+    @track showDateInputs = false;
+    @track showMultipleChoice = false;
+    @track showFollowUpDate = false;
+    @track showFollowUpText = false;
+    @track showMessage = false;
     @track isNextButtonDisabled = true;
 
-    // UI flags
-    @track showDateInputs = false;
-    @track showYesNo = false;
-    @track showMultipleChoice = false;
-    @track showMessage = false;
-
-    // Pre-rendered question objects
     @track renderedDateQuestions = [];
-    @track renderedYesNoLabel = '';
-    @track renderedYesNoOptions = [];
-    @track renderedMultipleChoiceLabel = '';
-    @track renderedMultipleChoiceOptions = [];
-    @track renderedMessageLabel = '';
-
-    connectedCallback() {
-        this.updateUIFlags();
-    }
+    @track multipleChoiceLabel = '';
+    @track multipleChoiceOptions = [];
+    @track messageLabel = '';
+    @track followUpLabel = '';
+    @track followUpValue = '';
 
     get stepConfig() {
         return surveyConfig.apheresis.steps[this.currentStep];
     }
 
-    updateUIFlags() {
+    connectedCallback() {
+        this.updateUI();
+    }
+
+    updateUI() {
         const step = this.stepConfig;
 
-        // Reset flags
+        // Reset UI flags
         this.showDateInputs = false;
-        this.showYesNo = false;
         this.showMultipleChoice = false;
+        this.showFollowUpDate = false;
+        this.showFollowUpText = false;
         this.showMessage = false;
         this.isNextButtonDisabled = true;
 
-        // Reset rendered values
-        this.renderedDateQuestions = [];
-        this.renderedYesNoLabel = '';
-        this.renderedYesNoOptions = [];
-        this.renderedMultipleChoiceLabel = '';
-        this.renderedMultipleChoiceOptions = [];
-        this.renderedMessageLabel = '';
-
-        switch (step.type) {
-            case 'date':
-                this.showDateInputs = true;
-                this.renderedDateQuestions = step.questions.map(q => ({
-                    ...q,
-                    value: this.answers[q.id] || ''
-                }));
-                break;
-            case 'yesNo':
-                this.showYesNo = true;
-                this.renderedYesNoLabel = step.label;
-                this.renderedYesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'multipleChoice':
-                this.showMultipleChoice = true;
-                this.renderedMultipleChoiceLabel = step.label;
-                this.renderedMultipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'message':
-                this.showMessage = true;
-                this.renderedMessageLabel = step.label;
-                break;
+        if (step.type === 'date') {
+            this.showDateInputs = true;
+            this.renderedDateQuestions = step.questions.map(q => ({
+                ...q,
+                value: this.answers[q.id] || ''
+            }));
+        } else if (step.type === 'multipleChoice') {
+            this.showMultipleChoice = true;
+            this.multipleChoiceLabel = step.label;
+            this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
+        } else if (step.type === 'message') {
+            this.showMessage = true;
+            this.messageLabel = step.label;
         }
-
-        this.updateNextButtonState();
     }
 
     handleInputChange(event) {
         const { name, value } = event.target;
         this.answers[name] = value;
 
-        // Update rendered values
-        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
-            return q.id === name ? { ...q, value } : q;
-        });
+        if (this.showDateInputs) {
+            this.renderedDateQuestions = this.renderedDateQuestions.map(q =>
+                q.id === name ? { ...q, value } : q
+            );
+        }
 
         this.updateNextButtonState();
     }
@@ -125,35 +119,69 @@ export default class PspSurveyLWCComponent extends LightningElement {
         const step = this.stepConfig;
         this.answers[step.questionId] = this.selectedOption;
 
+        const followUp = step.followUp?.[this.selectedOption];
+
+        this.showFollowUpDate = followUp?.type === 'date';
+        this.showFollowUpText = followUp?.type === 'text';
+        this.followUpLabel = followUp?.label || '';
+        this.followUpValue = this.answers[followUp?.id] || '';
+
+        this.updateNextButtonState();
+    }
+
+    handleFollowUpChange(event) {
+        const { name, value } = event.target;
+        this.answers[name] = value;
+        this.followUpValue = value;
         this.updateNextButtonState();
     }
 
     updateNextButtonState() {
         const step = this.stepConfig;
-        switch (step.type) {
-            case 'date':
-                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
-                break;
-            case 'yesNo':
-            case 'multipleChoice':
-                this.isNextButtonDisabled = !this.selectedOption;
-                break;
-            default:
-                this.isNextButtonDisabled = false;
+        let isValid = true;
+
+        if (step.type === 'date') {
+            isValid = step.questions.every(q => this.answers[q.id]);
+        } else if (step.type === 'multipleChoice') {
+            const followUp = step.followUp?.[this.selectedOption];
+            if (!this.selectedOption) {
+                isValid = false;
+            } else if (followUp?.type === 'date') {
+                isValid = !!this.answers[followUp.id];
+            } else if (followUp?.type === 'text') {
+                isValid = !!this.answers[followUp.id];
+            }
         }
+
+        this.isNextButtonDisabled = !isValid;
     }
 
     handleNext() {
+        const step = this.stepConfig;
+
+        if (step.type === 'multipleChoice') {
+            const followUp = step.followUp?.[this.selectedOption];
+            if (followUp?.next) {
+                this.currentStep = followUp.next;
+            } else if (step.next) {
+                this.currentStep = step.next;
+            } else {
+                this.currentStep = 'end';
+            }
+        } else {
+            this.currentStep = step.next || 'end';
+        }
+
         this.selectedOption = '';
-        this.currentStep = this.stepConfig.next;
-        this.updateUIFlags();
+        this.followUpValue = '';
+        this.updateUI();
     }
 }
 
 
+<!-- pspSurveyLWCComponent.html -->
 <template>
     <div class="survey-container">
-
         <!-- Date Inputs -->
         <template if:true={showDateInputs}>
             <template for:each={renderedDateQuestions} for:item="q">
@@ -163,49 +191,59 @@ export default class PspSurveyLWCComponent extends LightningElement {
                     name={q.id}
                     label={q.label}
                     value={q.value}
-                    onchange={handleInputChange}
-                    required={q.required}>
+                    required={q.required}
+                    onchange={handleInputChange}>
                 </lightning-input>
             </template>
-        </template>
-
-        <!-- Yes/No -->
-        <template if:true={showYesNo}>
-            <lightning-radio-group
-                label={renderedYesNoLabel}
-                name="yesNoGroup"
-                options={renderedYesNoOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
         </template>
 
         <!-- Multiple Choice -->
         <template if:true={showMultipleChoice}>
             <lightning-radio-group
-                label={renderedMultipleChoiceLabel}
-                name="multiChoiceGroup"
-                options={renderedMultipleChoiceOptions}
+                label={multipleChoiceLabel}
+                name="multipleChoice"
+                options={multipleChoiceOptions}
                 value={selectedOption}
                 type="radio"
                 onchange={handleOptionChange}>
             </lightning-radio-group>
         </template>
 
-        <!-- Final Message -->
-        <template if:true={showMessage}>
-            <div class="thank-you">{renderedMessageLabel}</div>
+        <!-- Follow-up Date -->
+        <template if:true={showFollowUpDate}>
+            <lightning-input
+                type="date"
+                name="FollowUpDate"
+                label={followUpLabel}
+                value={followUpValue}
+                onchange={handleFollowUpChange}>
+            </lightning-input>
         </template>
 
-        <!-- Navigation -->
+        <!-- Follow-up Text -->
+        <template if:true={showFollowUpText}>
+            <lightning-input
+                type="text"
+                name="FollowUpText"
+                label={followUpLabel}
+                value={followUpValue}
+                onchange={handleFollowUpChange}>
+            </lightning-input>
+        </template>
+
+        <!-- Message -->
+        <template if:true={showMessage}>
+            <div class="thank-you">{messageLabel}</div>
+        </template>
+
+        <!-- Next Button -->
         <lightning-button
+            class="slds-m-top_medium"
             variant="brand"
             label="Next"
             onclick={handleNext}
-            disabled={isNextButtonDisabled}
-            class="slds-m-top_medium">
+            disabled={isNextButtonDisabled}>
         </lightning-button>
-
     </div>
 </template>
+
