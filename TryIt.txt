@@ -1,1 +1,215 @@
 Duplicate id in list: 50023000003stVbAAI"
+
+@AuraEnabled
+public static void saveRecord(List<Map<String, Object>> payloadList) {
+    // Map to merge field updates by record Id
+    Map<String, SObject> recordMap = new Map<String, SObject>();
+    Map<String, SObjectType> sObjectTypeMap = Schema.getGlobalDescribe();
+
+    for (Map<String, Object> payload : payloadList) {
+        try {
+            String recordId = (String) payload.get('recordId');
+            String objectApiName = (String) payload.get('objectApiName');
+            String fieldName = (String) payload.get('fieldName');
+            Object updatedValue = payload.get('updatedValue');
+
+            if (String.isEmpty(recordId) || String.isEmpty(objectApiName) || String.isEmpty(fieldName)) continue;
+
+            SObjectType sObjectType = sObjectTypeMap.get(objectApiName);
+            if (sObjectType == null) continue;
+
+            Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
+            if (!fieldMap.containsKey(fieldName)) continue;
+
+            Schema.SObjectField field = fieldMap.get(fieldName);
+            Schema.DisplayType fieldType = field.getDescribe().getType();
+
+            // Reuse or create a single SObject instance per recordId
+            SObject record = recordMap.containsKey(recordId) 
+                ? recordMap.get(recordId) 
+                : sObjectType.newSObject(recordId);
+
+            // Type-safe field assignment
+            switch on fieldType {
+                when DATE {
+                    record.put(fieldName, Date.valueOf((String) updatedValue));
+                }
+                when DATETIME {
+                    record.put(fieldName, DateTime.valueOf((String) updatedValue));
+                }
+                when BOOLEAN {
+                    record.put(fieldName, Boolean.valueOf((String) updatedValue));
+                }
+                when INTEGER {
+                    record.put(fieldName, Integer.valueOf((String) updatedValue));
+                }
+                when DOUBLE {
+                    record.put(fieldName, Double.valueOf((String) updatedValue));
+                }
+                when CURRENCY {
+                    record.put(fieldName, Decimal.valueOf((String) updatedValue));
+                }
+                when else {
+                    record.put(fieldName, updatedValue);
+                }
+            }
+
+            recordMap.put(recordId, record); // Add or update in map
+
+        } catch (Exception ex) {
+            System.debug('Skipping payload due to error: ' + ex.getMessage());
+            continue;
+        }
+    }
+
+    if (!recordMap.isEmpty()) {
+        update recordMap.values();
+    }
+}===============================================================
+
+@AuraEnabled
+public static void saveRecord(List<Map<String, Object>> payloadList) {
+    try {
+        Map<String, SObject> recordMap = new Map<String, SObject>();
+
+        for (Map<String, Object> payload : payloadList) {
+            String recordId = (String) payload.get('recordId');
+            String objectApiName = (String) payload.get('objectApiName');
+            String fieldName = (String) payload.get('fieldName');
+            Object updatedValue = payload.get('updatedValue');
+
+            if (String.isBlank(recordId) || String.isBlank(objectApiName) || String.isBlank(fieldName)) {
+                continue;
+            }
+
+            SObjectType sObjectType = Schema.getGlobalDescribe().get(objectApiName);
+            if (sObjectType == null) continue;
+
+            if (!recordMap.containsKey(recordId)) {
+                recordMap.put(recordId, sObjectType.newSObject(recordId));
+            }
+
+            SObject sObj = recordMap.get(recordId);
+            Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
+            if (!fieldMap.containsKey(fieldName)) {
+                continue;
+            }
+
+            Schema.SObjectField field = fieldMap.get(fieldName);
+            Schema.DisplayType fieldType = field.getDescribe().getType();
+
+            switch on fieldType {
+                when DATE {
+                    sObj.put(fieldName, Date.valueOf((String) updatedValue));
+                }
+                when DATETIME {
+                    sObj.put(fieldName, DateTime.valueOf((String) updatedValue));
+                }
+                when BOOLEAN {
+                    sObj.put(fieldName, Boolean.valueOf((String) updatedValue));
+                }
+                when INTEGER {
+                    sObj.put(fieldName, Integer.valueOf((String) updatedValue));
+                }
+                when DOUBLE {
+                    sObj.put(fieldName, Double.valueOf((String) updatedValue));
+                }
+                when CURRENCY {
+                    sObj.put(fieldName, Decimal.valueOf((String) updatedValue));
+                }
+                when else {
+                    sObj.put(fieldName, updatedValue);
+                }
+            }
+        }
+
+        if (!recordMap.isEmpty()) {
+            update recordMap.values();
+        }
+    } catch (Exception e) {
+        System.debug('Error during saveRecord: ' + e.getMessage());
+        throw new AuraHandledException('Error saving records: ' + e.getMessage());
+    }
+}
+@track showSpinner = false;
+
+async handleSave(event) {
+    this.showSpinner = true;
+
+    const rowId = event.target.dataset.id;
+
+    const updatedRow = this.processedCases.find(row => row.Id === rowId);
+    if (!updatedRow) {
+        console.warn(`No row found with rowId: ${rowId}`);
+        this.showSpinner = false;
+        return;
+    }
+
+    const updatedValues = this.editedValues[rowId]; // ONLY this row's edited fields
+
+    if (!updatedValues || Object.keys(updatedValues).length === 0) {
+        this.handleCancel(event);
+        this.showSpinner = false;
+        this.showToastAfterSaving('success', `Record saved successfully.`);
+        return;
+    }
+
+    // Build bulk payload with multiple fields for just this rowId
+    const payloadList = Object.entries(updatedValues).map(([fieldName, updatedValue]) => ({
+        recordId: rowId,
+        objectApiName: updatedRow.objectApiName || 'Case',
+        fieldName,
+        updatedValue
+    }));
+
+    try {
+        console.log('Sending payloadList to Apex:', JSON.stringify(payloadList));
+        await saveRecord({ payloadList });
+
+        // ✅ Update local UI state
+        this.processedCases = this.processedCases.map(row => {
+            if (row.Id === rowId) {
+                let updatedRow = {
+                    ...row,
+                    isEditing: false,
+                    detailRowKeyForSaveAndCancel: null,
+                    columns: row.columns.map(col => ({
+                        ...col,
+                        value: updatedValues[col.field] ?? col.value,
+                        isEditing: false,
+                        cellClass: updatedValues[col.field] !== undefined ? '' : col.cellClass
+                    }))
+                };
+                updatedRow = this.updateNextActionStyling(updatedRow);
+                return updatedRow;
+            }
+            return row;
+        });
+
+        this.cases = this.cases.map(row => {
+            if (row.Id === rowId) {
+                const updatedRow = { ...row };
+                Object.keys(updatedValues).forEach(field => {
+                    const matchKey = Object.keys(row).find(key => key.toLowerCase() === field.toLowerCase());
+                    if (matchKey) {
+                        updatedRow[matchKey] = updatedValues[field];
+                    }
+                });
+                return updatedRow;
+            }
+            return row;
+        });
+
+        delete this.editedValues[rowId];
+        this.showToastAfterSaving('success', `Record saved successfully.`);
+    } catch (error) {
+        this.showToastAfterSaving('error', `Error saving record. Details: ${
+            error.message || (error.body && error.body.message) || JSON.stringify(error)
+        }`);
+        console.error('Error in handleSave:', error);
+    } finally {
+        this.showSpinner = false;
+    }
+}
+
+
