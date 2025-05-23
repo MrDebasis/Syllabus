@@ -1,160 +1,136 @@
-@track showSpinner = false;
-   async handleSave(event) {
-        this.showSpinner = true;
-        const rowId = event.target.dataset.id;  
-  
+@AuraEnabled
+public static void saveRecord(List<Map<String, Object>> payloadList) {
+    List<SObject> recordsToUpdate = new List<SObject>();
 
-        const updatedRow = this.processedCases.find(row => row.Id === rowId);
-        if (!updatedRow) {
-            console.warn(`No row found with rowId: ${rowId}`);
-            this.showSpinner = false;
-            return;
-        }
-
-        const updatedValues = this.editedValues[rowId];
-        console.log('Updated values:', updatedValues); //here its coming changes field names and values 
-
-        if(!updatedValues || Object.keys(updatedValues).length === 0) {
-            this.handleCancel(event);
-            this.showSpinner = false;
-            this.showToastAfterSaving('success', `Record saved successfully.`);
-            return;
-        }
-
-     //so updatedValues having two fields then form two list of payload and save it to apex code , single payload its working fine make it bulkyfied
-        const payload = {
-            recordId: rowId,
-            objectApiName: updatedRow.objectApiName || 'Case', 
-            fieldName: Object.keys(updatedValues)[0],  
-            updatedValue: updatedValues[Object.keys(updatedValues)[0]]  
-        };
-
-        console.log('Payload to send to backend:', JSON.stringify(payload));
-
+    for (Map<String, Object> payload : payloadList) {
         try {
-             console.log('saveee this.payload--->',JSON.stringify( payload));
-           
-            await saveRecord({ payload });
-
-            console.log(`Record saved successfully.`);
-
-            this.showSpinner = false;
-          
-            this.showToastAfterSaving('success', `Record saved successfully.`); 
-          
-            this.processedCases = this.processedCases.map(row => {
-                if (row.Id === rowId) {
-                    let updatedRow = {
-                        ...row,
-                        isEditing: false,  
-                        detailRowKeyForSaveAndCancel: null,  
-                        columns: row.columns.map(col => ({
-                            ...col,
-                            value: updatedValues[col.field] ?? col.value,  
-                            isEditing: false,  // Reset editing state
-                            cellClass: col.field === Object.keys(updatedValues)[0] ? '' : col.cellClass
-                        }))
-                    };
-                    console.log('Updated row after save:', JSON.stringify(updatedRow));
-                    updatedRow = this.updateNextActionStyling(updatedRow);
-                    return updatedRow;
-                }
-                return row;
-            });
-            console.log('before cases after save:', JSON.stringify(this.cases));
-
-            this.cases = this.cases.map(row => {
-                if (row.Id === rowId) {
-                    const updatedField = Object.keys(updatedValues)[0];
-                    const updatedValue = updatedValues[updatedField];
-                    const updatedRow = { ...row };
-                    const targetKey = Object.keys(row).find(key => key.toLowerCase() === updatedField.toLowerCase());
-             
-                    if (targetKey) {
-                        updatedRow[targetKey] = updatedValue; 
-                    }
-             
-                    return updatedRow;
-                }
-             
-                return row; 
-            });
-            console.log('Updated cases:', JSON.stringify(this.cases));
-            delete this.editedValues[rowId];
-
-        } catch (error) {
-            this.showSpinner = false;
-            this.showToastAfterSaving('error', `Error saving record. Details: ${
-                error.message || (error.body && error.body.message) || JSON.stringify(error)
-            }`);
-            console.error(`Error saving record with rowId: ${rowId}`, error);
-        }
-    }
-
-
- @AuraEnabled(cacheable=false)
-    public static void saveRecord(Map<String, Object> payload) {
-        try {
-            // Extract recordId, objectApiName, fieldName, and updatedValue from the payload
             String recordId = (String) payload.get('recordId');
             String objectApiName = (String) payload.get('objectApiName');
             String fieldName = (String) payload.get('fieldName');
             Object updatedValue = payload.get('updatedValue');
 
-            System.debug('Received Payload: ' + payload);
-            System.debug('RecordId: ' + recordId + ', ObjectApiName: ' + objectApiName + ', FieldName: ' + fieldName + ', UpdatedValue: ' + updatedValue);
+            if (String.isEmpty(recordId) || String.isEmpty(objectApiName) || String.isEmpty(fieldName)) continue;
 
-            // Get SObject Type dynamically from the objectApiName
             SObjectType sObjectType = Schema.getGlobalDescribe().get(objectApiName);
-            if (sObjectType == null) {
-                throw new IllegalArgumentException('Invalid objectApiName: ' + objectApiName);
-            }
+            if (sObjectType == null) continue;
 
-            SObject recordToUpdate = sObjectType.newSObject(recordId);
+            SObject record = sObjectType.newSObject(recordId);
             Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
 
-            // Ensure that the field exists
-            if (!fieldMap.containsKey(fieldName)) {
-                throw new IllegalArgumentException('Field does not exist: ' + fieldName);
-            }
+            if (!fieldMap.containsKey(fieldName)) continue;
 
-            // Update the field based on its type
             Schema.SObjectField field = fieldMap.get(fieldName);
             Schema.DisplayType fieldType = field.getDescribe().getType();
 
-            if (updatedValue == null) {
-                throw new IllegalArgumentException('Updated value cannot be null.');
-            }
-
             switch on fieldType {
                 when DATE {
-                    recordToUpdate.put(fieldName, Date.valueOf((String) updatedValue));
+                    record.put(fieldName, Date.valueOf((String) updatedValue));
                 }
                 when DATETIME {
-                    recordToUpdate.put(fieldName, DateTime.valueOf((String) updatedValue));
+                    record.put(fieldName, DateTime.valueOf((String) updatedValue));
                 }
                 when BOOLEAN {
-                    recordToUpdate.put(fieldName, Boolean.valueOf((String) updatedValue));
+                    record.put(fieldName, Boolean.valueOf((String) updatedValue));
                 }
                 when INTEGER {
-                    recordToUpdate.put(fieldName, Integer.valueOf((String) updatedValue));
+                    record.put(fieldName, Integer.valueOf((String) updatedValue));
                 }
                 when DOUBLE {
-                    recordToUpdate.put(fieldName, Double.valueOf((String) updatedValue));
+                    record.put(fieldName, Double.valueOf((String) updatedValue));
                 }
                 when CURRENCY {
-                    recordToUpdate.put(fieldName, Decimal.valueOf((String) updatedValue));
+                    record.put(fieldName, Decimal.valueOf((String) updatedValue));
                 }
                 when else {
-                    recordToUpdate.put(fieldName, updatedValue);
+                    record.put(fieldName, updatedValue);
                 }
             }
 
-            // Update the record
-            update recordToUpdate;
+            recordsToUpdate.add(record);
 
-        } catch (Exception e) {
-            System.debug('Error updating record: ' + e.getMessage());
-            throw new AuraHandledException('Error updating record: ' + e.getMessage());
+        } catch (Exception ex) {
+            System.debug('Skipping payload due to error: ' + ex.getMessage());
+            continue;
         }
     }
+
+    if (!recordsToUpdate.isEmpty()) {
+        update recordsToUpdate;
+    }
+}
+
+
+@track showSpinner = false;
+
+async handleSave() {
+    this.showSpinner = true;
+
+    const payloadList = [];
+
+    for (const rowId in this.editedValues) {
+        const updatedRow = this.processedCases.find(row => row.Id === rowId);
+        if (!updatedRow) continue;
+
+        const updatedValues = this.editedValues[rowId];
+        if (!updatedValues || Object.keys(updatedValues).length === 0) continue;
+
+        Object.entries(updatedValues).forEach(([fieldName, updatedValue]) => {
+            payloadList.push({
+                recordId: rowId,
+                objectApiName: updatedRow.objectApiName || 'Case',
+                fieldName,
+                updatedValue
+            });
+        });
+    }
+
+    if (payloadList.length === 0) {
+        this.showSpinner = false;
+        this.showToastAfterSaving('success', `No changes to save.`);
+        return;
+    }
+
+    try {
+        await saveRecord({ payloadList });
+
+        // Update local UI (reuse your UI update logic or simplify)
+        for (const payload of payloadList) {
+            const { recordId, fieldName, updatedValue } = payload;
+
+            this.processedCases = this.processedCases.map(row => {
+                if (row.Id === recordId) {
+                    return {
+                        ...row,
+                        columns: row.columns.map(col => ({
+                            ...col,
+                            value: col.field === fieldName ? updatedValue : col.value,
+                            isEditing: false,
+                            cellClass: ''
+                        })),
+                        isEditing: false,
+                        detailRowKeyForSaveAndCancel: null
+                    };
+                }
+                return row;
+            });
+
+            this.cases = this.cases.map(row => {
+                if (row.Id === recordId) {
+                    const targetKey = Object.keys(row).find(k => k.toLowerCase() === fieldName.toLowerCase());
+                    if (targetKey) row[targetKey] = updatedValue;
+                }
+                return row;
+            });
+        }
+
+        this.editedValues = {}; // Clear all edits
+        this.showToastAfterSaving('success', `Records updated successfully.`);
+    } catch (error) {
+        console.error('Bulk save error:', error);
+        this.showToastAfterSaving('error', `Error saving records: ${
+            error.message || (error.body && error.body.message) || JSON.stringify(error)
+        }`);
+    } finally {
+        this.showSpinner = false;
+    }
+}
