@@ -1,34 +1,11 @@
- @AuraEnabled(cacheable=true)
-public static Map<Integer, List<SurveyQuestionWrapper>> getSurveyQuestions(String surveyType) {
-    List<Survey_Settings__mdt> configs = [
-        SELECT Survey_Type__c,Screen_Number__c,Question_Label__c,Question_Name__c,Question_Type__c,Picklist_Options__c,Required__c,Order_Number__c
-        FROM Survey_Settings__mdt
-        WHERE Survey_Type__c = :surveyType
-        ORDER BY Screen_Number__c, Order_Number__c
-    ];
+import { LightningElement, track, wire } from 'lwc';
+import getSurveyQuestions from '@salesforce/apex/YourApexClassName.getSurveyQuestions';
 
-    Map<Integer, List<SurveyQuestionWrapper>> screenMap = new Map<Integer, List<SurveyQuestionWrapper>>();
-    for (Survey_Settings__mdt config : configs) {
-        SurveyQuestionWrapper q = new SurveyQuestionWrapper();
-        q.label = config.Question_Label__c;
-        q.apiName = config.Question_Name__c;
-        q.type = config.Question_Type__c;
-        q.options = config.Picklist_Options__c;
-        q.required = config.Required__c;
-
-        if (!screenMap.containsKey(Integer.ValueOf(config.Screen_Number__c))) {
-            screenMap.put(Integer.ValueOf(config.Screen_Number__c), new List<SurveyQuestionWrapper>());
-        }
-        screenMap.get(Integer.ValueOf(config.Screen_Number__c)).add(q);
-    }
-    return screenMap;
-}
-
-public class SurveyQuestionWrapper {
-    @AuraEnabled public String label;
-    @AuraEnabled public String apiName;
-    @AuraEnabled public String type;
-    @AuraEnabled public String options;
-    @AuraEnabled public Boolean required;
-    @AuraEnabled public String condition;
-}
+  getSurveyQuestions({ surveyType: this.surveyType })
+        .then(result => {
+            this.surveyQuestions = result;
+            this.loadScreen(this.currentScreen);
+        })
+        .catch(error => {
+            console.error('Error loading questions:', error);
+        });
