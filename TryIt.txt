@@ -1,11 +1,31 @@
-import { LightningElement, track, wire } from 'lwc';
-import getSurveyQuestions from '@salesforce/apex/YourApexClassName.getSurveyQuestions';
-
-  getSurveyQuestions({ surveyType: this.surveyType })
-        .then(result => {
-            this.surveyQuestions = result;
-            this.loadScreen(this.currentScreen);
-        })
-        .catch(error => {
-            console.error('Error loading questions:', error);
-        });
+{
+    "1": [
+        {
+            "apiName": "apheresis_appointment_date",
+            "label": "When is the apheresis appointment date for Order # [Order Number]?*",
+            "required": true,
+            "type": "Date"
+        },
+        {
+            "apiName": "apheresis_appointment",
+            "label": "What day should the patient arrive for their apheresis appointment?*",
+            "required": true,
+            "type": "Date"
+        },
+        {
+            "apiName": "patient_depart",
+            "label": "What day should the patient depart?*",
+            "required": true,
+            "type": "Date"
+        }
+    ],
+    "2": [
+        {
+            "apiName": "treatment_dates_provided",
+            "label": "Are the dates provided related to CARVYKTI® treatment?*",
+            "options": "Yes, No",
+            "required": true,
+            "type": "Picklist"
+        }
+    ]
+}
