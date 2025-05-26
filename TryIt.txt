@@ -1,21 +1,20 @@
-   parseDecryptedString(decrypted) {
-        const params = new URLSearchParams(decrypted);
-
-        this.caseId = params.get('caseId');
-        this.surveyType = params.get('type');
-        this.mrnNumber = params.get('mrn');
-        this.orderId = params.get('orderId');
-
-        console.log('Decrypted and parsed:');
-        console.log('Case ID:', this.caseId);
-        console.log('Survey Type:', this.surveyType);
-        console.log('MRN:', this.mrnNumber);
-        console.log('Order ID:', this.orderId);
+ // Activate flag based on surveyType
+    switch (this.surveyType) {
+        case 'ApheresisTherapy':
+            this.isApheresisTherapy = true;
+            break;
+        case 'BridgingTherapy':
+            this.isBridgingTherapy = true;
+            break;
+        case 'InfusionAndMonitoringTherapy':
+            this.isInfusionAndMonitoringTherapy = true;
+            break;
+        case 'OutOfSpecPatient':
+            this.isOutOfSpecPatient = true;
+            break;
+        case 'MonitoringExtension':
+            this.isMonitoringExtension = true;
+            break;
+        default:
+            console.warn('Unknown survey type:', this.surveyType);
     }
-
-    @track isApheresisTherapy = false;
-    @track isBridgingTherapy = false;
-    @track isInfusionAndMonitoringTherapy = false;
-    @track isOutOfSpecPatient = false;
-    @track isMonitoringExtension = false;
-    
