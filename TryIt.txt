@@ -1,36 +1,54 @@
-@AuraEnabled(cacheable=true)
-public static Map<Integer, List<SurveyQuestionWrapper>> getSurveyQuestions(String surveyType) {
-    List<Survey_Question_Config__mdt> configs = [
-        SELECT Survey_Type__c, Screen_Number__c, Question_Label__c, Question_Name__c,
-               Question_Type__c, Picklist_Options__c, Required__c, Order__c, Show_If_Answer__c
-        FROM Survey_Question_Config__mdt
-        WHERE Survey_Type__c = :surveyType
-        ORDER BY Screen_Number__c, Order__c
-    ];
+<template>
+    <template if:true={currentQuestions}>
+        <template for:each={currentQuestions} for:item="q">
+            <div key={q.apiName}>
+                <template if:true={shouldShow(q)}>
+                    <lightning-input
+                        label={q.label}
+                        type={q.type}
+                        name={q.apiName}
+                        value={answers[q.apiName]}
+                        onchange={handleInputChange}>
+                    </lightning-input>
+                </template>
+            </div>
+        </template>
 
-    Map<Integer, List<SurveyQuestionWrapper>> screenMap = new Map<Integer, List<SurveyQuestionWrapper>>();
-    for (Survey_Question_Config__mdt config : configs) {
-        SurveyQuestionWrapper q = new SurveyQuestionWrapper();
-        q.label = config.Question_Label__c;
-        q.apiName = config.Question_Name__c;
-        q.type = config.Question_Type__c;
-        q.options = config.Picklist_Options__c;
-        q.required = config.Required__c;
-        q.condition = config.Show_If_Answer__c;
+        <div class="navigation">
+            <lightning-button label="Back" onclick={handleBack} disabled={currentScreen === 1}></lightning-button>
+            <lightning-button label="Next" onclick={handleNext}></lightning-button>
+        </div>
+    </template>
+</template>
 
-        if (!screenMap.containsKey(config.Screen_Number__c)) {
-            screenMap.put(config.Screen_Number__c, new List<SurveyQuestionWrapper>());
-        }
-        screenMap.get(config.Screen_Number__c).add(q);
-    }
-    return screenMap;
+@track currentScreen = 1;
+@track surveyMap = {};
+@track currentQuestions = [];
+@track answers = {};
+
+connectedCallback() {
+    getSurveyQuestions({ surveyType: this.surveyType }) // passed from decrypted URL
+        .then(result => {
+            this.surveyMap = result;
+            this.loadScreen(this.currentScreen);
+        });
 }
 
-public class SurveyQuestionWrapper {
-    @AuraEnabled public String label;
-    @AuraEnabled public String apiName;
-    @AuraEnabled public String type;
-    @AuraEnabled public String options;
-    @AuraEnabled public Boolean required;
-    @AuraEnabled public String condition;
+loadScreen(screenNo) {
+    this.currentQuestions = this.surveyMap[screenNo] || [];
+}
+
+handleInputChange(event) {
+    const { name, value } = event.target;
+    this.answers[name] = value;
+}
+
+handleNext() {
+    this.currentScreen++;
+    this.loadScreen(this.currentScreen);
+}
+
+handleBack() {
+    this.currentScreen--;
+    this.loadScreen(this.currentScreen);
 }
