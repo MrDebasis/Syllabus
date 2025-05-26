@@ -1,20 +1,36 @@
- // Activate flag based on surveyType
-    switch (this.surveyType) {
-        case 'ApheresisTherapy':
-            this.isApheresisTherapy = true;
-            break;
-        case 'BridgingTherapy':
-            this.isBridgingTherapy = true;
-            break;
-        case 'InfusionAndMonitoringTherapy':
-            this.isInfusionAndMonitoringTherapy = true;
-            break;
-        case 'OutOfSpecPatient':
-            this.isOutOfSpecPatient = true;
-            break;
-        case 'MonitoringExtension':
-            this.isMonitoringExtension = true;
-            break;
-        default:
-            console.warn('Unknown survey type:', this.surveyType);
+@AuraEnabled(cacheable=true)
+public static Map<Integer, List<SurveyQuestionWrapper>> getSurveyQuestions(String surveyType) {
+    List<Survey_Question_Config__mdt> configs = [
+        SELECT Survey_Type__c, Screen_Number__c, Question_Label__c, Question_Name__c,
+               Question_Type__c, Picklist_Options__c, Required__c, Order__c, Show_If_Answer__c
+        FROM Survey_Question_Config__mdt
+        WHERE Survey_Type__c = :surveyType
+        ORDER BY Screen_Number__c, Order__c
+    ];
+
+    Map<Integer, List<SurveyQuestionWrapper>> screenMap = new Map<Integer, List<SurveyQuestionWrapper>>();
+    for (Survey_Question_Config__mdt config : configs) {
+        SurveyQuestionWrapper q = new SurveyQuestionWrapper();
+        q.label = config.Question_Label__c;
+        q.apiName = config.Question_Name__c;
+        q.type = config.Question_Type__c;
+        q.options = config.Picklist_Options__c;
+        q.required = config.Required__c;
+        q.condition = config.Show_If_Answer__c;
+
+        if (!screenMap.containsKey(config.Screen_Number__c)) {
+            screenMap.put(config.Screen_Number__c, new List<SurveyQuestionWrapper>());
+        }
+        screenMap.get(config.Screen_Number__c).add(q);
     }
+    return screenMap;
+}
+
+public class SurveyQuestionWrapper {
+    @AuraEnabled public String label;
+    @AuraEnabled public String apiName;
+    @AuraEnabled public String type;
+    @AuraEnabled public String options;
+    @AuraEnabled public Boolean required;
+    @AuraEnabled public String condition;
+}
