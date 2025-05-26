@@ -1,47 +1,38 @@
 public class EncryptionService {
 
-    private static final String ENCRYPTION_ALGORITHM = 'AES256';
-    private static final Integer IV_LENGTH = 16;
+    private static final String ALGORITHM = 'AES256';
 
     /**
-     * Encrypts a plain text string using a password from custom label.
-     * @param plainText The string to encrypt.
-     * @return Encrypted string (Base64).
+     * Encrypt a plain text string using AES256 and password from Custom Label.
+     * Uses Crypto.encryptWithManagedIV for automatic IV management.
      */
-    public static String encryptString(String plainText) {
+    public static String encrypt(String plainText) {
         String password = Label.EncryptionPasswordLabel;
-        Blob key = Crypto.generateDigest('SHA-256', Blob.valueOf(password));
-        Blob iv = Crypto.generateRandomBytes(IV_LENGTH);
+        Blob key = getKeyFromPassword(password);
         Blob data = Blob.valueOf(plainText);
 
-        Blob encryptedBlob = Crypto.encrypt(ENCRYPTION_ALGORITHM, key, iv, data);
-        Blob finalBlob = Blob.concat(iv, encryptedBlob);
-        return EncodingUtil.base64Encode(finalBlob);
+        // encryptWithManagedIV prepends the IV automatically
+        Blob encryptedBlob = Crypto.encryptWithManagedIV('AES256', key, data);
+        return EncodingUtil.base64Encode(encryptedBlob);
     }
 
     /**
-     * Decrypts a Base64 encoded string using a password from custom label.
-     * @param encryptedBase64 The encrypted string (Base64 format).
-     * @return Decrypted plain text.
+     * Decrypt an encrypted Base64 string using AES256 and password from Custom Label.
+     * Uses Crypto.decryptWithManagedIV to extract IV automatically.
      */
-    public static String decryptString(String encryptedBase64) {
+    public static String decrypt(String encryptedBase64) {
         String password = Label.EncryptionPasswordLabel;
-        Blob key = Crypto.generateDigest('SHA-256', Blob.valueOf(password));
-        Blob fullBlob = EncodingUtil.base64Decode(encryptedBase64);
+        Blob key = getKeyFromPassword(password);
+        Blob encryptedBlob = EncodingUtil.base64Decode(encryptedBase64);
 
-        // Extract IV and encrypted data
-        Blob iv = fullBlob.subBlob(0, IV_LENGTH);
-        Blob encryptedData = fullBlob.subBlob(IV_LENGTH);
-
-        Blob decryptedBlob = Crypto.decrypt(ENCRYPTION_ALGORITHM, key, iv, encryptedData);
+        Blob decryptedBlob = Crypto.decryptWithManagedIV('AES256', key, encryptedBlob);
         return decryptedBlob.toString();
     }
+
+    /**
+     * Creates a 256-bit key from password using SHA-256 hash.
+     */
+    private static Blob getKeyFromPassword(String password) {
+        return Crypto.generateDigest('SHA-256', Blob.valueOf(password));
+    }
 }
-
-
-String original = 'caseId=500xx00000000123&type=apheresis&mrn=123456&orderId=ORD123';
-String encrypted = EncryptionService.encryptString(original);
-System.debug('Encrypted: ' + encrypted);
-
-String decrypted = EncryptionService.decryptString(encrypted);
-System.debug('Decrypted: ' + decrypted);
