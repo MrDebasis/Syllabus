@@ -1,163 +1,212 @@
-export const surveyConfig = {
+<template>
+
+    <div class="survey-container">
+
+        <template if:true={showDateInputs}>
+            <template for:each={renderedDateQuestions} for:item="q">
+                <lightning-input
+                    key={q.id}
+                    type={q.type}
+                    name={q.id}
+                    label={q.label}
+                    value={q.value}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </template>
+        </template>
+
+       
+        <template if:true={showYesNo}>
+            <lightning-radio-group
+                label={yesNoLabel}
+                name="yesno"
+                options={yesNoOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+        
+        <template if:true={showMultipleChoice}>
+            <lightning-radio-group
+                label={multipleChoiceLabel}
+                name="multiplechoice"
+                options={multipleChoiceOptions}
+                value={selectedOption}
+                type="radio"
+                onchange={handleOptionChange}>
+            </lightning-radio-group>
+        </template>
+
+    
+        <template if:true={showMessage}>
+            <div class="thank-you">{messageLabel}</div>
+        </template>
+
+       
+        <lightning-button
+            class="slds-m-top_medium"
+            variant="brand"
+            label="Next"
+            onclick={handleNext}
+            disabled={isNextButtonDisabled}>
+        </lightning-button>
+    </div>
+</template>
+
+import { LightningElement ,track} from 'lwc';
+const surveyConfig = {
     apheresis: {
-        title: "Apheresis Survey",
-        screens: [
-            {
-                screenNo: "screen1",
-                bool: "isScreen1Visible",
-                type: "date",
-                values: [],
+        steps: {
+            start: {
+                type: 'date',
                 questions: [
-                    {
-                        id: "Q1",
-                        label: "Apheresis appointment date?",
-                        required: true,
-                        type: "date"
-                    },
-                    {
-                        id: "Q2",
-                        label: "Patient arrival date?",
-                        required: true,
-                        type: "date"
-                    },
-                    {
-                        id: "Q3",
-                        label: "Patient departure date?",
-                        required: true,
-                        type: "date"
-                    }
+                    { id: 'Apheresis-Q1-P1', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
+                    { id: 'Apheresis-Q2-P1', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
+                    { id: 'Apheresis-Q3-P1', label: 'What day should the patient depart?*', type: 'date', required: true }
                 ],
-                buttonName: "Next",
-                isNextEnabled: false,
-                next: "screen2"
+                next: 'screen2'
             },
-            {
-                screenNo: "screen2",
-                bool: "isScreen2Visible",
-                type: "radio",
-                values: [],
-                questions: [
-                    {
-                        id: "Q4",
-                        label: "Are the dates related to CARVYKTI® treatment?",
-                        options: ["Yes", "No"],
-                        required: true,
-                        type: "radio"
-                    }
-                ],
-                buttonName: "Next",
-                isNextEnabled: false,
-                next: "screen3"
+            screen2: {
+                id: 'Apheresis-P2',
+                type: 'yesNo',
+                questionId: 'serviceHelpful',
+                label: 'Are the dates provided related to CARVYKTI® treatment?*',
+                required: true,
+                options: ['Yes', 'No'],
+                next: 'screen3'
             },
-            {
-                screenNo: "screen3",
-                bool: "isScreen3Visible",
-                type: "radio",
-                values: [],
-                questions: [
-                    {
-                        id: "Q5",
-                        label: "Will the patient receive bridging therapy?",
-                        options: ["Yes", "No", "Not Sure Yet"],
-                        required: true,
-                        type: "radio"
-                    }
-                ],
-                buttonName: "Submit",
-                isNextEnabled: false,
-                next: "end"
+            screen3: {
+                type: 'multipleChoice',
+                questionId: 'futureVisit',
+                label: 'Will the patient receive bridging therapy at your certified treatment center?*',
+                required: true,
+                options: ['Yes', 'No', 'Not Sure Yet'],
+                next: 'end'
             },
-            {
-                screenNo: "end",
-                bool: "isEndVisible",
-                type: "message",
-                values: [],
-                questions: [],
-                label: "Thank you for completing the Apheresis survey."
+            end: {
+                type: 'message',
+                label: 'Thank you for completing the survey.'
             }
-        ]
+        }
     }
 };
 
 
-import { LightningElement, track } from 'lwc';
-import { surveyConfig } from './surveyConfig.js';
+export default class PspSurveyLWCComponent extends LightningElement {
+   
 
-export default class DynamicSurvey extends LightningElement {
-    @track selectedSurvey = 'apheresis';
-    @track surveyData = surveyConfig.apheresis;
+    @track currentStep = 'start';
+  
     @track answers = {};
+    @track selectedOption = '';
 
-    @track isScreen1Visible = true;
-    @track isScreen2Visible = false;
-    @track isScreen3Visible = false;
-    @track isEndVisible = false;
+    @track showDateInputs = false;
+    @track showYesNo = false;
+    @track showMultipleChoice = false;
+    @track showMessage = false;
+    @track isNextButtonDisabled = true;
 
-    get currentScreen() {
-        return this.surveyData.screens.find(screen => this[screen.bool]);
+    @track renderedDateQuestions = [];
+    @track yesNoLabel = '';
+    @track yesNoOptions = [];
+    @track multipleChoiceLabel = '';
+    @track multipleChoiceOptions = [];
+    @track messageLabel = '';
+
+    connectedCallback() {
+        this.updateUIFlags();
+    }
+
+    get stepConfig() {
+        return surveyConfig.apheresis.steps[this.currentStep];
+    }
+
+    updateUIFlags() {
+        const step = this.stepConfig;
+
+        // Reset flags
+        this.showDateInputs = false;
+        this.showYesNo = false;
+        this.showMultipleChoice = false;
+        this.showMessage = false;
+        this.isNextButtonDisabled = true;
+        this.renderedDateQuestions = [];
+        this.yesNoLabel = '';
+        this.yesNoOptions = [];
+        this.multipleChoiceLabel = '';
+        this.multipleChoiceOptions = [];
+        this.messageLabel = '';
+
+        switch (step.type) {
+            case 'date':
+                this.showDateInputs = true;
+                this.renderedDateQuestions = step.questions.map(q => ({
+                    ...q,
+                    value: this.answers[q.id] || ''
+                }));
+                break;
+            case 'yesNo':
+                this.showYesNo = true;
+                this.yesNoLabel = step.label;
+                this.yesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
+                break;
+            case 'multipleChoice':
+                this.showMultipleChoice = true;
+                this.multipleChoiceLabel = step.label;
+                this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
+                break;
+            case 'message':
+                this.showMessage = true;
+                this.messageLabel = step.label;
+                break;
+        }
+
+        this.updateNextButtonState();
     }
 
     handleInputChange(event) {
         const { name, value } = event.target;
         this.answers[name] = value;
 
-        // Enable Next if all required questions are answered
-        this.currentScreen.isNextEnabled = this.currentScreen.questions.every(q => {
-            return q.required ? this.answers[q.id] : true;
+        // Update renderedDateQuestions for value binding
+        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
+            return q.id === name ? { ...q, value } : q;
         });
+        console.log('this.renderedDateQuestions', JSON.stringify(this.renderedDateQuestions));
+        this.updateNextButtonState();
+    }
+
+    handleOptionChange(event) {
+        this.selectedOption = event.detail.value;
+        const step = this.stepConfig;
+        this.answers[step.questionId] = this.selectedOption;
+
+        this.updateNextButtonState();
+    }
+
+    updateNextButtonState() {
+        const step = this.stepConfig;
+
+        switch (step.type) {
+            case 'date':
+                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
+                break;
+            case 'yesNo':
+            case 'multipleChoice':
+                this.isNextButtonDisabled = !this.selectedOption;
+                break;
+            default:
+                this.isNextButtonDisabled = false;
+                break;
+        }
     }
 
     handleNext() {
-        const current = this.currentScreen;
-        this[current.bool] = false;
-
-        const next = this.surveyData.screens.find(s => s.screenNo === current.next);
-        if (next) this[next.bool] = true;
-    }
-
-    get isNextDisabled() {
-        return !this.currentScreen.isNextEnabled;
-    }
+        this.selectedOption = '';
+        this.currentStep = this.stepConfig.next;
+        this.updateUIFlags();
+    } 
 }
-
-
-<template>
-    <template for:each={surveyData.screens} for:item="screen">
-        <template if:true={this[screen.bool]} key={screen.screenNo}>
-            <template if:true={screen.questions.length}>
-                <template for:each={screen.questions} for:item="q">
-                    <lightning-input
-                        key={q.id}
-                        type={q.type}
-                        name={q.id}
-                        label={q.label}
-                        value={answers[q.id]}
-                        onchange={handleInputChange}
-                        required={q.required}>
-                    </lightning-input>
-
-                    <template if:true={q.options}>
-                        <lightning-radio-group
-                            key={q.id}
-                            name={q.id}
-                            label={q.label}
-                            options={q.options.map(opt => ({ label: opt, value: opt }))}
-                            value={answers[q.id]}
-                            onchange={handleInputChange}>
-                        </lightning-radio-group>
-                    </template>
-                </template>
-            </template>
-
-            <template if:true={screen.label}>
-                <div class="thank-you">{screen.label}</div>
-            </template>
-
-            <lightning-button
-                label={screen.buttonName}
-                onclick={handleNext}
-                disabled={isNextDisabled}>
-            </lightning-button>
-        </template>
-    </template>
-</template>
