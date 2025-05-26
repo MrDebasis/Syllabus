@@ -1,37 +1,23 @@
-<template>
-    <div>Order # {orderId}</div>
-    <div>MRN # {mrnNumber}</div>
-
-    <template lwc:if={isApheresisTherapy}>
-         <div>Apheresis Therapy Survey</div>
-    </template>
-
-    <template lwc:if={isBridgingTherapy}>
-          <div>Bridging Therapy Survey</div>
-    </template>
-
-    <template lwc:if={isInfusionAndMonitoringTherapy}>
-        <div>Infusion And Monitoring Survey</div>
-    </template>
-
-    <template lwc:if={isOutOfSpecPatient}>
-         <div>Out Of Spec Patient Survey</div>
-    </template>
-
-    <template lwc:if={isMonitoringExtension}>
-        <div>Monitoring Extension Survey</div>
-    </template>
-</template>
-
-import { LightningElement ,track} from 'lwc';
+// pspSurveyLWCComponent.js
+import { LightningElement, track } from 'lwc';
 import decryptData from '@salesforce/apex/EncryptionService.decrypt';
 import getSurveyQuestions from '@salesforce/apex/EncryptionService.getSurveyQuestions';
+
 export default class PspSurveyLWCComponent extends LightningElement {
- @track caseId;
+    @track caseId;
     @track surveyType;
     @track mrnNumber;
     @track orderId;
     @track error;
+
+    @track isApheresisTherapy = false;
+    @track isBridgingTherapy = false;
+    @track isInfusionAndMonitoringTherapy = false;
+    @track isOutOfSpecPatient = false;
+    @track isMonitoringExtension = false;
+
+    @track flow = [];
+    @track currentScreen = 1;
 
     connectedCallback() {
         const rawParam = this.getEncryptedParamFromUrl('details');
@@ -56,7 +42,7 @@ export default class PspSurveyLWCComponent extends LightningElement {
     callDecrypt(encrypted) {
         decryptData({ encryptedBase64: encrypted })
             .then(result => {
-                if(result){
+                if (result) {
                     this.parseDecryptedString(result);
                 }
             })
@@ -74,22 +60,10 @@ export default class PspSurveyLWCComponent extends LightningElement {
         this.mrnNumber = params.get('mrn');
         this.orderId = params.get('orderId');
 
-        if(this.surveyType){
+        if (this.surveyType) {
             this.triggerSurveyOnType();
         }
-
-        console.log('Decrypted and parsed:');
-        console.log('Case ID:', this.caseId);
-        console.log('Survey Type:', this.surveyType);
-        console.log('MRN:', this.mrnNumber);
-        console.log('Order ID:', this.orderId);
     }
-
-    @track isApheresisTherapy = false;
-    @track isBridgingTherapy = false;
-    @track isInfusionAndMonitoringTherapy = false;
-    @track isOutOfSpecPatient = false;
-    @track isMonitoringExtension = false;
 
     triggerSurveyOnType() {
         switch (this.surveyType) {
@@ -111,18 +85,129 @@ export default class PspSurveyLWCComponent extends LightningElement {
             default:
                 console.warn('Unknown survey type:', this.surveyType);
         }
-          this.getQuestions();
+        this.getQuestions();
     }
 
-    @track surveyQuestions = [];
-    getQuestions(){
-         getSurveyQuestions({ surveyType: this.surveyType })
-        .then(result => {
-            this.surveyQuestions = result;
-          console.log('Loaded survey questions:', this.surveyQuestions);
-        })
-        .catch(error => {
-            console.error('Error loading questions:', error);
+    getQuestions() {
+        getSurveyQuestions({ surveyType: this.surveyType })
+            .then(result => {
+                this.generateFlow(result);
+            })
+            .catch(error => {
+                console.error('Error loading questions:', error);
+            });
+    }
+
+    generateFlow(screenMap) {
+        this.flow = Object.keys(screenMap).map(key => {
+            const screenNo = parseInt(key, 10);
+            const questions = screenMap[key].map(q => ({
+                ...q,
+                isDate: q.type === 'Date',
+                isPicklist: q.type === 'Picklist',
+                isText: q.type === 'Text'
+            }));
+            return {
+                screenNo,
+                buttonName: screenNo === Object.keys(screenMap).length ? 'Submit' : 'Next',
+                isNextEnabled: false,
+                next: screenNo === Object.keys(screenMap).length ? null : screenNo + 1,
+                questions
+            };
         });
+        this.currentScreen = this.flow[0]?.screenNo || 1;
+    }
+
+    handleInputChange(event) {
+        const { name, value } = event.target;
+        const screen = this.flow.find(f => f.screenNo === this.currentScreen);
+        const question = screen.questions.find(q => q.apiName === name);
+        question.answer = value;
+
+        screen.isNextEnabled = screen.questions.every(q => !q.required || !!q.answer);
+    }
+
+    handleNext() {
+        const current = this.flow.find(f => f.screenNo === this.currentScreen);
+        if (current.next) {
+            this.currentScreen = current.next;
+        } else {
+            console.log('Survey complete:', this.flow);
+        }
+    }
+
+    get currentScreenQuestions() {
+        return this.flow.find(f => f.screenNo === this.currentScreen)?.questions || [];
+    }
+
+    get currentButtonLabel() {
+        return this.flow.find(f => f.screenNo === this.currentScreen)?.buttonName || 'Next';
+    }
+
+    get isNextEnabled() {
+        return this.flow.find(f => f.screenNo === this.currentScreen)?.isNextEnabled || false;
     }
 }
+
+
+<template>
+    <div>Order # {orderId}</div>
+    <div>MRN # {mrnNumber}</div>
+
+    <template lwc:if={isApheresisTherapy}>
+        <div>Apheresis Therapy Survey</div>
+    </template>
+    <template lwc:if={isBridgingTherapy}>
+        <div>Bridging Therapy Survey</div>
+    </template>
+    <template lwc:if={isInfusionAndMonitoringTherapy}>
+        <div>Infusion And Monitoring Survey</div>
+    </template>
+    <template lwc:if={isOutOfSpecPatient}>
+        <div>Out Of Spec Patient Survey</div>
+    </template>
+    <template lwc:if={isMonitoringExtension}>
+        <div>Monitoring Extension Survey</div>
+    </template>
+
+    <template for:each={currentScreenQuestions} for:item="question">
+        <div key={question.apiName} class="slds-m-vertical_small">
+            <label class="slds-form-element__label" for={question.apiName}>{question.label}</label>
+            <template lwc:if={question.isDate}>
+                <lightning-input
+                    type="date"
+                    name={question.apiName}
+                    value={question.answer}
+                    onchange={handleInputChange}
+                    required={question.required}>
+                </lightning-input>
+            </template>
+            <template lwc:if={question.isPicklist}>
+                <lightning-combobox
+                    name={question.apiName}
+                    value={question.answer}
+                    options={question.options.map(option => ({ label: option, value: option }))}
+                    onchange={handleInputChange}
+                    required={question.required}>
+                </lightning-combobox>
+            </template>
+            <template lwc:if={question.isText}>
+                <lightning-input
+                    type="text"
+                    name={question.apiName}
+                    value={question.answer}
+                    onchange={handleInputChange}
+                    required={question.required}>
+                </lightning-input>
+            </template>
+        </div>
+    </template>
+
+    <div class="slds-m-top_medium">
+        <lightning-button
+            label={currentButtonLabel}
+            onclick={handleNext}
+            disabled={!isNextEnabled}>
+        </lightning-button>
+    </div>
+</template>
