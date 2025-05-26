@@ -1,51 +1,9 @@
-import { LightningElement, track } from 'lwc';
-import decryptData from '@salesforce/apex/EncryptionService.decrypt';
-
-export default class DecryptSurveyDetails extends LightningElement {
-    @track caseId;
-    @track surveyType;
-    @track mrnNumber;
-    @track orderId;
-    @track error;
-
-    connectedCallback() {
-        const rawParam = this.getEncryptedParamFromUrl('details');
-        if (rawParam) {
-            const decoded = decodeURIComponent(rawParam);
-            this.callDecrypt(decoded);
-        } else {
-            this.error = 'No encrypted parameter found in URL';
-        }
-    }
-
-    getEncryptedParamFromUrl(paramName) {
-        try {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(paramName);
-        } catch (e) {
-            console.error('Error parsing URL params:', e);
-            return null;
-        }
-    }
-
-    callDecrypt(encrypted) {
-        decryptData({ encryptedBase64: encrypted })
-            .then(result => {
-                this.parseDecryptedString(result);
-            })
-            .catch(error => {
-                this.error = error.body ? error.body.message : error;
-                console.error('Decryption failed:', this.error);
-            });
-    }
-
-    parseDecryptedString(decrypted) {
-        // Assume format: caseId=123&surveyType=abc&MRN=456&orderId=789
+   parseDecryptedString(decrypted) {
         const params = new URLSearchParams(decrypted);
 
         this.caseId = params.get('caseId');
-        this.surveyType = params.get('surveyType');
-        this.mrnNumber = params.get('MRN');
+        this.surveyType = params.get('type');
+        this.mrnNumber = params.get('mrn');
         this.orderId = params.get('orderId');
 
         console.log('Decrypted and parsed:');
@@ -54,4 +12,10 @@ export default class DecryptSurveyDetails extends LightningElement {
         console.log('MRN:', this.mrnNumber);
         console.log('Order ID:', this.orderId);
     }
-}
+
+    @track isApheresisTherapy = false;
+    @track isBridgingTherapy = false;
+    @track isInfusionAndMonitoringTherapy = false;
+    @track isOutOfSpecPatient = false;
+    @track isMonitoringExtension = false;
+    
