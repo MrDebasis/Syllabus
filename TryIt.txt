@@ -1,7 +1,1 @@
- String base64Encrypted = EncodingUtil.base64Encode(encrypted);
-            return EncodingUtil.urlEncode(base64Encrypted, ENCODING); // URL-safe
-
-
-
-String base64Encrypted = EncodingUtil.urlDecode(urlEncodedEncryptedText, ENCODING);
-            Blob encryptedBlob = EncodingUtil.base64Decode(base64Encrypted);
+    private static final String ENCODING = 'UTF-8';
