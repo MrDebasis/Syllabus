@@ -1,2 +1,84 @@
-in url : hZc1B+3r6Z6reAf9Oc5x5nNtC9gpggVzkBPbvyOCtCRh4qHNg1IpueKHatI5p3e0XS85txym/eYEVZuNWMXQ4kR7tLCKEjJrS1DwLKAawb5cowe4Db0xr1CMRqTTc4/S
-in js : hZc1B%2B3r6Z6reAf9Oc5x5nNtC9gpggVzkBPbvyOCtCRh4qHNg1IpueKHatI5p3e0XS85txym%2FeYEVZuNWMXQ4kR7tLCKEjJrS1DwLKAawb5cowe4Db0xr1CMRqTTc4%2FS
+"Input length must be multiple of 16 when decrypting with padded cipher"
+
+  @track decryptedText = '';
+    @track error;
+
+    @track encryptedString = '';
+
+    connectedCallback() {
+        this.encryptedString = this.getEncryptedParamFromUrl('details');
+        if (this.encryptedString) {
+            this.encryptedString = decodeURIComponent(this.encryptedString);
+            this.callDecrypt(this.encryptedString);
+        } else {
+            this.error = 'No encrypted parameter found in URL';
+        }
+    }
+
+    getEncryptedParamFromUrl(paramName) {
+        // Get URL parameters using URLSearchParams
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(paramName);
+        } catch (e) {
+            console.error('Error parsing URL params:', e);
+            return null;
+        }
+    }
+
+    callDecrypt(encrypted) {
+        decryptData({ encryptedBase64: encrypted })
+            .then(result => {
+                this.decryptedText = result;
+                this.error = undefined;
+                console.log('Decrypted Text:', this.decryptedText);
+            })
+            .catch(error => {
+                this.error = error.body ? error.body.message : error;
+                this.decryptedText = '';
+            });
+    }
+
+public class EncryptionService {
+
+    private static final String ALGORITHM = 'AES256';
+    private static final String ENCODING = 'UTF-8';
+
+    /**
+     * Encrypt a plain text string using AES256 and password from Custom Label.
+     * Uses Crypto.encryptWithManagedIV for automatic IV management.
+     */
+    public static String encrypt(String plainText) {
+       String password = 'Abc@12@Adbc';
+        Blob key = getKeyFromPassword(password);
+        Blob data = Blob.valueOf(plainText);
+
+        // encryptWithManagedIV prepends the IV automatically
+        Blob encryptedBlob = Crypto.encryptWithManagedIV('AES256', key, data);
+         String base64Encrypted = EncodingUtil.base64Encode(encryptedBlob);
+         return EncodingUtil.urlEncode(base64Encrypted, ENCODING);
+    }
+
+
+    /**
+     * Decrypt an encrypted Base64 string using AES256 and password from Custom Label.
+     * Uses Crypto.decryptWithManagedIV to extract IV automatically.
+     */
+    @AuraEnabled
+    public static String decrypt(String encryptedBase64) {
+        String password = 'Abc@12@Adbc';
+        Blob key = getKeyFromPassword(password);
+        String base64Encrypted = EncodingUtil.urlDecode(encryptedBase64, ENCODING);
+        Blob encryptedBlob = EncodingUtil.base64Decode(base64Encrypted);
+
+        Blob decryptedBlob = Crypto.decryptWithManagedIV('AES256', key, encryptedBlob);
+        return decryptedBlob.toString();
+    }
+
+    /**
+     * Creates a 256-bit key from password using SHA-256 hash.
+     */
+    private static Blob getKeyFromPassword(String password) {
+        return Crypto.generateDigest('SHA-256', Blob.valueOf(password));
+    }
+}
