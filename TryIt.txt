@@ -1,31 +1,128 @@
-{
-    "1": [
-        {
-            "apiName": "apheresis_appointment_date",
-            "label": "When is the apheresis appointment date for Order # [Order Number]?*",
-            "required": true,
-            "type": "Date"
-        },
-        {
-            "apiName": "apheresis_appointment",
-            "label": "What day should the patient arrive for their apheresis appointment?*",
-            "required": true,
-            "type": "Date"
-        },
-        {
-            "apiName": "patient_depart",
-            "label": "What day should the patient depart?*",
-            "required": true,
-            "type": "Date"
+<template>
+    <div>Order # {orderId}</div>
+    <div>MRN # {mrnNumber}</div>
+
+    <template lwc:if={isApheresisTherapy}>
+         <div>Apheresis Therapy Survey</div>
+    </template>
+
+    <template lwc:if={isBridgingTherapy}>
+          <div>Bridging Therapy Survey</div>
+    </template>
+
+    <template lwc:if={isInfusionAndMonitoringTherapy}>
+        <div>Infusion And Monitoring Survey</div>
+    </template>
+
+    <template lwc:if={isOutOfSpecPatient}>
+         <div>Out Of Spec Patient Survey</div>
+    </template>
+
+    <template lwc:if={isMonitoringExtension}>
+        <div>Monitoring Extension Survey</div>
+    </template>
+</template>
+
+import { LightningElement ,track} from 'lwc';
+import decryptData from '@salesforce/apex/EncryptionService.decrypt';
+import getSurveyQuestions from '@salesforce/apex/EncryptionService.getSurveyQuestions';
+export default class PspSurveyLWCComponent extends LightningElement {
+ @track caseId;
+    @track surveyType;
+    @track mrnNumber;
+    @track orderId;
+    @track error;
+
+    connectedCallback() {
+        const rawParam = this.getEncryptedParamFromUrl('details');
+        if (rawParam) {
+            const decoded = decodeURIComponent(rawParam);
+            this.callDecrypt(decoded);
+        } else {
+            this.error = 'No encrypted parameter found in URL';
         }
-    ],
-    "2": [
-        {
-            "apiName": "treatment_dates_provided",
-            "label": "Are the dates provided related to CARVYKTI® treatment?*",
-            "options": "Yes, No",
-            "required": true,
-            "type": "Picklist"
+    }
+
+    getEncryptedParamFromUrl(paramName) {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(paramName);
+        } catch (e) {
+            console.error('Error parsing URL params:', e);
+            return null;
         }
-    ]
+    }
+
+    callDecrypt(encrypted) {
+        decryptData({ encryptedBase64: encrypted })
+            .then(result => {
+                if(result){
+                    this.parseDecryptedString(result);
+                }
+            })
+            .catch(error => {
+                this.error = error.body ? error.body.message : error;
+                console.error('Decryption failed:', this.error);
+            });
+    }
+
+    parseDecryptedString(decrypted) {
+        const params = new URLSearchParams(decrypted);
+
+        this.caseId = params.get('caseId');
+        this.surveyType = params.get('type');
+        this.mrnNumber = params.get('mrn');
+        this.orderId = params.get('orderId');
+
+        if(this.surveyType){
+            this.triggerSurveyOnType();
+        }
+
+        console.log('Decrypted and parsed:');
+        console.log('Case ID:', this.caseId);
+        console.log('Survey Type:', this.surveyType);
+        console.log('MRN:', this.mrnNumber);
+        console.log('Order ID:', this.orderId);
+    }
+
+    @track isApheresisTherapy = false;
+    @track isBridgingTherapy = false;
+    @track isInfusionAndMonitoringTherapy = false;
+    @track isOutOfSpecPatient = false;
+    @track isMonitoringExtension = false;
+
+    triggerSurveyOnType() {
+        switch (this.surveyType) {
+            case 'Apheresis':
+                this.isApheresisTherapy = true;
+                break;
+            case 'Bridging':
+                this.isBridgingTherapy = true;
+                break;
+            case 'Infusion and Monitoring':
+                this.isInfusionAndMonitoringTherapy = true;
+                break;
+            case 'Out of Spec Patient':
+                this.isOutOfSpecPatient = true;
+                break;
+            case 'Monitoring Extension':
+                this.isMonitoringExtension = true;
+                break;
+            default:
+                console.warn('Unknown survey type:', this.surveyType);
+        }
+          this.getQuestions();
+    }
+
+    @track surveyQuestions = [];
+    getQuestions(){
+         getSurveyQuestions({ surveyType: this.surveyType })
+        .then(result => {
+            this.surveyQuestions = result;
+          console.log('Loaded survey questions:', this.surveyQuestions);
+        })
+        .catch(error => {
+            console.error('Error loading questions:', error);
+        });
+    }
 }
