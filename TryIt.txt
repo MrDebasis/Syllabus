@@ -1,22 +1,24 @@
-"Input length must be multiple of 16 when decrypting with padded cipher"
+import { LightningElement, track } from 'lwc';
+import decryptData from '@salesforce/apex/EncryptionService.decrypt';
 
-  @track decryptedText = '';
+export default class DecryptSurveyDetails extends LightningElement {
+    @track caseId;
+    @track surveyType;
+    @track mrnNumber;
+    @track orderId;
     @track error;
 
-    @track encryptedString = '';
-
     connectedCallback() {
-        this.encryptedString = this.getEncryptedParamFromUrl('details');
-        if (this.encryptedString) {
-            this.encryptedString = decodeURIComponent(this.encryptedString);
-            this.callDecrypt(this.encryptedString);
+        const rawParam = this.getEncryptedParamFromUrl('details');
+        if (rawParam) {
+            const decoded = decodeURIComponent(rawParam);
+            this.callDecrypt(decoded);
         } else {
             this.error = 'No encrypted parameter found in URL';
         }
     }
 
     getEncryptedParamFromUrl(paramName) {
-        // Get URL parameters using URLSearchParams
         try {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(paramName);
@@ -29,56 +31,27 @@
     callDecrypt(encrypted) {
         decryptData({ encryptedBase64: encrypted })
             .then(result => {
-                this.decryptedText = result;
-                this.error = undefined;
-                console.log('Decrypted Text:', this.decryptedText);
+                this.parseDecryptedString(result);
             })
             .catch(error => {
                 this.error = error.body ? error.body.message : error;
-                this.decryptedText = '';
+                console.error('Decryption failed:', this.error);
             });
     }
 
-public class EncryptionService {
+    parseDecryptedString(decrypted) {
+        // Assume format: caseId=123&surveyType=abc&MRN=456&orderId=789
+        const params = new URLSearchParams(decrypted);
 
-    private static final String ALGORITHM = 'AES256';
-    private static final String ENCODING = 'UTF-8';
+        this.caseId = params.get('caseId');
+        this.surveyType = params.get('surveyType');
+        this.mrnNumber = params.get('MRN');
+        this.orderId = params.get('orderId');
 
-    /**
-     * Encrypt a plain text string using AES256 and password from Custom Label.
-     * Uses Crypto.encryptWithManagedIV for automatic IV management.
-     */
-    public static String encrypt(String plainText) {
-       String password = 'Abc@12@Adbc';
-        Blob key = getKeyFromPassword(password);
-        Blob data = Blob.valueOf(plainText);
-
-        // encryptWithManagedIV prepends the IV automatically
-        Blob encryptedBlob = Crypto.encryptWithManagedIV('AES256', key, data);
-         String base64Encrypted = EncodingUtil.base64Encode(encryptedBlob);
-         return EncodingUtil.urlEncode(base64Encrypted, ENCODING);
-    }
-
-
-    /**
-     * Decrypt an encrypted Base64 string using AES256 and password from Custom Label.
-     * Uses Crypto.decryptWithManagedIV to extract IV automatically.
-     */
-    @AuraEnabled
-    public static String decrypt(String encryptedBase64) {
-        String password = 'Abc@12@Adbc';
-        Blob key = getKeyFromPassword(password);
-        String base64Encrypted = EncodingUtil.urlDecode(encryptedBase64, ENCODING);
-        Blob encryptedBlob = EncodingUtil.base64Decode(base64Encrypted);
-
-        Blob decryptedBlob = Crypto.decryptWithManagedIV('AES256', key, encryptedBlob);
-        return decryptedBlob.toString();
-    }
-
-    /**
-     * Creates a 256-bit key from password using SHA-256 hash.
-     */
-    private static Blob getKeyFromPassword(String password) {
-        return Crypto.generateDigest('SHA-256', Blob.valueOf(password));
+        console.log('Decrypted and parsed:');
+        console.log('Case ID:', this.caseId);
+        console.log('Survey Type:', this.surveyType);
+        console.log('MRN:', this.mrnNumber);
+        console.log('Order ID:', this.orderId);
     }
 }
