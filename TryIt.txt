@@ -1,7 +1,2 @@
-String originalText = 'caseId=500xx00000000123&type=apheresis&mrn=123456&orderId=ORD123';
-
-String encrypted = EncryptionService.encrypt(originalText);
-System.debug('Encrypted string: ' + encrypted);
-
-String decrypted = EncryptionService.decrypt(encrypted);
-System.debug('Decrypted string: ' + decrypted);
+Line: 146, Column: 1
+System.SecurityException: Given final block not properly padded. Such issues can arise if a bad key is used during decryption.
