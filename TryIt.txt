@@ -1,41 +1,7 @@
-import { LightningElement, track } from 'lwc';
-import decryptData from '@salesforce/apex/EncryptionController.decryptData';
+ String base64Encrypted = EncodingUtil.base64Encode(encrypted);
+            return EncodingUtil.urlEncode(base64Encrypted, ENCODING); // URL-safe
 
-export default class DecryptFromUrl extends LightningElement {
-    @track decryptedText = '';
-    @track error;
 
-    encryptedString = '';
 
-    connectedCallback() {
-        this.encryptedString = this.getEncryptedParamFromUrl('details');
-        if (this.encryptedString) {
-            this.callDecrypt(this.encryptedString);
-        } else {
-            this.error = 'No encrypted parameter found in URL';
-        }
-    }
-
-    getEncryptedParamFromUrl(paramName) {
-        // Get URL parameters using URLSearchParams
-        try {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(paramName);
-        } catch (e) {
-            console.error('Error parsing URL params:', e);
-            return null;
-        }
-    }
-
-    callDecrypt(encrypted) {
-        decryptData({ encryptedData: encrypted })
-            .then(result => {
-                this.decryptedText = result;
-                this.error = undefined;
-            })
-            .catch(error => {
-                this.error = error.body ? error.body.message : error;
-                this.decryptedText = '';
-            });
-    }
-}
+String base64Encrypted = EncodingUtil.urlDecode(urlEncodedEncryptedText, ENCODING);
+            Blob encryptedBlob = EncodingUtil.base64Decode(base64Encrypted);
