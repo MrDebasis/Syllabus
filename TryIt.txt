@@ -1,212 +1,47 @@
-<template>
+public class EncryptionService {
 
-    <div class="survey-container">
+    private static final String ENCRYPTION_ALGORITHM = 'AES256';
+    private static final Integer IV_LENGTH = 16;
 
-        <template if:true={showDateInputs}>
-            <template for:each={renderedDateQuestions} for:item="q">
-                <lightning-input
-                    key={q.id}
-                    type={q.type}
-                    name={q.id}
-                    label={q.label}
-                    value={q.value}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
-            </template>
-        </template>
+    /**
+     * Encrypts a plain text string using a password from custom label.
+     * @param plainText The string to encrypt.
+     * @return Encrypted string (Base64).
+     */
+    public static String encryptString(String plainText) {
+        String password = Label.EncryptionPasswordLabel;
+        Blob key = Crypto.generateDigest('SHA-256', Blob.valueOf(password));
+        Blob iv = Crypto.generateRandomBytes(IV_LENGTH);
+        Blob data = Blob.valueOf(plainText);
 
-       
-        <template if:true={showYesNo}>
-            <lightning-radio-group
-                label={yesNoLabel}
-                name="yesno"
-                options={yesNoOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
-        </template>
-
-        
-        <template if:true={showMultipleChoice}>
-            <lightning-radio-group
-                label={multipleChoiceLabel}
-                name="multiplechoice"
-                options={multipleChoiceOptions}
-                value={selectedOption}
-                type="radio"
-                onchange={handleOptionChange}>
-            </lightning-radio-group>
-        </template>
-
-    
-        <template if:true={showMessage}>
-            <div class="thank-you">{messageLabel}</div>
-        </template>
-
-       
-        <lightning-button
-            class="slds-m-top_medium"
-            variant="brand"
-            label="Next"
-            onclick={handleNext}
-            disabled={isNextButtonDisabled}>
-        </lightning-button>
-    </div>
-</template>
-
-import { LightningElement ,track} from 'lwc';
-const surveyConfig = {
-    apheresis: {
-        steps: {
-            start: {
-                type: 'date',
-                questions: [
-                    { id: 'Apheresis-Q1-P1', label: 'When is the apheresis appointment date for Order # [Order Number]?*', type: 'date', required: true },
-                    { id: 'Apheresis-Q2-P1', label: 'What day should the patient arrive for their apheresis appointment?*', type: 'date', required: true },
-                    { id: 'Apheresis-Q3-P1', label: 'What day should the patient depart?*', type: 'date', required: true }
-                ],
-                next: 'screen2'
-            },
-            screen2: {
-                id: 'Apheresis-P2',
-                type: 'yesNo',
-                questionId: 'serviceHelpful',
-                label: 'Are the dates provided related to CARVYKTI® treatment?*',
-                required: true,
-                options: ['Yes', 'No'],
-                next: 'screen3'
-            },
-            screen3: {
-                type: 'multipleChoice',
-                questionId: 'futureVisit',
-                label: 'Will the patient receive bridging therapy at your certified treatment center?*',
-                required: true,
-                options: ['Yes', 'No', 'Not Sure Yet'],
-                next: 'end'
-            },
-            end: {
-                type: 'message',
-                label: 'Thank you for completing the survey.'
-            }
-        }
-    }
-};
-
-
-export default class PspSurveyLWCComponent extends LightningElement {
-   
-
-    @track currentStep = 'start';
-  
-    @track answers = {};
-    @track selectedOption = '';
-
-    @track showDateInputs = false;
-    @track showYesNo = false;
-    @track showMultipleChoice = false;
-    @track showMessage = false;
-    @track isNextButtonDisabled = true;
-
-    @track renderedDateQuestions = [];
-    @track yesNoLabel = '';
-    @track yesNoOptions = [];
-    @track multipleChoiceLabel = '';
-    @track multipleChoiceOptions = [];
-    @track messageLabel = '';
-
-    connectedCallback() {
-        this.updateUIFlags();
+        Blob encryptedBlob = Crypto.encrypt(ENCRYPTION_ALGORITHM, key, iv, data);
+        Blob finalBlob = Blob.concat(iv, encryptedBlob);
+        return EncodingUtil.base64Encode(finalBlob);
     }
 
-    get stepConfig() {
-        return surveyConfig.apheresis.steps[this.currentStep];
+    /**
+     * Decrypts a Base64 encoded string using a password from custom label.
+     * @param encryptedBase64 The encrypted string (Base64 format).
+     * @return Decrypted plain text.
+     */
+    public static String decryptString(String encryptedBase64) {
+        String password = Label.EncryptionPasswordLabel;
+        Blob key = Crypto.generateDigest('SHA-256', Blob.valueOf(password));
+        Blob fullBlob = EncodingUtil.base64Decode(encryptedBase64);
+
+        // Extract IV and encrypted data
+        Blob iv = fullBlob.subBlob(0, IV_LENGTH);
+        Blob encryptedData = fullBlob.subBlob(IV_LENGTH);
+
+        Blob decryptedBlob = Crypto.decrypt(ENCRYPTION_ALGORITHM, key, iv, encryptedData);
+        return decryptedBlob.toString();
     }
-
-    updateUIFlags() {
-        const step = this.stepConfig;
-
-        // Reset flags
-        this.showDateInputs = false;
-        this.showYesNo = false;
-        this.showMultipleChoice = false;
-        this.showMessage = false;
-        this.isNextButtonDisabled = true;
-        this.renderedDateQuestions = [];
-        this.yesNoLabel = '';
-        this.yesNoOptions = [];
-        this.multipleChoiceLabel = '';
-        this.multipleChoiceOptions = [];
-        this.messageLabel = '';
-
-        switch (step.type) {
-            case 'date':
-                this.showDateInputs = true;
-                this.renderedDateQuestions = step.questions.map(q => ({
-                    ...q,
-                    value: this.answers[q.id] || ''
-                }));
-                break;
-            case 'yesNo':
-                this.showYesNo = true;
-                this.yesNoLabel = step.label;
-                this.yesNoOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'multipleChoice':
-                this.showMultipleChoice = true;
-                this.multipleChoiceLabel = step.label;
-                this.multipleChoiceOptions = step.options.map(opt => ({ label: opt, value: opt }));
-                break;
-            case 'message':
-                this.showMessage = true;
-                this.messageLabel = step.label;
-                break;
-        }
-
-        this.updateNextButtonState();
-    }
-
-    handleInputChange(event) {
-        const { name, value } = event.target;
-        this.answers[name] = value;
-
-        // Update renderedDateQuestions for value binding
-        this.renderedDateQuestions = this.renderedDateQuestions.map(q => {
-            return q.id === name ? { ...q, value } : q;
-        });
-        console.log('this.renderedDateQuestions', JSON.stringify(this.renderedDateQuestions));
-        this.updateNextButtonState();
-    }
-
-    handleOptionChange(event) {
-        this.selectedOption = event.detail.value;
-        const step = this.stepConfig;
-        this.answers[step.questionId] = this.selectedOption;
-
-        this.updateNextButtonState();
-    }
-
-    updateNextButtonState() {
-        const step = this.stepConfig;
-
-        switch (step.type) {
-            case 'date':
-                this.isNextButtonDisabled = !step.questions.every(q => this.answers[q.id]);
-                break;
-            case 'yesNo':
-            case 'multipleChoice':
-                this.isNextButtonDisabled = !this.selectedOption;
-                break;
-            default:
-                this.isNextButtonDisabled = false;
-                break;
-        }
-    }
-
-    handleNext() {
-        this.selectedOption = '';
-        this.currentStep = this.stepConfig.next;
-        this.updateUIFlags();
-    } 
 }
+
+
+String original = 'caseId=500xx00000000123&type=apheresis&mrn=123456&orderId=ORD123';
+String encrypted = EncryptionService.encryptString(original);
+System.debug('Encrypted: ' + encrypted);
+
+String decrypted = EncryptionService.decryptString(encrypted);
+System.debug('Decrypted: ' + decrypted);
