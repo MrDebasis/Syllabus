@@ -1,57 +1,84 @@
 <template>
+    <!-- Screen 1 -->
     <template if:true={isScreen1}>
-          <template for:each={screen1Questions} for:item="q">
+        <template for:each={screen1Questions} for:item="q">
             <div key={q.apiName} class="s-question">
                 <label>{q.label}</label>
-                    <lightning-input 
-                        type="date"
-                        data-id={q.apiName}
-                        onchange={handleInputChange}
-                        required={q.required}>
-                    </lightning-input>
+                <lightning-input 
+                    type="date"
+                    data-id={q.apiName}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
             </div>
         </template>
-</template>
+    </template>
 
-<template if:true={isScreen2}>
-    <div>This is screen 2</div>
-</template>
+    <!-- Screen 2 -->
+    <template if:true={isScreen2}>
+        <template for:each={screen2Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                        variant={q.yesVariant}>
+                    </lightning-button>
+
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        variant={q.noVariant}>
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+    <!-- Navigation -->
     <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
 </template>
 
-import { LightningElement,api,track } from 'lwc';
+
+import { LightningElement, api, track } from 'lwc';
 
 export default class PspApheresisSurveyLWCComp extends LightningElement {
-   @api caseId = '';
+    @api caseId = '';
     @api surveyType = '';
-    @api questions = []; // Expected: object with keys like "1", "2", etc.
-    @track answers = []; // Array of { UniqueId, label, value }
+    @api questions = []; // Expect format: { 1: [questions], 2: [questions], ... }
+
+    @track answers = []; // [{ UniqueId, label, value }]
     @track isNextDisabled = true;
     @track currentScreen = 1;
 
     get isScreen1() {
         return this.currentScreen === 1;
     }
-       get isScreen2() {
+
+    get isScreen2() {
         return this.currentScreen === 2;
     }
 
     get screen1Questions() {
-        return this.questions[this.currentScreen];
+        return this.questions[1] || [];
+    }
+
+    get screen2Questions() {
+        return this.questions[2] || [];
     }
 
     handleInputChange(event) {
         const apiName = event.target.dataset.id;
-        const value = event.target.value;
-
-        const question = this.screen1Questions.find(q => q.apiName === apiName);
-        if (!question) return;
-
-        const label = question.label;
+        const value = event.target.value || event.target.dataset.value;
+        const label = event.target.dataset.label || this.getLabelByApiName(apiName);
         const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
-
-        // Check if already exists
-        const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
 
         const newAnswer = {
             UniqueId: uniqueId,
@@ -59,10 +86,19 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
             value: value
         };
 
+        const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
         if (existingIndex > -1) {
-            this.answers.splice(existingIndex, 1, newAnswer); // update existing
+            this.answers.splice(existingIndex, 1, newAnswer);
         } else {
-            this.answers.push(newAnswer); // add new
+            this.answers.push(newAnswer);
+        }
+
+        // Handle button variants for screen 2
+        const screenQuestions = this.questions[this.currentScreen];
+        const question = screenQuestions.find(q => q.apiName === apiName);
+        if (question) {
+            question.yesVariant = value === 'Yes' ? 'brand' : 'neutral';
+            question.noVariant = value === 'No' ? 'brand' : 'neutral';
         }
 
         console.log('answers:', JSON.stringify(this.answers, null, 2));
@@ -70,11 +106,12 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
     }
 
     validateRequired() {
-        const requiredQuestions = this.screen1Questions.filter(q => q.required);
+        const screenQuestions = this.questions[this.currentScreen] || [];
+        const requiredQuestions = screenQuestions.filter(q => q.required);
         const allAnswered = requiredQuestions.every(q => {
             const uniqueId = `${this.surveyType}_${this.caseId}_${q.apiName}_${this.currentScreen}`;
-            const answerObj = this.answers.find(a => a.UniqueId === uniqueId);
-            return answerObj && answerObj.value !== undefined && answerObj.value !== null && answerObj.value !== '';
+            const ans = this.answers.find(a => a.UniqueId === uniqueId);
+            return ans && ans.value !== undefined && ans.value !== null && ans.value !== '';
         });
 
         this.isNextDisabled = !allAnswered;
@@ -85,5 +122,11 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
             this.currentScreen++;
             this.isNextDisabled = true; // Reset for next screen
         }
+    }
+
+    getLabelByApiName(apiName) {
+        const allQuestions = Object.values(this.questions).flat();
+        const found = allQuestions.find(q => q.apiName === apiName);
+        return found ? found.label : '';
     }
 }
