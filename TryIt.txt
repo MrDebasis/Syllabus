@@ -1,59 +1,61 @@
- handleSort(event) {
-        const columnId = event.target.dataset.columnId; // Get the column ID
-            
-        const columnConfig = this.columnConfig.find(col => col.column_id === columnId);
-    
-        if (columnConfig && columnConfig.isSortingApplied) {
-            // Toggle sort direction
-            if (columnConfig.sortDirection === 'asc') {
-                columnConfig.sortDirection = 'desc';
-                columnConfig.IsAscsortDirection = false;
-                columnConfig.IsDescsortDirection = true;
-            } else {
-                columnConfig.sortDirection = 'asc';
-                columnConfig.IsAscsortDirection = true;
-                columnConfig.IsDescsortDirection = false;
-            }
-    
-    
-            // Sort the processedCases array dynamically based on sortDirection
-            const sortDirection = columnConfig.sortDirection;
-            const isDate = columnConfig.data_type === 'date';
-            const isNumber = columnConfig.data_type === 'number';
-        try{
-                console.log('isDate',isDate);
-                this.casesFiltered  = [...this.casesFiltered].sort((a, b) => {
+handleSort(event) {
+    const columnId = event.target.dataset.columnId;
+
+    const columnConfig = this.columnConfig.find(col => col.column_id === columnId);
+
+    if (columnConfig && columnConfig.isSortingApplied) {
+        // Toggle sort direction
+        if (columnConfig.sortDirection === 'asc') {
+            columnConfig.sortDirection = 'desc';
+            columnConfig.IsAscsortDirection = false;
+            columnConfig.IsDescsortDirection = true;
+        } else {
+            columnConfig.sortDirection = 'asc';
+            columnConfig.IsAscsortDirection = true;
+            columnConfig.IsDescsortDirection = false;
+        }
+
+        const sortDirection = columnConfig.sortDirection;
+        const isDate = columnConfig.data_type === 'date';
+        const isNumber = columnConfig.data_type === 'number';
+
+        try {
+            this.casesFiltered = [...this.casesFiltered].sort((a, b) => {
                 const fieldParts = columnId.split('.');
                 let aValue = a;
                 let bValue = b;
-    
-                // Resolve nested fields dynamically
-                for (const part of fieldParts) {
-                    aValue = aValue ? aValue[part] : undefined;
-                    bValue = bValue ? bValue[part] : undefined;
-                }
-    
-    
-                if (isDate) {
-                    aValue = new Date(aValue);
-                    bValue = new Date(bValue);
-                }
-    
-                if (isNumber) {
-                    aValue = parseFloat(aValue);
-                    bValue = parseFloat(bValue);
-                }
-    
-                if (sortDirection === 'asc') {
-                    return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-                } else {
-                    return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-                }
-            });
-             }catch(error){
-                console.log('err--->',error);
-             }
 
+                // Resolve nested fields
+                for (const part of fieldParts) {
+                    aValue = aValue ? aValue[part] : null;
+                    bValue = bValue ? bValue[part] : null;
+                }
+
+                // Normalize values
+                if (isDate) {
+                    aValue = aValue ? new Date(aValue) : null;
+                    bValue = bValue ? new Date(bValue) : null;
+
+                    // Handle Invalid Date
+                    if (isNaN(aValue)) aValue = null;
+                    if (isNaN(bValue)) bValue = null;
+                } else if (isNumber) {
+                    aValue = aValue != null ? parseFloat(aValue) : null;
+                    bValue = bValue != null ? parseFloat(bValue) : null;
+                }
+
+                // Handle nulls explicitly to ensure stable sorting
+                if (aValue === null && bValue === null) return 0;
+                if (aValue === null) return sortDirection === 'asc' ? 1 : -1;
+                if (bValue === null) return sortDirection === 'asc' ? -1 : 1;
+
+                // Normal comparison
+                if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        } catch (error) {
+            console.error('Error while sorting:', error);
         }
-       
     }
+}
