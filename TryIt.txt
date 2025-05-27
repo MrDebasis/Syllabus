@@ -1,89 +1,31 @@
-<template>
-    <template if:true={isScreen1}>
-          <template for:each={screen1Questions} for:item="q">
-            <div key={q.apiName} class="s-question">
-                <label>{q.label}</label>
-                    <lightning-input 
-                        type="date"
-                        data-id={q.apiName}
-                        onchange={handleInputChange}
-                        required={q.required}>
-                    </lightning-input>
-            </div>
-        </template>
-</template>
-
-<template if:true={isScreen2}>
-    <div>This is screen 2</div>
-</template>
-    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
-</template>
-
-import { LightningElement,api,track } from 'lwc';
-
-export default class PspApheresisSurveyLWCComp extends LightningElement {
-   @api caseId = '';
-    @api surveyType = '';
-    @api questions = []; // Expected: object with keys like "1", "2", etc.
-    @track answers = []; // Array of { UniqueId, label, value }
-    @track isNextDisabled = true;
-    @track currentScreen = 1;
-
-    get isScreen1() {
-        return this.currentScreen === 1;
-    }
-       get isScreen2() {
-        return this.currentScreen === 2;
-    }
-
-    get screen1Questions() {
-        return this.questions[this.currentScreen];
-    }
-
-    handleInputChange(event) {
-        const apiName = event.target.dataset.id;
-        const value = event.target.value;
-
-        const question = this.screen1Questions.find(q => q.apiName === apiName);
-        if (!question) return;
-
-        const label = question.label;
-        const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
-
-        // Check if already exists
-        const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
-
-        const newAnswer = {
-            UniqueId: uniqueId,
-            label: label,
-            value: value
-        };
-
-        if (existingIndex > -1) {
-            this.answers.splice(existingIndex, 1, newAnswer); // update existing
-        } else {
-            this.answers.push(newAnswer); // add new
+{
+    "1": [
+        {
+            "apiName": "apheresis_appointment_date",
+            "label": "When is the apheresis appointment date for Order # [Order Number]?*",
+            "required": true,
+            "type": "Date"
+        },
+        {
+            "apiName": "apheresis_appointment",
+            "label": "What day should the patient arrive for their apheresis appointment?*",
+            "required": true,
+            "type": "Date"
+        },
+        {
+            "apiName": "patient_depart",
+            "label": "What day should the patient depart?*",
+            "required": true,
+            "type": "Date"
         }
-
-        console.log('answers:', JSON.stringify(this.answers, null, 2));
-        this.validateRequired();
-    }
-
-    validateRequired() {
-        const requiredQuestions = this.screen1Questions.filter(q => q.required);
-        const allAnswered = requiredQuestions.every(q => {
-            const uniqueId = `${this.surveyType}_${this.caseId}_${q.apiName}_${this.currentScreen}`;
-            const answerObj = this.answers.find(a => a.UniqueId === uniqueId);
-            return answerObj && answerObj.value !== undefined && answerObj.value !== null && answerObj.value !== '';
-        });
-
-        this.isNextDisabled = !allAnswered;
-    }
-
-    handleNext() {
-        if (this.currentScreen < 5) {
-            this.currentScreen++;
-            this.isNextDisabled = true; // Reset for next screen
+    ],
+    "2": [
+        {
+            "apiName": "treatment_dates_provided",
+            "label": "Are the dates provided related to CARVYKTI® treatment?*",
+            "options": "Yes, No",
+            "required": true,
+            "type": "Picklist"
         }
-    }
+    ]
 }
