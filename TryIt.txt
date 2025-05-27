@@ -1,132 +1,30 @@
-<template>
-    <!-- Screen 1: Date Inputs -->
-    <template if:true={isScreen1}>
-        <template for:each={screen1Questions} for:item="q">
-            <div key={q.apiName} class="s-question">
-                <label>{q.label}</label>
-                <lightning-input 
-                    type="date"
-                    data-id={q.apiName}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
-            </div>
-        </template>
-    </template>
+handleInputChange(event) {
+    const apiName = event.target.dataset.id;
+    const value = event.target.value || event.target.dataset.value;
+    const label = event.target.dataset.label || this.getLabelByApiName(apiName);
+    const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
 
-    <!-- Screen 2: Yes/No Buttons -->
-    <template if:true={isScreen2}>
-        <template for:each={screen2Questions} for:item="q">
-            <div key={q.apiName} class="s-question">
-                <label>{q.label}</label>
-                <div class="s-buttons">
-                    <lightning-button
-                        label="Yes"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="Yes"
-                        onclick={handleInputChange}
-                        variant={q.yesVariant}>
-                    </lightning-button>
-                    <lightning-button
-                        label="No"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="No"
-                        onclick={handleInputChange}
-                        variant={q.noVariant}>
-                    </lightning-button>
-                </div>
-            </div>
-        </template>
-    </template>
+    const newAnswer = {
+        UniqueId: uniqueId,
+        label: label,
+        value: value
+    };
 
-    <!-- Navigation -->
-    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
-</template>
-
-
-import { LightningElement, api, track } from 'lwc';
-
-export default class PspApheresisSurveyLWCComp extends LightningElement {
-    @api caseId = '';
-    @api surveyType = '';
-    @api questions = []; // { "1": [..], "2": [..] }
-    @track answers = []; // Array of { UniqueId, label, value }
-    @track isNextDisabled = true;
-    @track currentScreen = 1;
-
-    get isScreen1() {
-        return this.currentScreen === 1;
+    const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
+    if (existingIndex > -1) {
+        this.answers.splice(existingIndex, 1, newAnswer);
+    } else {
+        this.answers.push(newAnswer);
     }
 
-    get isScreen2() {
-        return this.currentScreen === 2;
-    }
-
-    get screen1Questions() {
-        return this.questions[1] || [];
-    }
-
-    get screen2Questions() {
-        return this.questions[2] || [];
-    }
-
-    handleInputChange(event) {
-        const apiName = event.target.dataset.id;
-        const value = event.target.value || event.target.dataset.value;
-        const label = event.target.dataset.label || this.getLabelByApiName(apiName);
-        const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
-
-        const newAnswer = {
-            UniqueId: uniqueId,
-            label: label,
-            value: value
-        };
-
-        const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
-        if (existingIndex > -1) {
-            this.answers.splice(existingIndex, 1, newAnswer);
-        } else {
-            this.answers.push(newAnswer);
-        }
-
-        // Button styling (only for screen 2)
-        if (this.isScreen2) {
-            const question = this.screen2Questions.find(q => q.apiName === apiName);
-            if (question) {
-                question.yesVariant = value === 'Yes' ? 'brand' : 'neutral';
-                question.noVariant = value === 'No' ? 'brand' : 'neutral';
-            }
-        }
-
-        console.log('answers:', JSON.stringify(this.answers, null, 2));
-        this.validateRequired();
-    }
-
-    validateRequired() {
-        const currentQuestions = this.questions[this.currentScreen] || [];
-        const requiredQuestions = currentQuestions.filter(q => q.required);
-
-        const allAnswered = requiredQuestions.every(q => {
-            const uniqueId = `${this.surveyType}_${this.caseId}_${q.apiName}_${this.currentScreen}`;
-            const answerObj = this.answers.find(a => a.UniqueId === uniqueId);
-            return answerObj && answerObj.value !== undefined && answerObj.value !== null && answerObj.value !== '';
-        });
-
-        this.isNextDisabled = !allAnswered;
-    }
-
-    handleNext() {
-        if (this.currentScreen < 5) {
-            this.currentScreen++;
-            this.isNextDisabled = true;
+    if (this.isScreen2 && Array.isArray(this.screen2Questions)) {
+        const question = this.screen2Questions.find(q => q.apiName === apiName);
+        if (question) {
+            question.yesVariant = value === 'Yes' ? 'brand' : 'neutral';
+            question.noVariant = value === 'No' ? 'brand' : 'neutral';
         }
     }
 
-    getLabelByApiName(apiName) {
-        const allQuestions = Object.values(this.questions).flat();
-        const found = allQuestions.find(q => q.apiName === apiName);
-        return found ? found.label : '';
-    }
+    console.log('answers:', JSON.stringify(this.answers, null, 2));
+    this.validateRequired();
 }
