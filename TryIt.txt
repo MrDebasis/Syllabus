@@ -1,3 +1,36 @@
+import { LightningElement,api,track } from 'lwc';
+
+export default class PspApheresisSurveyLWCComp extends LightningElement {
+   @api caseId = '';
+    @api surveyType = '';
+    @api questions = []; // { "1": [..], "2": [..] }
+    @track answers = []; // Array of { UniqueId, label, value }
+    @track isNextDisabled = true;
+    @track currentScreen = 1;
+
+    get isScreen1() {
+        return this.currentScreen === 1;
+    }
+
+    get isScreen2() {
+        return this.currentScreen === 2;
+    }
+    get isScreen3() {
+        return this.currentScreen === 3;
+    }
+
+
+    get screen1Questions() {
+        return this.questions[this.currentScreen] || [];
+    }
+
+    get screen2Questions() {
+        return this.questions[this.currentScreen] || [];
+    }
+     get screen3Questions() {
+        return this.questions[this.currentScreen][0] || [];
+    }
+
 handleInputChange(event) {
     const apiName = event.target.dataset.id;
     const value = event.target.value || event.target.dataset.value;
@@ -17,14 +50,116 @@ handleInputChange(event) {
         this.answers.push(newAnswer);
     }
 
-    if (this.isScreen2 && Array.isArray(this.screen2Questions)) {
-        const question = this.screen2Questions.find(q => q.apiName === apiName);
-        if (question) {
-            question.yesVariant = value === 'Yes' ? 'brand' : 'neutral';
-            question.noVariant = value === 'No' ? 'brand' : 'neutral';
-        }
-    }
 
     console.log('answers:', JSON.stringify(this.answers, null, 2));
     this.validateRequired();
 }
+
+    validateRequired() {
+        const currentQuestions = this.questions[this.currentScreen] || [];
+        const requiredQuestions = currentQuestions.filter(q => q.required);
+
+        const allAnswered = requiredQuestions.every(q => {
+            const uniqueId = `${this.surveyType}_${this.caseId}_${q.apiName}_${this.currentScreen}`;
+            const answerObj = this.answers.find(a => a.UniqueId === uniqueId);
+            return answerObj && answerObj.value !== undefined && answerObj.value !== null && answerObj.value !== '';
+        });
+
+        this.isNextDisabled = !allAnswered;
+    }
+
+    handleNext() {
+        if (this.currentScreen < 5) {
+            this.currentScreen++;
+            this.isNextDisabled = true;
+        }
+    }
+
+    getLabelByApiName(apiName) {
+        const allQuestions = Object.values(this.questions).flat();
+        const found = allQuestions.find(q => q.apiName === apiName);
+        return found ? found.label : '';
+    }
+}
+
+<template>
+    <!-- Screen 1: Date Inputs -->
+    <template if:true={isScreen1}>
+        <template for:each={screen1Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <lightning-input 
+                    type="date"
+                    data-id={q.apiName}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </div>
+        </template>
+    </template>
+
+    <!-- Screen 2: Yes/No Buttons -->
+    <template if:true={isScreen2}>
+        <template for:each={screen2Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                       >
+                    </lightning-button>
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+        <!-- Screen 2: Yes/No Buttons -->
+    <template if:true={isScreen3}>
+        <template for:each={screen3Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                       >
+                    </lightning-button>
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                    <lightning-button
+                        label="Not sure yet"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Not sure yet"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+    <!-- Navigation -->
+    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+</template>
