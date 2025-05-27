@@ -1,17 +1,82 @@
+<!-- DynamicTripDates.html -->
 <template if:true={tripDatesSection}>
-                <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
-                        Arrival Date     <lightning-input 
-                    type="date"
-                    data-id={q.apiName}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
+  <div>
+    <label>{q.label}*</label>
 
-                         dEPARTURE  Date     <lightning-input 
-                    type="date"
-                    data-id={q.apiName}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
-                <div>OPEN DATE SECTION</div>
-        </template>
+    <template for:each={tripDatePairs} for:item="pair" for:index="index">
+      <div key={index} class="s-date-pair">
+        <lightning-input
+          type="date"
+          label="Arrival Date"
+          data-index={index}
+          data-field="arrival"
+          data-id={q.apiName}
+          value={pair.arrival}
+          onchange={handleTripDateChange}
+          required={q.required}
+        ></lightning-input>
+
+        <lightning-input
+          type="date"
+          label="Departure Date"
+          data-index={index}
+          data-field="departure"
+          data-id={q.apiName}
+          value={pair.departure}
+          onchange={handleTripDateChange}
+          required={q.required}
+        ></lightning-input>
+      </div>
+    </template>
+
+    <lightning-button
+      variant="brand-outline"
+      label="+ Add More Dates"
+      onclick={handleAddTripDate}
+    ></lightning-button>
+  </div>
+</template>
+
+
+ @api q; // your question object with apiName, label, required
+ @track tripDatePairs = [{ arrival: '', departure: '' }];
+
+ handleTripDateChange(event) {
+    const index = event.target.dataset.index;
+    const field = event.target.dataset.field;
+    const value = event.target.value;
+    const apiName = event.target.dataset.id;
+
+    this.tripDatePairs[index][field] = value;
+
+    // Save or update answer
+    this.saveAnswer(apiName, this.q.label, [...this.tripDatePairs]);
+  }
+
+  // Add new arrival/departure pair
+  handleAddTripDate() {
+    this.tripDatePairs = [...this.tripDatePairs, { arrival: '', departure: '' }];
+    this.saveAnswer(this.q.apiName, this.q.label, [...this.tripDatePairs]);
+  }
+
+  // Save answer in `answers` array (unique per question + screen)
+  saveAnswer(apiName, label, value) {
+    const UniqueId = `${this.surveyType}_${this.caseId}_${apiName}`;
+    const existingIndex = this.answers.findIndex((a) => a.UniqueId === UniqueId);
+    const newAnswer = {
+      UniqueId,
+      label,
+      value: JSON.stringify(value)
+    };
+
+    if (existingIndex > -1) {
+      this.answers.splice(existingIndex, 1, newAnswer);
+    } else {
+      this.answers.push(newAnswer);
+    }
+
+    // Optional: dispatch updated answer to parent
+    this.dispatchEvent(new CustomEvent('answerupdate', {
+      detail: { answers: this.answers }
+    }));
+  }
