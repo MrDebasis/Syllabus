@@ -1,4 +1,130 @@
-import { LightningElement, api, track } from 'lwc';
+<template>
+    <!-- Screen 1: Date Inputs -->
+    <template if:true={isScreen1}>
+        <template for:each={screen1Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <lightning-input 
+                    type="date"
+                    data-id={q.apiName}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </div>
+        </template>
+    </template>
+
+    <!-- Screen 2: Yes/No Buttons -->
+    <template if:true={isScreen2}>
+        <template for:each={screen2Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                       >
+                    </lightning-button>
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+        <!-- Screen 3:  -->
+    <template if:true={isScreen3}>
+        <template for:each={screen3Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                       >
+                    </lightning-button>
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                    <lightning-button
+                        label="Not sure yet"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Not sure yet"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+    <template if:true={isScreen3}>
+           <template if:true={tripDatesSection}>
+    <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
+    <template for:each={dateList} for:item="item">
+        <div key={item.id} class="slds-box slds-m-top_small">
+            <lightning-input type="date" label="Arrival Date"
+                value={item.arrivalDate}
+                data-id={item.id}
+                data-type="arrival"
+                onchange={handleDateChange}>
+            </lightning-input>
+            <lightning-input type="date" label="Departure Date"
+                value={item.departureDate}
+                data-id={item.id}
+                data-type="departure"
+                onchange={handleDateChange}>
+            </lightning-input>
+        </div>
+    </template>
+
+    <div class="slds-m-top_medium">
+        <lightning-button label="Add Dates" onclick={addDateFields} class="slds-m-right_small"></lightning-button>
+    </div>
+</template>
+</template>
+
+ <template if:true={isScreen3}>
+    <template if:true={isNotSureYetSelected}>
+          <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
+           <lightning-input type="date" label=""
+                value={item.arrivalDate}
+                data-id={item.id}
+                data-type="arrival"
+                onchange={handleDateChange}>
+            </lightning-input>
+ </template>
+ </template>
+
+ <template if:true={isScreen4}>
+<label>Thank you for your response!</label>
+<div>We appreciate your support in helping us coordinate timely patient care.</div>
+ </template>
+
+    <!-- Navigation -->
+    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+</template>
+
+
+import { LightningElement,api,track } from 'lwc';
 
 export default class PspApheresisSurveyLWCComp extends LightningElement {
     @api caseId = '';
@@ -24,6 +150,9 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
         return this.currentScreen === 3;
     }
 
+    get isScreen4() {
+        return this.currentScreen === 4;
+    }
     get screen1Questions() {
         return this.questions[this.currentScreen] || [];
     }
@@ -36,6 +165,7 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
         return this.questions[this.currentScreen] || [];
     }
 
+    @track isNotSureYetSelected = false;
     handleInputChange(event) {
         const apiName = event.target.dataset.id;
         const value = event.target.value || event.target.dataset.value;
@@ -61,6 +191,12 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
             this.tripDatesSection = true;
         } else {
             this.tripDatesSection = false;
+        }
+
+        if (this.isScreen3 && label === 'Will the patient receive bridging therapy at your certified treatment center?*' && value === 'Not sure yet') {
+            this.isNotSureYetSelected = true;
+        } else {
+            this.isNotSureYetSelected = false;
         }
     }
 
@@ -136,30 +272,7 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
             };
             this.answers.push(arrivalAnswer, departureAnswer);
         });
+  this.isNextDisabled = false;
+        console.log('Answers after storing dates:', JSON.stringify(this.answers, null, 2));
     }
 }
-
-
-<template if:true={tripDatesSection}>
-    <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
-    <template for:each={dateList} for:item="item">
-        <div key={item.id} class="slds-box slds-m-top_small">
-            <lightning-input type="date" label="Arrival Date"
-                value={item.arrivalDate}
-                data-id={item.id}
-                data-type="arrival"
-                onchange={handleDateChange}>
-            </lightning-input>
-            <lightning-input type="date" label="Departure Date"
-                value={item.departureDate}
-                data-id={item.id}
-                data-type="departure"
-                onchange={handleDateChange}>
-            </lightning-input>
-        </div>
-    </template>
-
-    <div class="slds-m-top_medium">
-        <lightning-button label="Add Dates" onclick={addDateFields} class="slds-m-right_small"></lightning-button>
-    </div>
-</template>
