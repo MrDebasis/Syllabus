@@ -1,10 +1,216 @@
-<!-- DynamicTripDates.html -->
-<template if:true={tripDatesSection}>
+import { LightningElement,api,track } from 'lwc';
+
+export default class PspApheresisSurveyLWCComp extends LightningElement {
+   @api caseId = '';
+    @api surveyType = '';
+    @api questions = []; // { "1": [..], "2": [..] }
+    @track answers = []; // Array of { UniqueId, label, value }
+    @track isNextDisabled = true;
+    @track currentScreen = 1;
+
+    get isScreen1() {
+        return this.currentScreen === 1;
+    }
+
+    get isScreen2() {
+        return this.currentScreen === 2;
+    }
+    get isScreen3() {
+        return this.currentScreen === 3;
+    }
+
+
+    get screen1Questions() {
+        return this.questions[this.currentScreen] || [];
+    }
+
+    get screen2Questions() {
+        return this.questions[this.currentScreen] || [];
+    }
+     get screen3Questions() {
+        return this.questions[this.currentScreen]|| [];
+    }
+
+    @track tripDatesSection = false;
+handleInputChange(event) {
+    const apiName = event.target.dataset.id;
+    const value = event.target.value || event.target.dataset.value;
+    const label = event.target.dataset.label || this.getLabelByApiName(apiName);
+    const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
+
+    const newAnswer = {
+        UniqueId: uniqueId,
+        label: label,
+        value: value
+    };
+
+    const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
+    if (existingIndex > -1) {
+        this.answers.splice(existingIndex, 1, newAnswer);
+    } else {
+        this.answers.push(newAnswer);
+    }
+
+
+    console.log('answers:', JSON.stringify(this.answers, null, 2));
+    this.validateRequired();
+
+    if(this.isScreen3 && label === 'Will the patient receive bridging therapy at your certified treatment center?*' && value === 'Yes') {
+        this.tripDatesSection = true;
+    } else {
+        this.tripDatesSection = false;
+    }
+}
+
+    validateRequired() {
+        const currentQuestions = this.questions[this.currentScreen] || [];
+        const requiredQuestions = currentQuestions.filter(q => q.required);
+
+        const allAnswered = requiredQuestions.every(q => {
+            const uniqueId = `${this.surveyType}_${this.caseId}_${q.apiName}_${this.currentScreen}`;
+            const answerObj = this.answers.find(a => a.UniqueId === uniqueId);
+            return answerObj && answerObj.value !== undefined && answerObj.value !== null && answerObj.value !== '';
+        });
+
+        this.isNextDisabled = !allAnswered;
+    }
+
+    handleNext() {
+        if (this.currentScreen < 5) {
+            this.currentScreen++;
+            this.isNextDisabled = true;
+        }
+    }
+
+    getLabelByApiName(apiName) {
+        const allQuestions = Object.values(this.questions).flat();
+        const found = allQuestions.find(q => q.apiName === apiName);
+        return found ? found.label : '';
+    }
+
+  
+ @track tripDatePairs = [{ arrival: '', departure: '' }];
+
+ handleTripDateChange(event) {
+    const index = event.target.dataset.index;
+    const field = event.target.dataset.field;
+    const value = event.target.value;
+    const apiName = event.target.dataset.id;
+
+    this.tripDatePairs[index][field] = value;
+
+    // Save or update answer
+    this.saveAnswer(apiName, this.questions.label, [...this.tripDatePairs]);
+  }
+
+  // Add new arrival/departure pair
+  handleAddTripDate() {
+    this.tripDatePairs = [...this.tripDatePairs, { arrival: '', departure: '' }];
+    this.saveAnswer(this.questions.apiName, this.questions.label, [...this.tripDatePairs]);
+  }
+
+  // Save answer in `answers` array (unique per question + screen)
+  saveAnswer(apiName, label, value) {
+    const UniqueId = `${this.surveyType}_${this.caseId}_${apiName}`;
+    const existingIndex = this.answers.findIndex((a) => a.UniqueId === UniqueId);
+    const newAnswer = {
+      UniqueId,
+      label,
+      value: JSON.stringify(value)
+    };
+
+    if (existingIndex > -1) {
+      this.answers.splice(existingIndex, 1, newAnswer);
+    } else {
+      this.answers.push(newAnswer);
+    }
+  }
+}
+<template>
+    <!-- Screen 1: Date Inputs -->
+    <template if:true={isScreen1}>
+        <template for:each={screen1Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <lightning-input 
+                    type="date"
+                    data-id={q.apiName}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </div>
+        </template>
+    </template>
+
+    <!-- Screen 2: Yes/No Buttons -->
+    <template if:true={isScreen2}>
+        <template for:each={screen2Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                       >
+                    </lightning-button>
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+        <!-- Screen 3:  -->
+    <template if:true={isScreen3}>
+        <template for:each={screen3Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button
+                        label="Yes"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Yes"
+                        onclick={handleInputChange}
+                       >
+                    </lightning-button>
+                    <lightning-button
+                        label="No"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="No"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                    <lightning-button
+                        label="Not sure yet"
+                        data-id={q.apiName}
+                        data-label={q.label}
+                        data-value="Not sure yet"
+                        onclick={handleInputChange}
+                        >
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+            
+
+    <template if:true={tripDatesSection}>
   <div>
     <label>{q.label}*</label>
 
     <template for:each={tripDatePairs} for:item="pair" for:index="index">
-      <div key={index} class="s-date-pair">
+      <div key={pair.id} class="s-date-pair">
         <lightning-input
           type="date"
           label="Arrival Date"
@@ -37,46 +243,6 @@
   </div>
 </template>
 
-
- @api q; // your question object with apiName, label, required
- @track tripDatePairs = [{ arrival: '', departure: '' }];
-
- handleTripDateChange(event) {
-    const index = event.target.dataset.index;
-    const field = event.target.dataset.field;
-    const value = event.target.value;
-    const apiName = event.target.dataset.id;
-
-    this.tripDatePairs[index][field] = value;
-
-    // Save or update answer
-    this.saveAnswer(apiName, this.q.label, [...this.tripDatePairs]);
-  }
-
-  // Add new arrival/departure pair
-  handleAddTripDate() {
-    this.tripDatePairs = [...this.tripDatePairs, { arrival: '', departure: '' }];
-    this.saveAnswer(this.q.apiName, this.q.label, [...this.tripDatePairs]);
-  }
-
-  // Save answer in `answers` array (unique per question + screen)
-  saveAnswer(apiName, label, value) {
-    const UniqueId = `${this.surveyType}_${this.caseId}_${apiName}`;
-    const existingIndex = this.answers.findIndex((a) => a.UniqueId === UniqueId);
-    const newAnswer = {
-      UniqueId,
-      label,
-      value: JSON.stringify(value)
-    };
-
-    if (existingIndex > -1) {
-      this.answers.splice(existingIndex, 1, newAnswer);
-    } else {
-      this.answers.push(newAnswer);
-    }
-
-    // Optional: dispatch updated answer to parent
-    this.dispatchEvent(new CustomEvent('answerupdate', {
-      detail: { answers: this.answers }
-    }));
-  }
+    <!-- Navigation -->
+    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+</template>
