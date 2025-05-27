@@ -1,12 +1,16 @@
-import { LightningElement,api,track } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 
 export default class PspApheresisSurveyLWCComp extends LightningElement {
-   @api caseId = '';
+    @api caseId = '';
     @api surveyType = '';
-    @api questions = []; // { "1": [..], "2": [..] }
-    @track answers = []; // Array of { UniqueId, label, value }
+    @api questions = [];
+    @track answers = [];
     @track isNextDisabled = true;
     @track currentScreen = 1;
+
+    @track tripDatesSection = false;
+    @track dateList = [{ id: 1, arrivalDate: '', departureDate: '' }];
+    nextId = 2;
 
     get isScreen1() {
         return this.currentScreen === 1;
@@ -15,10 +19,10 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
     get isScreen2() {
         return this.currentScreen === 2;
     }
+
     get isScreen3() {
         return this.currentScreen === 3;
     }
-
 
     get screen1Questions() {
         return this.questions[this.currentScreen] || [];
@@ -27,40 +31,38 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
     get screen2Questions() {
         return this.questions[this.currentScreen] || [];
     }
-     get screen3Questions() {
-        return this.questions[this.currentScreen]|| [];
+
+    get screen3Questions() {
+        return this.questions[this.currentScreen] || [];
     }
 
-    @track tripDatesSection = false;
-handleInputChange(event) {
-    const apiName = event.target.dataset.id;
-    const value = event.target.value || event.target.dataset.value;
-    const label = event.target.dataset.label || this.getLabelByApiName(apiName);
-    const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
+    handleInputChange(event) {
+        const apiName = event.target.dataset.id;
+        const value = event.target.value || event.target.dataset.value;
+        const label = event.target.dataset.label || this.getLabelByApiName(apiName);
+        const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
 
-    const newAnswer = {
-        UniqueId: uniqueId,
-        label: label,
-        value: value
-    };
+        const newAnswer = {
+            UniqueId: uniqueId,
+            label: label,
+            value: value
+        };
 
-    const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
-    if (existingIndex > -1) {
-        this.answers.splice(existingIndex, 1, newAnswer);
-    } else {
-        this.answers.push(newAnswer);
+        const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
+        if (existingIndex > -1) {
+            this.answers.splice(existingIndex, 1, newAnswer);
+        } else {
+            this.answers.push(newAnswer);
+        }
+
+        this.validateRequired();
+
+        if (this.isScreen3 && label === 'Will the patient receive bridging therapy at your certified treatment center?*' && value === 'Yes') {
+            this.tripDatesSection = true;
+        } else {
+            this.tripDatesSection = false;
+        }
     }
-
-
-    console.log('answers:', JSON.stringify(this.answers, null, 2));
-    this.validateRequired();
-
-    if(this.isScreen3 && label === 'Will the patient receive bridging therapy at your certified treatment center?*' && value === 'Yes') {
-        this.tripDatesSection = true;
-    } else {
-        this.tripDatesSection = false;
-    }
-}
 
     validateRequired() {
         const currentQuestions = this.questions[this.currentScreen] || [];
@@ -88,13 +90,6 @@ handleInputChange(event) {
         return found ? found.label : '';
     }
 
-      @track dateList = [
-        { id: 1, arrivalDate: '', departureDate: '' }
-    ];
-    @track jsonData;
-
-    nextId = 2;
-
     addDateFields() {
         this.dateList = [
             ...this.dateList,
@@ -116,113 +111,55 @@ handleInputChange(event) {
             }
             return item;
         });
+
+        this.storeDatesInAnswers();
     }
 
-    printData() {
-        // You can also send this data to Apex if needed
-        this.jsonData = JSON.stringify(this.dateList, null, 2);
-        console.log('Collected Dates:', this.dateList);
+    storeDatesInAnswers() {
+        const labelBase = 'Bridging Therapy Dates';
+        // Remove existing bridging therapy answers first
+        this.answers = this.answers.filter(a => !a.UniqueId.includes('BridgingTherapyDate'));
+
+        this.dateList.forEach((entry, index) => {
+            const priority = index + 1;
+            const arrivalAnswer = {
+                UniqueId: `BridgingTherapyDate_Arrival_${priority}`,
+                label: `${labelBase} - Arrival`,
+                value: entry.arrivalDate,
+                priority: this.dateList.length > 1 ? priority : undefined
+            };
+            const departureAnswer = {
+                UniqueId: `BridgingTherapyDate_Departure_${priority}`,
+                label: `${labelBase} - Departure`,
+                value: entry.departureDate,
+                priority: this.dateList.length > 1 ? priority : undefined
+            };
+            this.answers.push(arrivalAnswer, departureAnswer);
+        });
     }
 }
-<template>
-    <!-- Screen 1: Date Inputs -->
-    <template if:true={isScreen1}>
-        <template for:each={screen1Questions} for:item="q">
-            <div key={q.apiName} class="s-question">
-                <label>{q.label}</label>
-                <lightning-input 
-                    type="date"
-                    data-id={q.apiName}
-                    onchange={handleInputChange}
-                    required={q.required}>
-                </lightning-input>
-            </div>
-        </template>
+
+
+<template if:true={tripDatesSection}>
+    <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
+    <template for:each={dateList} for:item="item">
+        <div key={item.id} class="slds-box slds-m-top_small">
+            <lightning-input type="date" label="Arrival Date"
+                value={item.arrivalDate}
+                data-id={item.id}
+                data-type="arrival"
+                onchange={handleDateChange}>
+            </lightning-input>
+            <lightning-input type="date" label="Departure Date"
+                value={item.departureDate}
+                data-id={item.id}
+                data-type="departure"
+                onchange={handleDateChange}>
+            </lightning-input>
+        </div>
     </template>
 
-    <!-- Screen 2: Yes/No Buttons -->
-    <template if:true={isScreen2}>
-        <template for:each={screen2Questions} for:item="q">
-            <div key={q.apiName} class="s-question">
-                <label>{q.label}</label>
-                <div class="s-buttons">
-                    <lightning-button
-                        label="Yes"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="Yes"
-                        onclick={handleInputChange}
-                       >
-                    </lightning-button>
-                    <lightning-button
-                        label="No"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="No"
-                        onclick={handleInputChange}
-                        >
-                    </lightning-button>
-                </div>
-            </div>
-        </template>
-    </template>
-
-        <!-- Screen 3:  -->
-    <template if:true={isScreen3}>
-        <template for:each={screen3Questions} for:item="q">
-            <div key={q.apiName} class="s-question">
-                <label>{q.label}</label>
-                <div class="s-buttons">
-                    <lightning-button
-                        label="Yes"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="Yes"
-                        onclick={handleInputChange}
-                       >
-                    </lightning-button>
-                    <lightning-button
-                        label="No"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="No"
-                        onclick={handleInputChange}
-                        >
-                    </lightning-button>
-                    <lightning-button
-                        label="Not sure yet"
-                        data-id={q.apiName}
-                        data-label={q.label}
-                        data-value="Not sure yet"
-                        onclick={handleInputChange}
-                        >
-                    </lightning-button>
-                </div>
-            </div>
-        </template>
-    </template>
-            <template if:true={tripDatesSection}>
-                <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
-                      <template for:each={dateList} for:item="item" for:index="index">
-                <div key={item.id} class="slds-box slds-m-top_small">
-                    <lightning-input type="date" label="Arrival Date" value={item.arrivalDate} data-id={item.id} data-type="arrival" onchange={handleDateChange}></lightning-input>
-                    <lightning-input type="date" label="Departure Date" value={item.departureDate} data-id={item.id} data-type="departure" onchange={handleDateChange}></lightning-input>
-                </div>
-            </template>
-
-            <div class="slds-m-top_medium">
-                <lightning-button label="Add Dates" onclick={addDateFields} class="slds-m-right_small"></lightning-button>
-                <lightning-button label="Print Data" onclick={printData} variant="brand"></lightning-button>
-            </div>
-
-            <template if:true={jsonData}>
-                <div class="slds-m-top_medium">
-                    <p><strong>Collected Data:</strong></p>
-                    <pre>{jsonData}</pre>
-                </div>
-            </template>
-        </template>
-
-    <!-- Navigation -->
-    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+    <div class="slds-m-top_medium">
+        <lightning-button label="Add Dates" onclick={addDateFields} class="slds-m-right_small"></lightning-button>
+    </div>
 </template>
