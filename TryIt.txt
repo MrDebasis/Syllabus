@@ -1,10 +1,43 @@
+<template>
+    <!-- Screen 1 -->
+    <template if:true={isScreen1}>
+        <template for:each={screen1Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <lightning-input 
+                    type={q.type === 'Date' ? 'date' : 'text'}
+                    data-id={q.apiName}
+                    onchange={handleInputChange}
+                    required={q.required}>
+                </lightning-input>
+            </div>
+        </template>
+    </template>
+
+    <!-- Screen 2 -->
+    <template if:true={isScreen2}>
+        <template for:each={screen2Questions} for:item="q">
+            <div key={q.apiName} class="s-question">
+                <label>{q.label}</label>
+                <div class="s-buttons">
+                    <lightning-button variant={getButtonVariant(q.apiName, 'Yes')} label="Yes" onclick={handleOptionClick} data-id={q.apiName} data-value="Yes"></lightning-button>
+                    <lightning-button variant={getButtonVariant(q.apiName, 'No')} label="No" onclick={handleOptionClick} data-id={q.apiName} data-value="No"></lightning-button>
+                </div>
+            </div>
+        </template>
+    </template>
+
+    <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+</template>
+
+
 import { LightningElement, api, track } from 'lwc';
 
 export default class PspApheresisSurveyLWCComp extends LightningElement {
     @api caseId = '';
     @api surveyType = '';
-    @api questions = []; // Expected: object with keys like "1", "2", etc.
-    @track answers = []; // Array of { UniqueId, label, value }
+    @api questions = [];
+    @track answers = [];
     @track isNextDisabled = true;
     @track currentScreen = 1;
 
@@ -12,8 +45,16 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
         return this.currentScreen === 1;
     }
 
+    get isScreen2() {
+        return this.currentScreen === 2;
+    }
+
     get screen1Questions() {
-        return this.questions[this.currentScreen];
+        return this.questions[1]; // hardcoded keys as number for simplicity
+    }
+
+    get screen2Questions() {
+        return this.questions[2];
     }
 
     handleInputChange(event) {
@@ -26,31 +67,51 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
         const label = question.label;
         const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
 
-        // Check if already exists
-        const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
-
-        const newAnswer = {
-            UniqueId: uniqueId,
-            label: label,
-            value: value
-        };
-
-        if (existingIndex > -1) {
-            this.answers.splice(existingIndex, 1, newAnswer); // update existing
-        } else {
-            this.answers.push(newAnswer); // add new
-        }
-
-        console.log('answers:', JSON.stringify(this.answers, null, 2));
+        this.upsertAnswer(uniqueId, label, value);
         this.validateRequired();
     }
 
+    handleOptionClick(event) {
+        const apiName = event.currentTarget.dataset.id;
+        const value = event.currentTarget.dataset.value;
+
+        const question = this.screen2Questions.find(q => q.apiName === apiName);
+        if (!question) return;
+
+        const label = question.label;
+        const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
+
+        this.upsertAnswer(uniqueId, label, value);
+        this.validateRequired();
+    }
+
+    upsertAnswer(uniqueId, label, value) {
+        const index = this.answers.findIndex(ans => ans.UniqueId === uniqueId);
+        const newAnswer = { UniqueId: uniqueId, label, value };
+
+        if (index > -1) {
+            this.answers.splice(index, 1, newAnswer);
+        } else {
+            this.answers.push(newAnswer);
+        }
+
+        console.log('Answers:', JSON.stringify(this.answers, null, 2));
+    }
+
+    getButtonVariant(apiName, value) {
+        const uniqueId = `${this.surveyType}_${this.caseId}_${apiName}_${this.currentScreen}`;
+        const answer = this.answers.find(ans => ans.UniqueId === uniqueId);
+        return answer && answer.value === value ? 'brand' : 'neutral';
+    }
+
     validateRequired() {
-        const requiredQuestions = this.screen1Questions.filter(q => q.required);
+        const currentQuestions = this.questions[this.currentScreen];
+        const requiredQuestions = currentQuestions.filter(q => q.required);
+
         const allAnswered = requiredQuestions.every(q => {
             const uniqueId = `${this.surveyType}_${this.caseId}_${q.apiName}_${this.currentScreen}`;
             const answerObj = this.answers.find(a => a.UniqueId === uniqueId);
-            return answerObj && answerObj.value !== undefined && answerObj.value !== null && answerObj.value !== '';
+            return answerObj && answerObj.value !== undefined && answerObj.value !== '';
         });
 
         this.isNextDisabled = !allAnswered;
@@ -59,7 +120,7 @@ export default class PspApheresisSurveyLWCComp extends LightningElement {
     handleNext() {
         if (this.currentScreen < 5) {
             this.currentScreen++;
-            this.isNextDisabled = true; // Reset for next screen
+            this.isNextDisabled = true; // reset for next screen
         }
     }
 }
