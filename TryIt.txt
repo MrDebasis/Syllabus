@@ -1,35 +1,39 @@
-<template if:true={isNotSureYetSelected}>
-    <label>When should we check back in to confirm if bridging therapy will be needed?*</label>
-    <lightning-input type="date"
-        value={notSureYetDate}
-        onchange={handleNotSureDateChange}>
-    </lightning-input>
-</template>
-
-
-
-@track notSureYetDate = '';
-
-handleNotSureDateChange(event) {
-    this.notSureYetDate = event.target.value;
-
-    // Store the date in answers
-    const uniqueId = 'BridgingTherapyDate_NotSureYet';
-    const label = 'Bridging Therapy Not Sure Yet - Follow Up Date';
-
-    const newAnswer = {
-        UniqueId: uniqueId,
-        label: label,
-        value: this.notSureYetDate
-    };
-
-    const existingIndex = this.answers.findIndex(a => a.UniqueId === uniqueId);
-    if (existingIndex > -1) {
-        this.answers.splice(existingIndex, 1, newAnswer);
-    } else {
-        this.answers.push(newAnswer);
-    }
-
-    this.isNextDisabled = !this.notSureYetDate;
-    console.log('Not Sure Yet Date stored:', newAnswer);
-}
+ [
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q1",
+    "label": "When is the apheresis appointment date for Order # [Order Number]?*",
+    "value": "2025-05-09"
+  },
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q2",
+    "label": "What day should the patient arrive for their apheresis appointment?*",
+    "value": "2025-05-01"
+  },
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q3",
+    "label": "What day should the patient depart?*",
+    "value": "2025-05-07"
+  },
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q4",
+    "label": "Are the dates provided related to CARVYKTI® treatment?*",
+    "value": "Yes"
+  },
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q5",
+    "label": "Will the patient receive bridging therapy at your certified treatment center?*",
+    "value": "Yes"
+  },
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q6_Arrival_1",
+    "label": "When should we check back in to confirm if bridging therapy will be needed?* - Arrival",
+    "value": "2025-05-02",
+    "priority": 1
+  },
+  {
+    "UniqueId": "Apheresis_500xx00000000123_Q6_Departure_1",
+    "label": "When should we check back in to confirm if bridging therapy will be needed?* - Departure",
+    "value": "",
+    "priority": 1
+  }
+]
