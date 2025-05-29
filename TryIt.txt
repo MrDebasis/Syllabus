@@ -1,4 +1,14 @@
- [
+Case__c	
+ResponsePayload__c
+ArrivalDate__c
+DepartureDate__c
+SurveyType__c
+SurveyStatus__c
+UniqueId
+question label
+question value
+....
+[
   {
     "UniqueId": "Apheresis_500xx00000000123_Q1",
     "label": "When is the apheresis appointment date for Order # [Order Number]?*",
