@@ -9,8 +9,11 @@ public with sharing class MilestoneController {
                 uniqueIds.add(wrap.UniqueId);
             }
 
-            // Get the record type ID for 'PatientPortalSurvey'
-            Id recordTypeId = Schema.SObjectType.PatientSupportMilestone__c.getRecordTypeInfosByName().get('PatientPortalSurvey').getRecordTypeId();
+            // Get record type ID
+            Id recordTypeId = Schema.SObjectType.PatientSupportMilestone__c
+                .getRecordTypeInfosByName()
+                .get('PatientPortalSurvey')
+                .getRecordTypeId();
 
             // Query existing milestones
             Map<String, PatientSupportMilestone__c> existingMap = new Map<String, PatientSupportMilestone__c>();
@@ -39,6 +42,7 @@ public with sharing class MilestoneController {
                     record.RecordTypeId = recordTypeId;
                 }
 
+                // Overwrite values from incoming payload
                 record.Question__c = wrapper.label;
                 record.SurveyStatus__c = 'Completed';
 
@@ -48,11 +52,16 @@ public with sharing class MilestoneController {
 
                     if (wrapper.label != null && wrapper.label.toLowerCase().contains('arrival')) {
                         record.ArrivalDate__c = Date.valueOf(wrapper.value);
+                        record.DepartureDate__c = null;
                     } else if (wrapper.label != null && wrapper.label.toLowerCase().contains('departure')) {
                         record.DepartureDate__c = Date.valueOf(wrapper.value);
+                        record.ArrivalDate__c = null;
                     }
                 } else {
+                    record.Priority__c = null;
                     record.QuestionValue__c = wrapper.value;
+                    record.ArrivalDate__c = null;
+                    record.DepartureDate__c = null;
                 }
 
                 recordsToUpsert.add(record);
