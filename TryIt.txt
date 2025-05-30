@@ -1,18 +1,19 @@
-and use this record type PatientPortalSurvey
-
-          @AuraEnabled
+public with sharing class MilestoneController {
+    @AuraEnabled
     public static void upsertMilestones(String payloadJson, Id caseId, String surveyType) {
         try {
             List<MilestoneWrapper> incomingList = (List<MilestoneWrapper>) JSON.deserialize(payloadJson, List<MilestoneWrapper>.class);
 
-            // Extract UniqueIds from incoming data
             Set<String> uniqueIds = new Set<String>();
             for (MilestoneWrapper wrap : incomingList) {
                 uniqueIds.add(wrap.UniqueId);
             }
 
-            // Query existing records based on CaseId, SurveyType__c, and UniqueId__c
-            Map<String, PatientSupportMilestone__c> existingMilestoneMap = new Map<String, PatientSupportMilestone__c>();
+            // Get the record type ID for 'PatientPortalSurvey'
+            Id recordTypeId = Schema.SObjectType.PatientSupportMilestone__c.getRecordTypeInfosByName().get('PatientPortalSurvey').getRecordTypeId();
+
+            // Query existing milestones
+            Map<String, PatientSupportMilestone__c> existingMap = new Map<String, PatientSupportMilestone__c>();
             for (PatientSupportMilestone__c ms : [
                 SELECT Id, UniqueId__c 
                 FROM PatientSupportMilestone__c 
@@ -20,7 +21,7 @@ and use this record type PatientPortalSurvey
                 AND SurveyType__c = :surveyType 
                 AND UniqueId__c IN :uniqueIds
             ]) {
-                existingMilestoneMap.put(ms.UniqueId__c, ms);
+                existingMap.put(ms.UniqueId__c, ms);
             }
 
             List<PatientSupportMilestone__c> recordsToUpsert = new List<PatientSupportMilestone__c>();
@@ -28,50 +29,46 @@ and use this record type PatientPortalSurvey
             for (MilestoneWrapper wrapper : incomingList) {
                 PatientSupportMilestone__c record;
 
-                if (existingMilestoneMap.containsKey(wrapper.UniqueId)) {
-                    // Update existing means what ever value is coming update the existing new values
-                    record = existingMilestoneMap.get(wrapper.UniqueId);
+                if (existingMap.containsKey(wrapper.UniqueId)) {
+                    record = existingMap.get(wrapper.UniqueId);
                 } else {
-                    // Create new
                     record = new PatientSupportMilestone__c();
                     record.Case__c = caseId;
                     record.SurveyType__c = surveyType;
                     record.UniqueId__c = wrapper.UniqueId;
+                    record.RecordTypeId = recordTypeId;
                 }
 
                 record.Question__c = wrapper.label;
-                record.QuestionValue__c = wrapper.value;
-                 record.SurveyStatus__c = 'Completed';
+                record.SurveyStatus__c = 'Completed';
 
-if priority is there then ArrivalDate__c
-DepartureDate__c update values here and QuestionValue__c shopuld be null, this is the data "{
-    "UniqueId": "Apheresis_500xx00000000123_Q6_Arrival_1",
-    "label": "When should we check back in to confirm if bridging therapy will be needed?* - Arrival",
-    "value": "2025-05-01",
-    "priority": 1
-  },
-  {
-    "UniqueId": "Apheresis_500xx00000000123_Q6_Departure_1",
-    "label": "When should we check back in to confirm if bridging therapy will be needed?* - Departure",
-    "value": "2025-05-03",
-    "priority": 1
-  }" a
-                if (wrapper.priority != null) {
-                    record.priority__c = wrapper.priority;
+                if (String.isNotBlank(wrapper.priority)) {
+                    record.Priority__c = Integer.valueOf(wrapper.priority);
+                    record.QuestionValue__c = null;
+
+                    if (wrapper.label != null && wrapper.label.toLowerCase().contains('arrival')) {
+                        record.ArrivalDate__c = Date.valueOf(wrapper.value);
+                    } else if (wrapper.label != null && wrapper.label.toLowerCase().contains('departure')) {
+                        record.DepartureDate__c = Date.valueOf(wrapper.value);
+                    }
+                } else {
+                    record.QuestionValue__c = wrapper.value;
                 }
 
                 recordsToUpsert.add(record);
             }
+
             upsert recordsToUpsert;
 
         } catch (Exception e) {
             throw new AuraHandledException('Error processing milestone data: ' + e.getMessage());
         }
     }
-    
-      public class MilestoneWrapper {
+
+    public class MilestoneWrapper {
         public String UniqueId;
         public String label;
         public String value;
         public String priority;
     }
+}
