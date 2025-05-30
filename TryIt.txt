@@ -104,4 +104,19 @@ public static void upsertMilestones(String payloadJson, Id caseId, String survey
 
         System.debug('Final records to upsert: ' + recordsToUpsert);
 
-        upsert records
+        upsert recordsToUpsert;
+
+        System.debug('Milestones upserted successfully.');
+
+    } catch (Exception e) {
+        System.debug('Error in upsertMilestones: ' + e.getMessage());
+        throw new AuraHandledException('Error processing milestone data: ' + e.getMessage());
+    }
+}
+
+public class MilestoneWrapper {
+    public String UniqueId;
+    public String label;
+    public String value;
+    public String priority;
+}
