@@ -1,1 +1,5 @@
-Error processing milestone data: Upsert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: 500KS000001cW76: []"
+ @AuraEnabled
+    public static void upsertMilestones( Id caseId, String surveyType) {
+     List<PatientSupportMilestone__c> lstOfSurveys =   [select id from PatientSupportMilestone__c
+         where Case__c =:caseId and RecordType.Name ='Patient Portal Survey' and SurveyType__c =:surveyType and SurveyStatus__c  = 'Completed'];
+    }
