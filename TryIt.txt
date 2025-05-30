@@ -1,6 +1,6 @@
 Final Answers JSON: [{"UniqueId":"Apheresis_500KS000001cW76YAE_Q1","label":"When is the apheresis appointment date for Order # ORD123?*","value":"2025-05-02"},{"UniqueId":"Apheresis_500KS000001cW76YAE_Q2","label":"What day should the patient arrive for their apheresis appointment?*","value":"2025-05-02"},{"UniqueId":"Apheresis_500KS000001cW76YAE_Q3","label":"What day should the patient depart?*","value":"2025-05-02"},{"UniqueId":"Apheresis_500KS000001cW76YAE_Q4","label":"Are the dates provided related to CARVYKTI® treatment?*","value":"Yes"},{"UniqueId":"Apheresis_500KS000001cW76YAE_Q5","label":"Will the patient receive bridging therapy at your certified treatment center?*","value":"Yes"},{"UniqueId":"Apheresis_500KS000001cW76YAE_Q6_Arrival_1","label":"When should we check back in to confirm if bridging therapy will be needed?* - Arrival","value":"2025-05-01","priority":1},{"UniqueId":"Apheresis_500KS000001cW76YAE_Q6_Departure_1","label":"When should we check back in to confirm if bridging therapy will be needed?* - Departure","value":"2025-05-02","priority":1}]
 
-
+Error processing milestone data: Attempt to de-reference a null object'
 handleSave() {
     const jsonString = JSON.stringify(this.answers);
     console.log( 'Final Answers JSON:', jsonString);
