@@ -1,1 +1,11 @@
+ <span onclick={addDateFields} class="add-more-dates">
+                    <span class="slds-p-left_medium"><lightning-icon icon-name="utility:add" alternative-text="Add More Dates" size="xx-small"></lightning-icon></span>
+                    <span class="slds-p-left_x-small">Add more dates</span>
+                </span>
 
+  addDateFields() {
+        this.dateList = [
+            ...this.dateList,
+            { id: this.nextId++, arrivalDate: '', departureDate: '' }
+        ];
+    }
