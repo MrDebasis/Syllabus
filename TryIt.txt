@@ -1,49 +1,89 @@
-Case__c	
-ResponsePayload__c
-ArrivalDate__c
-DepartureDate__c
-SurveyType__c
-SurveyStatus__c
-UniqueId
-question label
-question value
-....
-[
+public with sharing class MilestoneController {
+    @AuraEnabled
+    public static void upsertMilestones(String payloadJson, Id caseId, String surveyType) {
+        try {
+            List<MilestoneWrapper> incomingList = (List<MilestoneWrapper>) JSON.deserialize(payloadJson, List<MilestoneWrapper>.class);
+
+            // Extract UniqueIds from incoming data
+            Set<String> uniqueIds = new Set<String>();
+            for (MilestoneWrapper wrap : incomingList) {
+                uniqueIds.add(wrap.UniqueId);
+            }
+
+            // Query existing records based on CaseId, SurveyType__c, and UniqueId__c
+            Map<String, Milestone__c> existingMilestoneMap = new Map<String, Milestone__c>();
+            for (Milestone__c ms : [
+                SELECT Id, UniqueId__c 
+                FROM Milestone__c 
+                WHERE Case__c = :caseId 
+                AND SurveyType__c = :surveyType 
+                AND UniqueId__c IN :uniqueIds
+            ]) {
+                existingMilestoneMap.put(ms.UniqueId__c, ms);
+            }
+
+            List<Milestone__c> recordsToUpsert = new List<Milestone__c>();
+
+            for (MilestoneWrapper wrapper : incomingList) {
+                Milestone__c record;
+
+                if (existingMilestoneMap.containsKey(wrapper.UniqueId)) {
+                    // Update existing
+                    record = existingMilestoneMap.get(wrapper.UniqueId);
+                } else {
+                    // Create new
+                    record = new Milestone__c();
+                    record.Case__c = caseId;
+                    record.SurveyType__c = surveyType;
+                    record.UniqueId__c = wrapper.UniqueId;
+                }
+
+                record.Question_Label__c = wrapper.label;
+                record.Question_Value__c = wrapper.value;
+                if (wrapper.priority != null) {
+                    record.Priority__c = wrapper.priority;
+                }
+
+                recordsToUpsert.add(record);
+            }
+
+            // Now perform DML - will update existing or insert new records
+            upsert recordsToUpsert;
+
+        } catch (Exception e) {
+            throw new AuraHandledException('Error processing milestone data: ' + e.getMessage());
+        }
+    }
+
+    public class MilestoneWrapper {
+        public String UniqueId;
+        public String label;
+        public String value;
+        public Integer priority;
+    }
+}
+
+
+import upsertMilestones from '@salesforce/apex/MilestoneController.upsertMilestones';
+
+const payload = [
   {
-    "UniqueId": "Apheresis_500xx00000000123_Q1",
-    "label": "When is the apheresis appointment date for Order # [Order Number]?*",
-    "value": "2025-05-09"
+    UniqueId: "Apheresis_500xx00000000123_Q1",
+    label: "When is the apheresis appointment?",
+    value: "2025-05-09"
   },
   {
-    "UniqueId": "Apheresis_500xx00000000123_Q2",
-    "label": "What day should the patient arrive for their apheresis appointment?*",
-    "value": "2025-05-01"
-  },
-  {
-    "UniqueId": "Apheresis_500xx00000000123_Q3",
-    "label": "What day should the patient depart?*",
-    "value": "2025-05-07"
-  },
-  {
-    "UniqueId": "Apheresis_500xx00000000123_Q4",
-    "label": "Are the dates provided related to CARVYKTI® treatment?*",
-    "value": "Yes"
-  },
-  {
-    "UniqueId": "Apheresis_500xx00000000123_Q5",
-    "label": "Will the patient receive bridging therapy at your certified treatment center?*",
-    "value": "Yes"
-  },
-  {
-    "UniqueId": "Apheresis_500xx00000000123_Q6_Arrival_1",
-    "label": "When should we check back in to confirm if bridging therapy will be needed?* - Arrival",
-    "value": "2025-05-02",
-    "priority": 1
-  },
-  {
-    "UniqueId": "Apheresis_500xx00000000123_Q6_Departure_1",
-    "label": "When should we check back in to confirm if bridging therapy will be needed?* - Departure",
-    "value": "",
-    "priority": 1
+    UniqueId: "Apheresis_500xx00000000123_Q6_Departure_1",
+    label: "Departure?",
+    value: "",
+    priority: 1
   }
-]
+];
+
+upsertMilestones({
+  payloadJson: JSON.stringify(payload),
+  caseId: '500xx00000000123',       // Replace with actual Case Id
+  surveyType: 'Apheresis Survey'    // Replace with actual survey type
+})
+.then(() => console.log('Upsert complete'))
+.catch(error => console.error(error));
