@@ -1,44 +1,47 @@
-<template>
-  <div class="slds-p-around_medium">
-    <!-- Yes/No Question -->
-    <lightning-card title="Is the patient aware of the exceptional release?*">
-      <div class="slds-button-group" role="group">
-        <lightning-button
-          label="Yes"
-          class={yesButtonClass}
-          onclick={handleYes}>
-        </lightning-button>
-        <lightning-button
-          label="No"
-          class={noButtonClass}
-          onclick={handleNo}>
-        </lightning-button>
-      </div>
-    </lightning-card>
-
-    <!-- Follow-up question for Yes -->
-    <template if:true={yesSelected}>
-      <lightning-input
-        type="date"
-        label="When did the conversation occur between the patient and a member of the health care team?*"
-        value={yesDate}
-        onchange={handleYesDateChange}>
-      </lightning-input>
-    </template>
-
-    <!-- Follow-up question for No -->
-    <template if:true={noSelected}>
-      <lightning-input
-        type="date"
-        label="When should we follow up to confirm the patient’s awareness?*"
-        value={noDate}
-        onchange={handleNoDateChange}>
-      </lightning-input>
-    </template>
-
-    <!-- Next Button -->
-    <div class="slds-m-top_medium">
-      <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
-    </div>
+<lightning-card title="Is the patient aware of the exceptional release?*">
+  <div class="slds-button-group" role="group">
+    <lightning-button
+      label="Yes"
+      data-response="Yes"
+      class={yesButtonClass}
+      onclick={handleResponse}>
+    </lightning-button>
+    <lightning-button
+      label="No"
+      data-response="No"
+      class={noButtonClass}
+      onclick={handleResponse}>
+    </lightning-button>
   </div>
-</template>
+</lightning-card>
+
+
+import { LightningElement, track } from 'lwc';
+
+export default class YourComponent extends LightningElement {
+  @track yesButtonClass = 'slds-button';
+  @track noButtonClass = 'slds-button';
+
+  handleResponse(event) {
+    const response = event.currentTarget.dataset.response;
+
+    switch (response) {
+      case 'Yes':
+        this.yesButtonClass = 'slds-button slds-button_brand';
+        this.noButtonClass = 'slds-button';
+        break;
+
+      case 'No':
+        this.yesButtonClass = 'slds-button';
+        this.noButtonClass = 'slds-button slds-button_brand';
+        break;
+
+      default:
+        this.yesButtonClass = 'slds-button';
+        this.noButtonClass = 'slds-button';
+    }
+
+    // Optional: store selected value
+    this.selectedResponse = response;
+  }
+}
