@@ -1,27 +1,44 @@
-<lightning-card title="Is the patient aware of the exceptional release?*">
-  <div class="slds-button-group" role="group">
-    <lightning-button
-      label="Yes"
-      data-response="Yes"
-      class={yesButtonClass}
-      onclick={handleResponse}>
-    </lightning-button>
-    <lightning-button
-      label="No"
-      data-response="No"
-      class={noButtonClass}
-      onclick={handleResponse}>
-    </lightning-button>
-  </div>
-</lightning-card>
+use this pattern to store answers in each entry : 
+ const apiName = event.target.dataset.question; take from html
+
+UniqueId:  `${this.surveyType}_${this.caseId}_${apiName}`;,
+                label: `${questionLabel}`, //if needed add a attribute in html to get label
+                value: value,
+
+and thease there attributes in answer array ..if i update the same then update the value 
+
+these are my html and js code change accordingly 
+
+import { LightningElement,api,track } from 'lwc';
+
+export default class PspOutOfSpecSurveyLWCComp extends LightningElement {
+        @api caseId = '';
+        @api surveyType = '';
+        @api questions = [];
+        @track answers = [];
+        @track  _isNextDisabled = true;
+        @track currentScreen = 1;
 
 
-import { LightningElement, track } from 'lwc';
+         get isScreen1() {
+        return this.currentScreen === 1;
+    }
 
-export default class YourComponent extends LightningElement {
-  @track yesButtonClass = 'slds-button';
-  @track noButtonClass = 'slds-button';
+    get isScreen2() {
+        return this.currentScreen === 2;
+    }
 
+    get isScreen3() {
+        return this.currentScreen === 3;
+    }
+
+         @track yesButtonClass = 'slds-button';
+        @track noButtonClass = 'slds-button';
+
+        @track screen1_OnYes = false;
+        @track screen1_OnNo = false;
+        @track screen1_OnYes_value = '';
+        @track screen1_OnNo_value = '';
   handleResponse(event) {
     const response = event.currentTarget.dataset.response;
 
@@ -29,11 +46,23 @@ export default class YourComponent extends LightningElement {
       case 'Yes':
         this.yesButtonClass = 'slds-button slds-button_brand';
         this.noButtonClass = 'slds-button';
+
+        this.screen1_OnYes = true; 
+        this.screen1_OnYes_value =response;
+
+        this.screen1_OnNo = false; 
+        this.screen1_OnNo_value ='';
         break;
 
       case 'No':
         this.yesButtonClass = 'slds-button';
         this.noButtonClass = 'slds-button slds-button_brand';
+
+        this.screen1_OnNo = true; 
+        this.screen1_OnNo_value =response;
+
+        this.screen1_OnYes = false; 
+        this.screen1_OnYes_value ='';
         break;
 
       default:
@@ -41,7 +70,60 @@ export default class YourComponent extends LightningElement {
         this.noButtonClass = 'slds-button';
     }
 
+    console.log(`Response: ${response}`);
     // Optional: store selected value
     this.selectedResponse = response;
   }
 }
+
+<template>
+     <div>Out Of Spec Patient Survey</div>
+<template if:true={isScreen1}>
+ <lightning-card title="Is the patient aware of the exceptional release?*">
+  <div class="slds-button-group" role="group">
+    <lightning-button
+      label="Yes"
+      data-response="Yes"
+      data-question = "Q1"
+      value ={screen1_OnYes_value}
+      class={yesButtonClass}
+      onclick={handleResponse}>
+    </lightning-button>
+    <lightning-button
+      label="No"
+      data-response="No"
+      data-question = "Q1"
+      value ={screen1_OnNo_value}
+      class={noButtonClass}
+      onclick={handleResponse}>
+    </lightning-button>
+  </div>
+
+  <template if:true={screen1_OnYes}>
+    <div>When did the conversation occur between the patient and a member of the health care team?*</div>
+      <lightning-input type="date" 
+                            value=""
+                            data-id=""
+                            data-question = "Q2"
+                            onchange={handleDateChange}>
+                        </lightning-input>
+</template>
+
+  <template if:true={screen1_OnNo}>
+    <div>When should we follow up to confirm the patient’s awareness?*</div>
+      <lightning-input type="date" 
+                            value=""
+                            data-id=""
+                            data-question = "Q2"
+                            onchange={handleDateChange}>
+                        </lightning-input>
+</template>
+</lightning-card>
+</template>
+
+    <!-- Next Button -->
+    <div class="slds-m-top_medium">
+      <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+    </div>
+
+</template>
