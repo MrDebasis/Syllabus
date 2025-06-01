@@ -1,5 +1,44 @@
-Is the patient aware of the exceptional release?*
+<template>
+  <div class="slds-p-around_medium">
+    <!-- Yes/No Question -->
+    <lightning-card title="Is the patient aware of the exceptional release?*">
+      <div class="slds-button-group" role="group">
+        <lightning-button
+          label="Yes"
+          class={yesButtonClass}
+          onclick={handleYes}>
+        </lightning-button>
+        <lightning-button
+          label="No"
+          class={noButtonClass}
+          onclick={handleNo}>
+        </lightning-button>
+      </div>
+    </lightning-card>
 
-When did the conversation occur between the patient and a member of the health care team?*
+    <!-- Follow-up question for Yes -->
+    <template if:true={yesSelected}>
+      <lightning-input
+        type="date"
+        label="When did the conversation occur between the patient and a member of the health care team?*"
+        value={yesDate}
+        onchange={handleYesDateChange}>
+      </lightning-input>
+    </template>
 
-When should we follow up to confirm the patient’s awareness?*
+    <!-- Follow-up question for No -->
+    <template if:true={noSelected}>
+      <lightning-input
+        type="date"
+        label="When should we follow up to confirm the patient’s awareness?*"
+        value={noDate}
+        onchange={handleNoDateChange}>
+      </lightning-input>
+    </template>
+
+    <!-- Next Button -->
+    <div class="slds-m-top_medium">
+      <lightning-button label="Next" onclick={handleNext} disabled={isNextDisabled}></lightning-button>
+    </div>
+  </div>
+</template>
