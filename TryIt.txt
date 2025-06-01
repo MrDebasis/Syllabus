@@ -1,34 +1,5 @@
-import { LightningElement, track } from 'lwc';
+Is the patient aware of the exceptional release?*
 
-export default class AddDatesComponent extends LightningElement {
-    @track dateList = [];
-    nextId = 1;
+When did the conversation occur between the patient and a member of the health care team?*
 
-    addDateFields() {
-        if (this.dateList.length < 5) {
-            this.dateList = [
-                ...this.dateList,
-                { id: this.nextId++, arrivalDate: '', departureDate: '' }
-            ];
-        }
-    }
-
-    get addMoreDisabledStyle() {
-        return this.dateList.length >= 5 ? 'pointer-events: none; opacity: 0.5;' : '';
-    }
-}
-
-<span 
-    onclick={addDateFields} 
-    class="add-more-dates" 
-    style={addMoreDisabledStyle}
->
-    <span class="slds-p-left_medium">
-        <lightning-icon 
-            icon-name="utility:add" 
-            alternative-text="Add More Dates" 
-            size="xx-small"
-        ></lightning-icon>
-    </span>
-    <span class="slds-p-left_x-small">Add more dates</span>
-</span>
+When should we follow up to confirm the patient’s awareness?*
