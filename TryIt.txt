@@ -1,8 +1,1 @@
- <lightning-button
-        label="Yes"
-        data-response="INFUSION_DATES_YES"
-        data-lebel ="Are the infusion dates still the same?*"
-        data-question="Q3"
-        class=""
-        onclick={handleResponse}>
-      </lightning-button>
+https://help.salesforce.com/s/articleView?id=000382625&type=1&utm_source=chatgpt.com
